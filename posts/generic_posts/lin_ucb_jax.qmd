@@ -628,7 +628,7 @@ def plot_all_policy_diagnostics(diagnostics_summaries, figsize=(10, 20)):
         ax.grid()
         ax.legend()
     
-    return fig, axs
+    return fig
 ```
 
 ```{python}
@@ -636,7 +636,7 @@ def plot_all_policy_diagnostics(diagnostics_summaries, figsize=(10, 20)):
 diagnostics_summaries = compute_policy_diagnostics_summaries(
     diagnostics=diagnostics["policies"]
 )
-fig, axs = plot_all_policy_diagnostics(
+fig = plot_all_policy_diagnostics(
     diagnostics_summaries=diagnostics_summaries, 
     figsize=(10, 5)
 )
@@ -650,7 +650,7 @@ plt.show()
 #| code-summary: Show supplementary code
 #| vscode: {languageId: python}
 def plot_single_arm_parameters_dianoistics(arm, diagnostics, figsize, show_labels=True):
-    figure = plt.figure(figsize=figsize, tight_layout=True)
+    fig = plt.figure(figsize=figsize, tight_layout=True)
     grid = GridSpec(nrows=2, ncols=3)
 
     beta = diagnostics["b"][:, arm, :].squeeze()
