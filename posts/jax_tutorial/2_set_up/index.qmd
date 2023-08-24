@@ -1,0 +1,288 @@
+---
+title: "2 - Model specification and fitting"
+description: "This post introduces the general set-up that we will use in this tutorial for specifying models and fitting them to the data."
+author: "Valerio Bonometti"
+date: "2023-08-24"
+categories: [JAX Tutorial, model fitting, model building]
+jupyter: python3
+---
+```{python}
+#| code-fold: true
+#| code-summary: "Show supplementary code"
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+from jax.debug import print as jprint
+```
+
+In order to specify models in JAX we first need to figure out what are the core functionalities that we need to implement. We will focus on specific set of models that given an input $X$, a target $y$ and parameters $\theta$ aim to approximate functions of the form $f(X; \theta) \mapsto y$.
+
+What we need to specify are:
+
+1. Parameters-related functionalities:
+    - Storage, how to best keep records of our parameters.
+    - Initialisation, how to set our parameters to good starting points.
+    - Sharing, how to make the parameters available to the model.
+
+2. Model-related functionalities:
+    - Forward computations, how to move from an input to an estimate of the target.
+    - Objective computations, how to define suitable loss function along with any regularizing penalties.
+    - Backward computations, how to derive the gradient of the parameters with respect to the model's objective.
+
+3. Optimization-related functionalities:
+    - Optimization routines, how to find the optimal values for the parameters using suitable algorithms.
+    - Parameters update, how to use the information derived from the backward computations for updating the parameters.
+    - Fitting routines, how to connect the input, model and the optimization routines.
+
+We also need to make sure that while developing these functionalities we leverage the optimisations provided by JAX while avoiding its sharp edges.
+
+# Parameters-related Functionalities
+
+## Parameters Container
+
+The ideal way for storing parameters would be to create an immutable data structure (e.g., the named tuple example presented in our first post), registered as a pytree node, every time we need to update our parameters.
+
+In this and future posts we will adopt a much simpler although more intuitive strategy and store our parameters in a dictionary.
+
+```{python}
+from jax import numpy as jnp
+
+my_parameters = {}
+```
+
+The nice thing about dictionaries is that they are:
+
+1. Natively supported as a pytree.
+2. Easy to inspect.
+3. Naturally support nested structures.
+4. Easy to update using native JAX functionalities
+
+```{python}
+my_parameters["alpha"] = 1.
+
+# more complicated structure
+my_parameters["beta_1"] = {
+    0: jnp.arange(5),
+    1: jnp.arange(5, 10),
+    2: jnp.arange(10, 15)
+}
+my_parameters["beta_2"] = {
+    0: {
+        "beta_21": jnp.arange(5),
+        "beta_22": jnp.arange(5, 10),
+        "beta_23": jnp.arange(10, 15)
+    },
+    1: 4.,
+    2: 5.
+}
+```
+
+## Parameters Initialisation
+
+One of the first step when fitting a model to the data is to set the starting point for the optimization process for each of the considered parameters.
+
+We can achieve this by defining functions that implement specific initialisation strategies
+
+```{python}
+def ones(init_state, random_key):
+    """Initialise parameters with a vector of ones.
+
+    Args:
+        init_state (Tuple): state required to
+        initialise the parameters. For this initializer only the parameters shape is required
+
+        random_key (PRNG Key): random state used for generate the random numbers. Not used for this type of initialisation.
+
+    Returns:
+        param(DeviceArray): generated parameters
+    """
+    params_shape, _ = init_state
+    params = jnp.ones(shape=params_shape)
+    return params
+```
+
+one of the most straightforward strategies is to initialize all the parameters with the same constant value (a one in this case).
+
+In this case we our function requires an `init_state` tuple containing all the information necessaries for initializing the parameters and a `random_key` used for setting the state of the random number generator. In this case we really do not need any random behaviour but we keep the signature for keeping compatibility with other initialisation strategies.
+
+Another alternative is to generate starting values according to some statistical distribution, like a gaussian for instance
+
+```{python}
+from jax.random import PRNGKey
+from jax import random
+
+import seaborn as sns
+
+def random_gaussian(init_state, random_key, sigma=0.1):
+    """Initialize parameters with a vector of random numbers drawn from a normal distribution with mean 0 and std sigma.
+
+    Args:
+        init_state (Tuple): state required to
+        initialize the parameters. For this initializer only the parameters shape is required
+
+        random_key (PRNG Key): random state used for generate the random numbers.
+
+    Returns:
+        param(DeviceArray): generated parameters
+    """
+    params_shape, _ = init_state
+    params = random.normal(
+        key=random_key,
+        shape=params_shape
+    ) * sigma
+    return params
+
+master_key = PRNGKey(666)
+
+my_parameters = random_gaussian(
+    init_state=((100, 2), None),
+    random_key=master_key,
+    sigma=0.1
+    )
+
+grid = sns.jointplot(
+    x=my_parameters[:, 0],
+    y=my_parameters[:, 1],
+    kind="kde",
+    height=4
+)
+grid.ax_joint.set_ylabel("Parameter 2")
+grid.ax_joint.set_xlabel("Parameter 1")
+plt.show()
+```
+
+## Parameters Sharing
+
+Sharing the parameters at this point is better understood as part of a **state manipulation** process. What do we mean by this? If we were to perform parameters update within a an object oriented framework we might do something among these lines
+
+```{python}
+class Model:
+    def __init__(self):
+        self._parameters = np.array([0, 0, 0])
+
+    def add(self, x):
+        self._parameters += x
+
+    def subtract(self, x):
+        self._parameters -= x
+
+    def get_parameters(self):
+        return self._parameters
+
+model = Model()
+model.add(10)
+model.subtract(5)
+
+print(f"Updated Parameters {model.get_parameters()}")
+```
+
+the parameters are part of the state of `Model` an get updated according to the behavior of `add` and `subtract`.
+
+Since in JAX we have to stick to pure functions as much as we can, a viable option is to consider `parameters` as a state that is passed through a chain of transformation
+
+```{python}
+from jax import jit
+
+def parameters_init():
+    return jnp.array([0., 0., 0.])
+
+@jit
+def add(parameters, x):
+    return parameters + x
+
+@jit
+def subtract(parameters, x):
+    return parameters - x
+
+parameters = parameters_init()
+# parameters are passed to transformations
+# and returned modified
+parameters = add(parameters=parameters, x=10.)
+parameters = subtract(parameters=parameters, x=5.)
+
+print(f"Updated Parameters {parameters}")
+```
+
+differently from the previous example, here the state (i.e., `parameters`) is made explicit and passed as argument to the functions in charge of doing the transformations.
+
+# Model-related Functionalities
+
+Now that we have outlined how to generate, store and share parameters we must focus on the scaffolding describing the transformations performed by our model.
+
+For the sake of simplicity we will use [closures](https://realpython.com/inner-functions-what-are-they-good-for/) for being compliant with the functional requirements of JAX. We are aware that this might not be the optimal solution but it works just fine for the didactic purpose of this post. So let's see how we would structure our closure
+
+```{python}
+from jax import jit
+
+def model(X, prng):
+
+    @jit
+    def init_params(X):
+        pass
+
+    @jit
+    def forward(X, current_state):
+        pass
+
+    @jit
+    def backward(X, y, current_state):
+
+        @jit
+        def compute_loss(y, y_hat):
+            pass
+
+        pass
+
+    return init_params, forward, backward
+```
+
+In this case our `model` function would take a set of parameters (these are supposed to be constant and used by all the downstream functions) and return a collection functions in charge of performing parameters initialisation, forward and backward computations.
+
+Let's now go in more details of these specific functions.
+
+## Forward Computations
+
+The `forward` functions is in charge
+
+```{python}
+@jit
+def forward(X, current_state):
+    """
+    """
+    current_params, random_state = current_state
+    beta = current_params["beta"]
+    alphas = current_params["alphas"]
+    yhat =  beta + jnp.dot(X, alphas)
+    return yhat
+```
+
+## Objective Computations
+
+```{python}
+reg_strength = 0.001
+
+@jit
+def root_mean_squared_error(y, yhat):
+    """
+    """
+    squared_error = jnp.square(y - y_hat)
+    mean_squared_error = jnp.mean(squared_error)
+    return jnp.sqrt(mean_squared_error)
+
+@jit
+def l1_loss(params):
+    """
+    """
+    loss = sum([jnp.sum(jnp.abs(leave)) for leave in tree_leaves(params)])
+    return loss
+
+@jit
+def compute_loss(params):
+    yhat = forward(X=X, current_params=params, random_state=random_state)
+    raw_loss = root_mean_squared_error(y=y, yhat=yhat)
+    reg_loss = l1_loss(params=current_params) * reg_strength
+    return raw_loss + reg_loss
+```
+
+## Backward Computations

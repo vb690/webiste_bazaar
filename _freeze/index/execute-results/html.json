@@ -1,0 +1,11 @@
+{
+  "hash": "cfa9c73ef2ead0e685fb1fcae7ce48e3",
+  "result": {
+    "markdown": "---\ntitle: \"Bazaar\"\nsubtitle: \"My personal website, a bazaar of small and heterogenous projects.\"\nimage: images/myself.jpeg\n\nabout:\n  template: jolla\n  links:\n    - icon: linkedin\n      text: LinkedIn\n      href: https://uk.linkedin.com/in/valerio-bonometti-47b607208\n    - icon: github\n      text: Github\n      href: https://github.com/vb690\n\nformat: html\nnumber-sections: false\n---\n\n```{css, echo = FALSE}\n.justify {\n  text-align: justify !important\n}\n```\n\n\n# About me\n\n::: {.justify}\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n:::\n\n# About this website\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n",
+    "supporting": [
+      "index_files"
+    ],
+    "filters": [],
+    "includes": {}
+  }
+}

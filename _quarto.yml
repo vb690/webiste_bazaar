@@ -1,0 +1,30 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Bazaar"
+  
+  sidebar:
+    style: "docked"
+    search: true
+    contents:
+      - section: "Tutorials"
+        contents:
+          - jax_index.qmd
+          - kalman_index.qmd
+  navbar:
+    right:
+      - about.qmd
+
+format:
+  html:
+    theme: minty
+    css: styles.css
+
+toc: true
+toc-title: "What's on this page"
+number-sections: true
+
+execute:
+  freeze: auto

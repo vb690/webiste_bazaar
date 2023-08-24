@@ -1,0 +1,11 @@
+---
+title: "Kalman and Bayesian Filters"
+listing:
+  - id: kalman_bayesian_filters
+    contents: posts/kalman_bayesian_filters
+    sort: "date desc"
+    type: grid
+    categories: true
+page-layout: full
+title-block-banner: true
+---
