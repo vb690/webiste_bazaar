@@ -243,12 +243,22 @@ Let's now go in more details of these specific functions.
 
 ## Forward Computations
 
-The `forward` functions is in charge
+The `forward` function is in charge of performing all the the "forward computations" in the model. This naming, that we borrow from the various deep learning framework around, might not be the optimal one as we won't necessarely need or have a complementary "backward" function but it is functional to the needs of this tutorial. 
+
+Let's look at how the forward functiona for a simple linear model might look like
 
 ```{python}
 @jit
 def forward(X, current_state):
-    """
+    """Perform the forward computations for a linear model
+
+    Args:
+        x: covaruates of the model.
+        current_state: current state of the model, containing 
+        parameters and state for the pseudo random number generator.
+
+    Returns:
+        yhat: estimate of the target variable.
     """
     current_params, random_state = current_state
     beta = current_params["beta"]
@@ -256,6 +266,12 @@ def forward(X, current_state):
     yhat =  beta + jnp.dot(X, alphas)
     return yhat
 ```
+
+Here, `forward` receive as input some data `x` and a variable we call `current_state`, as we see this last one it then gets unpacked in some `current_parameters` and a `random_state`. The idea here is that we are passing around the current state of the model (parameters or random number generator seed) instead of accessing it as we would with the attributes of a class.
+
+Once unpacked all the necessary variables (here random state is spurious, but we could use it in case we need some stochastic behaviour from our function), the `forward` function simply execute all the logic necessary for mapping the input `x` to an estimate of our target variable `yhat`.
+
+Once we obtain an estimate of our target variable, we should evaluate it with rispect to a given objective function, let's see how we can do that with the `compute_loss` function.
 
 ## Objective Computations
 
