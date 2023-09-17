@@ -501,31 +501,111 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="objective-computations" class="level2" data-number="2.2">
 <h2 data-number="2.2" class="anchored" data-anchor-id="objective-computations"><span class="header-section-number">2.2</span> Objective Computations</h2>
+<p>The computation of the objective function will require in our case four components: the parameters, the forward function, the loss function (along with any function used for computing any regularizing term) ad the input to the model.</p>
+<p>We’ll see that we will pass all the components except the paramenters to the objective function using a closure and that the actual loss function need to be wrapped inside a <code>compute_loss</code> function.</p>
 <div class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>reg_strength <span class="op">=</span> <span class="fl">0.001</span></span>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> tree_leaves</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> root_mean_squared_error(y, yhat):</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    squared_error <span class="op">=</span> jnp.square(y <span class="op">-</span> y_hat)</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    mean_squared_error <span class="op">=</span> jnp.mean(squared_error)</span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> jnp.sqrt(mean_squared_error)</span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> l1_loss(params):</span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
-<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    loss <span class="op">=</span> <span class="bu">sum</span>([jnp.<span class="bu">sum</span>(jnp.<span class="bu">abs</span>(leave)) <span class="cf">for</span> leave <span class="kw">in</span> tree_leaves(params)])</span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> loss</span>
-<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
-<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_loss(params):</span>
-<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    yhat <span class="op">=</span> forward(X<span class="op">=</span>X, current_params<span class="op">=</span>params, random_state<span class="op">=</span>random_state)</span>
-<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    raw_loss <span class="op">=</span> root_mean_squared_error(y<span class="op">=</span>y, yhat<span class="op">=</span>yhat)</span>
-<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    reg_loss <span class="op">=</span> l1_loss(params<span class="op">=</span>current_params) <span class="op">*</span> reg_strength</span>
-<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> raw_loss <span class="op">+</span> reg_loss</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>reg_strength <span class="op">=</span> <span class="fl">0.001</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.random.normal(size<span class="op">=</span>(<span class="dv">100</span>, <span class="dv">10</span>))</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> np.random.normal(size<span class="op">=</span>(<span class="dv">100</span>,))</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>params <span class="op">=</span> {</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">"alphas"</span>: np.random.normal(size<span class="op">=</span>(<span class="dv">10</span>, )),</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">"beta"</span>: np.random.normal(),</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> root_mean_squared_error(y, yhat):</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Compute the the root mean squared error between two vectors.</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="co">        - y: ground truth value</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="co">        - yhat: estimate of ground truth</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns:</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a><span class="co">        squared_error: the squared mean error between y and y hat</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    squared_error <span class="op">=</span> jnp.square(y <span class="op">-</span> yhat)</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    mean_squared_error <span class="op">=</span> jnp.mean(squared_error)</span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> jnp.sqrt(mean_squared_error)</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> l1_reg_loss(params):</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Compute the l1 norm of the parameters.</span></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a><span class="co">        - y: ground truth value</span></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a><span class="co">        - yhat: estimate of ground truth</span></span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns:</span></span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a><span class="co">        squared_error: the squared mean error between y and y hat</span></span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>    loss <span class="op">=</span> <span class="bu">sum</span>([jnp.<span class="bu">sum</span>(jnp.<span class="bu">abs</span>(leave)) <span class="cf">for</span> leave <span class="kw">in</span> tree_leaves(params)])</span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> loss</span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> model(X, y, reg_strength):</span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">@jit</span></span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> compute_loss(current_params):</span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""Perform the computations required for deriving the loss given the current parameters.</span></span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true" tabindex="-1"></a><span class="co">        This inlcudes a call to the forward function, the loss computation and the regularisation</span></span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true" tabindex="-1"></a><span class="co">        loss.</span></span>
+<span id="cb12-51"><a href="#cb12-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-52"><a href="#cb12-52" aria-hidden="true" tabindex="-1"></a><span class="co">        Args:</span></span>
+<span id="cb12-53"><a href="#cb12-53" aria-hidden="true" tabindex="-1"></a><span class="co">            current_params: the current state of the parameters of the model</span></span>
+<span id="cb12-54"><a href="#cb12-54" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
+<span id="cb12-55"><a href="#cb12-55" aria-hidden="true" tabindex="-1"></a>        yhat <span class="op">=</span> forward(X<span class="op">=</span>X, current_state<span class="op">=</span>(current_params, <span class="va">None</span>))</span>
+<span id="cb12-56"><a href="#cb12-56" aria-hidden="true" tabindex="-1"></a>        raw_loss <span class="op">=</span> root_mean_squared_error(y<span class="op">=</span>y, yhat<span class="op">=</span>yhat)</span>
+<span id="cb12-57"><a href="#cb12-57" aria-hidden="true" tabindex="-1"></a>        reg_loss <span class="op">=</span> l1_reg_loss(params<span class="op">=</span>current_params) <span class="op">*</span> reg_strength</span>
+<span id="cb12-58"><a href="#cb12-58" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> raw_loss <span class="op">+</span> reg_loss</span>
+<span id="cb12-59"><a href="#cb12-59" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb12-60"><a href="#cb12-60" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> compute_loss</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/tmp/ipykernel_21206/2913352642.py:1: DeprecationWarning: jax.tree_leaves is deprecated: use jax.tree_util.tree_leaves.
+  from jax import tree_leaves</code></pre>
 </div>
+</div>
+<p>Of course there are are more intuitive ways for doing this but in this case we require this convoluted game of chinese boxes because when we apply the <code>grad</code> transformation we want it to give us the derivative of the objective function (<code>root_mean_squared_error</code> plus <code>l1_reg_loss</code>) with respect to the <code>current_parameters</code>. So in this case in order to obtain the derivative we can simple apply the relevant transformation <code>value_and_grad</code> to the <code>compute_loss</code> function</p>
+<div class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> value_and_grad</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>compute_loss <span class="op">=</span> model(X<span class="op">=</span>X, y<span class="op">=</span>y, reg_strength<span class="op">=</span>reg_strength)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>compute_loss_derivative <span class="op">=</span> value_and_grad(compute_loss)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>compute_loss_derivative(params)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="23">
+<pre><code>(Array(2.1123009, dtype=float32),
+ {'alphas': Array([-0.4701293 , -0.29670703,  0.43866345, -0.18365346,  0.36222848,
+         -0.07263832, -0.1072477 ,  0.12307326,  0.08663466,  0.2632417 ],      dtype=float32),
+  'beta': Array(0.325346, dtype=float32, weak_type=True)})</code></pre>
+</div>
+</div>
+<p>What is particularly convinient in the functions defined above is the <code>tree_leaves</code> we use we computing the regularisation term. This utility function provided by jax allows us to traverse an antire PyTree in order to get all its leaves values, let’s see an example in action</p>
+<div class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>complex_nested_pytree <span class="op">=</span> {</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"a"</span>: (<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>),</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"b"</span>: <span class="dv">4</span>,</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"c"</span>: {</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">"c_1"</span>: <span class="dv">5</span>,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">"c_2"</span>: <span class="dv">6</span>,</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">"c_3"</span>: {</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>            <span class="st">"c_3_1"</span>: <span class="dv">7</span>,</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>            <span class="st">"c_3_2"</span>: <span class="dv">8</span>,</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>            <span class="st">"c_3_3"</span>: <span class="dv">9</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>tree_leaves(complex_nested_pytree)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="24">
+<pre><code>[1, 2, 3, 4, 5, 6, 7, 8, 9]</code></pre>
+</div>
+</div>
+<p>As you can see, this can become a convenient way for flattenting even the most complicated tree structure (such as those we have when specifying the parameters of some complex model).</p>
 </section>
 <section id="backward-computations" class="level2" data-number="2.3">
 <h2 data-number="2.3" class="anchored" data-anchor-id="backward-computations"><span class="header-section-number">2.3</span> Backward Computations</h2>
