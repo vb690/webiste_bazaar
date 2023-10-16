@@ -186,6 +186,34 @@ ul.task-list li input[type="checkbox"] {
 </li>
       </ul>
   </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">Posts</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false">
+ <span class="menu-text">Generic Posts</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./posts/generic_posts/lin_ucb_jax.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">LinUCB for Contextual Multi-Armed Bandit</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
     </ul>
     </div>
 </nav>
@@ -193,7 +221,7 @@ ul.task-list li input[type="checkbox"] {
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
         
-    <h5 class="quarto-listing-category-title">Categories</h5><div class="quarto-listing-category category-default"><div class="category" data-category="">All <span class="quarto-category-count">(2)</span></div><div class="category" data-category="JAX Tutorial">JAX Tutorial <span class="quarto-category-count">(2)</span></div><div class="category" data-category="basics">basics <span class="quarto-category-count">(1)</span></div><div class="category" data-category="model building">model building <span class="quarto-category-count">(1)</span></div><div class="category" data-category="model fitting">model fitting <span class="quarto-category-count">(1)</span></div></div></div>
+    <h5 class="quarto-listing-category-title">Categories</h5><div class="quarto-listing-category category-default"><div class="category" data-category="">All <span class="quarto-category-count">(2)</span></div><div class="category" data-category="JAX">JAX <span class="quarto-category-count">(2)</span></div><div class="category" data-category="Tutorial">Tutorial <span class="quarto-category-count">(2)</span></div><div class="category" data-category="basics">basics <span class="quarto-category-count">(1)</span></div><div class="category" data-category="model building">model building <span class="quarto-category-count">(1)</span></div><div class="category" data-category="model fitting">model fitting <span class="quarto-category-count">(1)</span></div></div></div>
 <!-- main -->
 <main class="content quarto-banner-title-block column-body" id="quarto-document-content">
 
@@ -206,7 +234,7 @@ ul.task-list li input[type="checkbox"] {
 
 <div class="quarto-listing quarto-listing-container-grid" id="listing-jax_tutorial">
 <div class="list grid quarto-listing-cols-3">
-<div class="g-col-1" data-index="0" data-categories="JAX Tutorial,basics" data-listing-date-sort="1692831600000" data-listing-file-modified-sort="1692865547613" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="20">
+<div class="g-col-1" data-index="0" data-categories="JAX,Tutorial,basics" data-listing-date-sort="1692831600000" data-listing-file-modified-sort="1697490378983" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="20">
 <a href="./posts/jax_tutorial/1_jax_basics/index.html" class="quarto-grid-link">
 <div class="quarto-grid-item card h-100 card-left">
 <p class="card-img-top"><img src="posts/jax_tutorial/1_jax_basics/index_files/figure-html/cell-17-output-2.png" style="height: 150px;"  class="thumbnail-image card-img"/></p>
@@ -215,8 +243,11 @@ ul.task-list li input[type="checkbox"] {
 1 - The Basic Building Blocks
 </h5>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('JAX Tutorial'); return false;">
-JAX Tutorial
+<div class="listing-category" onclick="window.quartoListingCategory('JAX'); return false;">
+JAX
+</div>
+<div class="listing-category" onclick="window.quartoListingCategory('Tutorial'); return false;">
+Tutorial
 </div>
 <div class="listing-category" onclick="window.quartoListingCategory('basics'); return false;">
 basics
@@ -237,7 +268,7 @@ Aug 24, 2023
 </div>
 </a>
 </div>
-<div class="g-col-1" data-index="1" data-categories="JAX Tutorial,model fitting,model building" data-listing-date-sort="1692831600000" data-listing-file-modified-sort="1694980545760" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="12">
+<div class="g-col-1" data-index="1" data-categories="JAX,Tutorial,model fitting,model building" data-listing-date-sort="1692831600000" data-listing-file-modified-sort="1697490388866" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="12">
 <a href="./posts/jax_tutorial/2_set_up/index.html" class="quarto-grid-link">
 <div class="quarto-grid-item card h-100 card-left">
 <p class="card-img-top"><img src="posts/jax_tutorial/2_set_up/index_files/figure-html/cell-6-output-1.png" style="height: 150px;"  class="thumbnail-image card-img"/></p>
@@ -246,8 +277,11 @@ Aug 24, 2023
 2 - Model specification and fitting
 </h5>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('JAX Tutorial'); return false;">
-JAX Tutorial
+<div class="listing-category" onclick="window.quartoListingCategory('JAX'); return false;">
+JAX
+</div>
+<div class="listing-category" onclick="window.quartoListingCategory('Tutorial'); return false;">
+Tutorial
 </div>
 <div class="listing-category" onclick="window.quartoListingCategory('model fitting'); return false;">
 model fitting

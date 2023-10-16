@@ -3,7 +3,7 @@ title: "2 - Model specification and fitting"
 description: "This post introduces the general set-up that we will use in this tutorial for specifying models and fitting them to the data."
 author: "Valerio Bonometti"
 date: "2023-08-24"
-categories: [JAX Tutorial, model fitting, model building]
+categories: [JAX, Tutorial, model fitting, model building]
 jupyter: python3
 ---
 ```{python}

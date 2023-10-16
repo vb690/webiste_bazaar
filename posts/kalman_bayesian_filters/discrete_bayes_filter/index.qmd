@@ -3,7 +3,7 @@ title: "Chapter 2 - Discrete Bayes Filter"
 description: "This post illustrates how to incorporate concepts borrowed from bayesian statistics into filtering algorithms."
 author: "Valerio Bonometti"
 date: "2023-08-24"
-categories: [Kalman and Bayesian Filters, Discrete Bayes Filter, Bayesian Statistics]
+categories: [JAX, Tutorial, Kalman and Bayesian Filters, Discrete Bayes Filter, Bayesian Statistics]
 jupyter: python3
 ---
 ```{python}

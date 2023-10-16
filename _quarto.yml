@@ -13,6 +13,9 @@ website:
         contents:
           - jax_index.qmd
           - kalman_index.qmd
+      - section: "Posts"
+        contents: posts/generic_posts
+        sort: "date desc"
   navbar:
     right:
       - about.qmd

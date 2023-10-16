@@ -3,7 +3,7 @@ title: "1 - The Basic Building Blocks"
 description: "This post introduces some of JAX basic building blocks. It is not an exhaustive collection but will include most components used in this series of blog posts."
 author: "Valerio Bonometti"
 date: "2023-08-24"
-categories: [JAX Tutorial, basics]
+categories: [JAX, Tutorial, basics]
 jupyter: python3
 ---
 ```{python}

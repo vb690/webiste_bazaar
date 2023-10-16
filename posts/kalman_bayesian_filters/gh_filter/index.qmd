@@ -3,7 +3,7 @@ title: "Chapter 1 - The g-h Filter"
 description: "This post introduces the rudimentary of filtering with a particular focus on the g-h filter."
 author: "Valerio Bonometti"
 date: "2023-08-24"
-categories: [Kalman and Bayesian Filters, g-h Filter]
+categories: [JAX, Tutorial, Kalman and Bayesian Filters, g-h Filter]
 jupyter: python3
 ---
 ```{python}
