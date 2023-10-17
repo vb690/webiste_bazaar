@@ -373,6 +373,80 @@ complex_nested_pytree = {
 tree_leaves(complex_nested_pytree)
 ```
 
-As you can see, this can become a convenient way for flattenting even the most complicated tree structure (such as those we have when specifying the parameters of some complex model).
+As you can see, this can become a convenient way for flattenting even the most intricate tree structure (such as those we have when specifying the parameters of a complex model).
 
 ## Backward Computations
+
+```{python}
+
+def model(X, y, reg_strength, loss_function, reg_function):
+
+    @jit
+    def backward(X, y, current_state):
+        """Perform the backward computations for an arbitrary model defined by the forward function.
+
+        For the most part backward is just a wrapper around compute_loss and forward which adds the 
+        logic for computing the gradient of the loss wrt the current parameters.
+
+        Args:
+            X: covariates of the model.
+            y: target of the model.
+            current_pstate: current state of the model, containing 
+            parameters and state for the pseudo random number generator.
+
+        Returns:
+            loss: loss computed on the forward pass
+            grads: gradient of the loss wrt the model parameters.
+        """
+
+        @jit
+        def compute_loss(current_state):
+            """Perform the computations required for deriving the loss given the current parameters.
+
+            This inlcudes a call to the forward function, the loss computation and the regularisation
+            loss.
+
+            Args:
+                current_params: the current state of the parameters of the model
+            """
+            yhat = forward(X=X, current_state=current_state)
+            raw_loss = loss_function(y=y, yhat=yhat)
+            reg_loss = reg_function(params=current_state[0]) * reg_strength
+            return raw_loss + reg_loss
+
+        grad_func = value_and_grad(compute_loss)
+        loss, grads = grad_func(current_state)
+        return loss, grads
+```
+
+## Optimizer
+
+```{python}
+def newton_rhapson(learning_rate, beta=0.9):
+    
+    @jit
+    def init_state(params):
+        previous_updates = tree_map(lambda param: jnp.zeros_like(param), params)
+        return previous_updates, params
+
+    @jit
+    def update_state(grads, current_state):
+        previous_updates, previous_params = current_state
+        current_updates = tree_map(
+            lambda grad, previous_update: beta * previous_update
+            + (grad * learning_rate),
+            grads,
+            previous_updates,
+        )
+        current_params = tree_map(
+            lambda param, update: param - update, previous_params, current_updates
+        )
+        return current_updates, current_params
+
+    @jit
+    def get_params(state):
+        current_update, current_params = state
+        return current_params
+
+    return init_state, update_state, get_params
+```
