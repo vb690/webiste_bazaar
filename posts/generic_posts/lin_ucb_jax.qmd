@@ -27,7 +27,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.manifold import TSNE
 
 from jax.typing import ArrayLike
-from jax.random import KeyArray
 from jax.lax import scan
 from jax import vmap
 from jax import numpy as jnp
@@ -657,7 +656,7 @@ def plot_single_arm_parameters_dianoistics(arm, diagnostics, figsize, show_label
     midpoint = int(beta.shape[0] // 2)
     simulation_steps = np.arange(beta.shape[0])
 
-    ax_beta = figure.add_subplot(grid[0, :])
+    ax_beta = fig.add_subplot(grid[0, :])
     for parameter_index in np.arange(beta.shape[-1]):
 
         ax_beta.plot(
@@ -674,7 +673,7 @@ def plot_single_arm_parameters_dianoistics(arm, diagnostics, figsize, show_label
 
     for column, simulation_step in enumerate(simulation_steps[[0, midpoint, -1]]): 
 
-        ax_alpha = figure.add_subplot(grid[1, column])
+        ax_alpha = fig.add_subplot(grid[1, column])
         ax_alpha.set_ylabel("b Parameters")
         ax_alpha.set_xlabel("b Parameters")
         ax_alpha.set_title(f"Covariance b parameters \n Simulation Step {simulation_step}")
@@ -692,7 +691,7 @@ def plot_single_arm_parameters_dianoistics(arm, diagnostics, figsize, show_label
     
     plt.suptitle(f"Diagnostics for arm {arm}")
     
-    return figure
+    return fig
 ```
 
 ```{python}
