@@ -22,9 +22,9 @@ number-sections: false
 # About me
 
 ::: {.justify}
-I'm Valerio Bonometti, a data scientist working at [Tesco](https://en.wikipedia.org/wiki/Tesco), with experience in both forecasting and recommender systems. 
+I'm Valerio Bonometti, a senior data scientist with experience in the retail [Tesco](https://en.wikipedia.org/wiki/Tesco) and renewable energy sectors at [LightsourceBP](https://en.wikipedia.org/wiki/Lightsource_BP). 
 
-Prior to that, I completed an industrial PhD in computer science at the [University of York](https://www.york.ac.uk/) while being based **full-time**
+I completed an industrial PhD in computer science at the [University of York](https://www.york.ac.uk/) while being based full-time
 with [Square Enix](https://en.wikipedia.org/wiki/Square_Enix) data science team for 4 years. My PhD thesis attempted to bridge neuroscintific theories
 of motivation with machine learning approaches for its estimation. The focus was on designing, developing and  prototyping artificial neural network models 
 for estimating the motivational state of  players and predicting their engagement simulatenously across a wide range of games.
