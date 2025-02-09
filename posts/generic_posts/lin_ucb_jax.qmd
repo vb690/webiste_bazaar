@@ -231,7 +231,7 @@ plt.show()
 
 ## LinUCB Algorithm for a Multi-Armed Bandit Problem
 
-To solve a multi-armed bandit problem with context we can leverage an algorithm called Linear Upper Confidence Bound (i.e. LinUCB).
+To solve a multi-armed bandit problem with context we can leverage an algorithm called Linear Upper Confidence Bound [li2010contextual] (i.e. LinUCB).
 
 The aim of the algorithm is to progressively obtain a reliable estimate of all the options provided by the multi-armed bandit and to do so efficiently (i.e. with the smallest number of interactions.)
 
@@ -239,13 +239,39 @@ For doing so LinUCB simply fit a multinomial regression to the context (i.e. the
 
 $$
 \mathbb{E}[r_{t,k} | x_k] = x^\intercal \theta^*_k
+$$ {#eq-expected_reward}
+
+where $\theta^*_k$ are the set of parameters associated with a given arm $k$ for which the algorithm is trying to find the optimal estimate. Here we assume $x_k$ to be invariant across all $t \in T$ but that is not always the case.
+
+As the number of covariates can be large we cannot know a-priori if all of them are informative or if they are [collinear](https://en.wikipedia.org/wiki/Multicollinearity). For this reason LinUCB rely on a form of regularized regression called [Ridge Regression](https://en.wikipedia.org/wiki/Ridge_regression). Moreover since we don't have a datset to fit this model on but rather we refine the estimate for $\theta^*_k$ as we interact with the arms $K$, LinUCB utilizes what is [called online learning](https://en.wikipedia.org/wiki/Online_machine_learning) for obtaining estimates of each interaction as given by
+
+$$
+\begin{gather}
+\mathbb{A}_k = \mathbb{X}_k^\intercal \mathbb{X_k} + \mathbb{I}_d\\
+\hat{\theta_k} = \mathbb{A}^{-1}\mathbb{X}_k^\intercal r_k
+\end{gather}
 $$
 
-where $\theta^*_k$ are the set of parameters associated with a given arm $k$ for which the algorithm is trying to find the optimal estimate.
+
+where $\mathbb{X}_k$ is the design matrix $m \times d$ where $m$ is the number of contexts (i.e., training inputs) and $d$ the dimensionality of each context (i.e., the number of covariates considered). Here $\mathbb{I}$ is the $d\times d$ identity matrix and $r_k$ is the corresponding $m$-dimensional reward (or response) vector. The identity matrix (which is usually expressed with a scaling factor $\lambda$ here implicitly set to 1.) act as a constrain on the parameter $\theta_k$.
+
+The adavntage of relying on the Ridge regression is that we can interpret $\hat{\theta_k}$ a the mean of the Bayesian posterior of the parameter estimate and $\mathbb{A}_k^-1$ its covariance.  In this way we can compute the expectation for $r_{t, k}$ as in @eq-expected_reward and with it its associated standard deviation $\sqrt{x_k^\intercal \mathbb{A_k}^{-1}x_k}$ which is proven to be a reasoble tight bound.
+
+Based on this assumption then at any step $t$ we can select the appropriate arm $k$ to be
+
+$k_t = \arg \max_{k_t \in K_t}(x^\intercal \hat{\theta}_k + \alpha \sqrt{x_k^\intercal \mathbb{A_k}^{-1}x_k})$
+
+where $\alpha$ becomes a constant that controls the exploration vs exploitation behaviour of the algorithm. Indeed, we can think of this as taking the value sitting at $\alpha$ standard deviation at the right of the mean of a gaussian as most optimistic retun value when picking a certain arm. Larrger values of $\alpha$ will therefore encourage to select arms with highest UCB even if the return is much more uncertain (as the UCB lies far away from the expected value). 
+
+The positive aspect of this is that the more an arm get selected the tighter it's confidence bound become, up to a point in which it will become more promising to explore arms that provides larger UCB by the fact that they have simply been explored less.
 
 # Implementing the Algorithm
 
+In this section we will proceeded at implementing the LinUCB algortithm, step-by-step using JAX for hardware accelaration.
+
 ## Parameters Initialisation
+
+As a first step we will need to initialize the matrices for $X$ and $r$ from this point onward we will call them $A$ and $b$ as mentioned in [li2010contextual].
 
 ```{python}
 #| vscode: {languageId: python}
@@ -274,6 +300,12 @@ def init_matrices_for_all_arms(
 ```
 
 ## Computations
+
+We will now define the code for the various computations, namely deriving the $\theta$ and $\sigma$ parameters. And subsequently estimating the expection for the return as well as the UCB.
+
+In order to speed up the computation, we will leverage the [Just in Time Compilation](https://docs.jax.dev/en/latest/jit-compilation.html) functionality in JAX as well as its [automatic vectorisation](https://docs.jax.dev/en/latest/automatic-vectorization.html).
+
+The first one will allow us to cache computations that are used multiple times by the LinUCB algorithm, while the second one will allow us in this case to vectorize the computation across all the arms in our bandit problem (instead of slowly iterating through them).
 
 ```{python}
 #| vscode: {languageId: python}
