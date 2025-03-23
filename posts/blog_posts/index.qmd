@@ -1,0 +1,6 @@
+---
+title: "Blog Posts"
+listing: default
+page-layout: full
+title-block-banner: true
+---

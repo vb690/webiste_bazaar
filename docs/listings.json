@@ -1,16 +1,29 @@
 [
   {
-    "listing": "/jax_index.html",
+    "listing": "/posts/blog_posts/index.html",
     "items": [
-      "/posts/jax_tutorial/1_jax_basics/index.html",
-      "/posts/jax_tutorial/2_set_up/index.html"
+      "/posts/blog_posts/lin_ucb_jax.html"
     ]
   },
   {
-    "listing": "/kalman_index.html",
+    "listing": "/posts/tutorials/index.html",
     "items": [
-      "/posts/kalman_bayesian_filters/gh_filter/index.html",
-      "/posts/kalman_bayesian_filters/discrete_bayes_filter/index.html"
+      "/posts/tutorials/jax_tutorial/index.html",
+      "/posts/tutorials/kalman_bayesian_filters_tutorial/index.html"
+    ]
+  },
+  {
+    "listing": "/posts/tutorials/kalman_bayesian_filters_tutorial/index.html",
+    "items": [
+      "/posts/tutorials/kalman_bayesian_filters_tutorial/1_gh_filter.html",
+      "/posts/tutorials/kalman_bayesian_filters_tutorial/2_dicrete_bayes_filter.html"
+    ]
+  },
+  {
+    "listing": "/posts/tutorials/jax_tutorial/index.html",
+    "items": [
+      "/posts/tutorials/jax_tutorial/1_jax_basics.html",
+      "/posts/tutorials/jax_tutorial/2_set_up.html"
     ]
   }
 ]
