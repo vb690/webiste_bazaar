@@ -421,6 +421,10 @@ def update_parameters(
 
 # Definining the simulation steps
 
+Here we define all the functionality required for simulating the interactions with the various arms as well as the process of receiveing rewards, executing the policies and updating the parameters. There is quite a bit to un-pack here so we will proceed step by step.
+
+Also in here, whenever is possible we will try to rely on the auto-vectorization capacity provided by `jax`.
+
 ```{python}
 #| vscode: {languageId: python}
 @jit
@@ -444,7 +448,10 @@ def step(
         p=arms_probabilities[rows, policy]
     ) * 1
     return (rewards * sparsity_factor) * reward_weighting
+```
 
+
+```{python}
 @jit
 def execute_policies(
         upper_bound: ArrayLike, 
@@ -457,7 +464,9 @@ def execute_policies(
     )
     linucb_policy = upper_bound.argmax(axis=1)
     return linucb_policy, random_policy
+```
 
+```{python}
 @jit
 def compute_rewards(
         linucb_policy: ArrayLike, 
@@ -480,7 +489,9 @@ def compute_rewards(
         arms_rewards.append(rewards)
 
     return arms_rewards
+```
 
+```{python}
 @jit
 def compute_regrets(
         linucb_policy: ArrayLike, 
@@ -496,7 +507,9 @@ def compute_regrets(
         policies_regrets.append(regret)
     
     return policies_regrets
+```
 
+```{python}
 @jit
 def simulate_interaction(
         carry: Tuple[ArrayLike, ...], 
