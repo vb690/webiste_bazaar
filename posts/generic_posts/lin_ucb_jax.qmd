@@ -394,7 +394,7 @@ def execute_linucb(
 
 ## Update parameters
 
-This section define the code used for updating the parameters
+This section define the code used for updating the parameters associated with each of the arms, this function will be called dynamically during the simulation and will update the arms specified by the `policy` selected by the algoirthm with the `reward` associated with said policy.
 
 ```{python}
 #| vscode: {languageId: python}
