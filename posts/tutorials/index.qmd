@@ -1,5 +1,6 @@
 ---
 title: "Tutorials"
+description: "This is a collection of tutorials on various topics. Each tutorial aims at exploring a specific topic in a progressive fashion."
 listing:
     contents: 
         - jax_tutorial/index.qmd

@@ -19,18 +19,12 @@ website:
         href: posts/blog_posts/index.qmd
   
   sidebar:
-    - contents: auto
-  # - title: "Tutorials"
-  #   style: "docked"
-  #   contents:
-  #     - posts/tutorials/jax_tutorial/index.qmd
-  #     - posts/tutorials/kalman_bayesian_filters_tutorial/index.qmd
-  #   sort: "date desc"
+    - contents:
+      - text: "Tutorials"
+        href: posts/tutorials/index.qmd
 
-  # - title: "Blog"
-  #   style: "docked"
-  #   contents: posts/blog_posts
-  #   sort: "date desc"
+      - text: "Blog"
+        href: posts/blog_posts/index.qmd
 
 format:
   html:

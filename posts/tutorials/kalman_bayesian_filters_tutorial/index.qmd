@@ -1,5 +1,7 @@
 ---
-title: "Kalman Bayesian Filters Tutorials"
+title: "Kalman Bayesian Filters Tutorial"
+description: "This is a tutorial aiming at explaining how bayesian filters work and to implement them from scratch using JAX."
+image: "images/tutorial_logo.png"
 listing: auto
 page-layout: full
 title-block-banner: true

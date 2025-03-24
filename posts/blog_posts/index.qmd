@@ -1,5 +1,6 @@
 ---
 title: "Blog Posts"
+description: "This is a collection of self-contained blog post exploring a range of heterogeneous topics. Each post aims to address a single self-contained topic."
 listing: default
 page-layout: full
 title-block-banner: true

@@ -1,5 +1,7 @@
 ---
 title: "Jax Tutorial"
+description: "This is a tutorial aiming at explaining the basic building blocks of JAX and how to use them for building models from scratch"
+image: "images/tutorial_logo.png"
 listing: auto
 page-layout: full
 title-block-banner: true
