@@ -37,7 +37,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 
 @jit
-def tempered_softmax(logits, temperature=1):
+def tempered_softmax(logits, temperature=1.):
     """Produce a tempered softmax given logits.
 
     Args:
@@ -56,13 +56,13 @@ def tempered_softmax(logits, temperature=1):
 
 # Premise
 
-We want to stress how what is presented here is not at all novel but rather an exercise for leveraging the nice features that JAX offers and applying them for making the solution of a specific problem more efficient. Alot of credit for this post goes to the autohor of the original LinUCB paper, the contributors to the JAX library and to Kenneth Foo Fangwei for [this](https://kfoofw.github.io/contextual-bandits-linear-ucb-disjoint/) very clear blogpost explaining the fundamentals of the algorithm.
+We want to stress how what is presented here is not at all novel but rather an exercise for leveraging the nice features that JAX offers and applying them for making the solution of a specific problem more efficient. Alot of credit for this post goes to the author of the original LinUCB paper, the contributors to the JAX library and to Kenneth Foo Fangwei for [this](https://kfoofw.github.io/contextual-bandits-linear-ucb-disjoint/) very clear blogpost explaining the fundamentals of the algorithm.
 
 ## What we will cover
 
 1. Very brief introduction to multi armed and contextual multi armed bandit problems.
 2. Very brief introduction to the LinUCB algorithm.
-3. Simulating a disjoint contentual multi armed bandit problem.
+3. Simulating a disjoint contextual multi armed bandit problem.
 4. Implementing the LinUCB algorithm in JAX.
 5. Testing the algorithm on simulated data.
 6. Accelerating testing and simulation using a GPU.
@@ -83,7 +83,7 @@ The multi-armed bandit problem describes a situation where an agent is faced wit
 The goal of the agent is to select, over a finite sequence of interactions $T=(t_0, t_1, \dots, t_n)$, the set of options that will maximize the expected total payoff over $T$ [@sutton2018reinforcement]. What our agent is 
 interested in then is the true value $q*$ of taking an action $a$ and selecting a given arm $k$, the action associated with highest value should be the go-to strategy for maximizing the cumulative payoff
 
-Since the true value is not known, our agent often has to rely on an estimate of such value which comes with an associated level of uncertainity. We can think of this in terms of the relationship between the mean of the distribution from which the rewards of a given arm are sampled and its empirical estimate with associated standard error.
+Since the true value is not known, our agent often has to rely on an estimate of such value which comes with an associated level of uncertainty. We can think of this in terms of the relationship between the mean of the distribution from which the rewards of a given arm are sampled and its empirical estimate with associated standard error.
 
 Selecting the best set of actions over a finite number of interactions then requires a balance between and **exploitative** and **explorative behaviour**
 
@@ -92,7 +92,7 @@ Selecting the best set of actions over a finite number of interactions then requ
 
 ## Contextual Multi-Armed Bandit Problem
 
-The conventional multi-armed bandit scenario attempts to solve what is called a nonassociative task, meaning that the payoff of a given action (e.g. selecting one of the $k$ available arms) doesn't depend on any context. This means that as a measure of value for a given action, we are interested in 
+The conventional multi-armed bandit scenario attempts to solve what is called a non-associative task, meaning that the payoff of a given action (e.g. selecting one of the $k$ available arms) doesn't depend on any context. This means that as a measure of value for a given action, we are interested in 
 
 $\mathbb{E}[r | K=k]$
 
@@ -104,13 +104,13 @@ In order to get a better understanding of what we mean here, let's simulate a po
 
 ### Create the Simulation Dataset
 
-We will approximate the data generating process using sklearn's [`make_classification`](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_classification.html) function. The idea is to re-formulate this as a multi-class classification problem where the context are features able to influece the probability to pick one of `n_arms` classes.
+We will approximate the data generating process using sklearn's [`make_classification`](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_classification.html) function. The idea is to re-formulate this as a multi-class classification problem where the context are features able to influence the probability to pick one of `n_arms` classes.
 
 In order to simulate some of the challenges we could face in a real world setting we will add the following hurdles:
 
-1. Only a small portion of the fetaures will actually have predictive power on which arm is the most promising.
-2. We will generate features that have a ceertain degree of overlap (immagine them being drawn from relatively spread-out distributions)
-3. We will enforce sparsity on the reward generated by each arm. This is like saying that the reward generated by pulling a given arm comes from a zero inflated distribution of the form
+1. Only a small portion of the features will actually have predictive power on which arm is the most promising.
+2. We will generate features that have a certain degree of overlap (imagine them being drawn from relatively spread-out distributions)
+3. We will enforce sparsity on the reward generated by each arm. This is like saying that the reward generated by pulling a given arm comes from a [zero inflated distribution](https://en.wikipedia.org/wiki/Zero-inflated_model) of the form
 
 $$
 \begin{gather}
@@ -203,7 +203,7 @@ CONTEXT = expand_context_to_arms(
 )
 ```
 
-Here we will use TSNE for projecting the multidimensional context space on a 2D plane, this should allow us to get a better intuition of what is going on. What we expect to see are separate spheres or regions (this depends on how much noise we encode in our context space) with different colouring depening on which arms they are associated with
+Here we will use TSNE for projecting the multidimensional context space on a 2D plane, this should allow us to get a better intuition of what is going on. What we expect to see are separate spheres or regions (this depends on how much noise we encode in our context space) with different coloring depending on which arms they are associated with
 
 ```{python}
 #| vscode: {languageId: python}
@@ -243,7 +243,7 @@ $$ {#eq-expected_reward}
 
 where $\theta^*_k$ are the set of parameters associated with a given arm $k$ for which the algorithm is trying to find the optimal estimate. Here we assume $x_k$ to be invariant across all $t \in T$ but that is not always the case.
 
-As the number of covariates can be large we cannot know a-priori if all of them are informative or if they are [collinear](https://en.wikipedia.org/wiki/Multicollinearity). For this reason LinUCB rely on a form of regularized regression called [Ridge Regression](https://en.wikipedia.org/wiki/Ridge_regression). Moreover since we don't have a datset to fit this model on but rather we refine the estimate for $\theta^*_k$ as we interact with the arms $K$, LinUCB utilizes what is [called online learning](https://en.wikipedia.org/wiki/Online_machine_learning) for obtaining estimates of each interaction as given by
+As the number of covariates can be large we cannot know a-priori if all of them are informative or if they are [collinear](https://en.wikipedia.org/wiki/Multicollinearity). For this reason LinUCB rely on a form of regularized regression called [Ridge Regression](https://en.wikipedia.org/wiki/Ridge_regression). Moreover since we don't have a dataset to fit this model on but rather we refine the estimate for $\theta^*_k$ as we interact with the arms $K$, LinUCB utilizes what is [called online learning](https://en.wikipedia.org/wiki/Online_machine_learning) for obtaining estimates of each interaction as given by
 
 $$
 \begin{gather}
@@ -255,21 +255,21 @@ $$
 
 where $\mathbb{X}_k$ is the design matrix $m \times d$ where $m$ is the number of contexts (i.e., training inputs) and $d$ the dimensionality of each context (i.e., the number of covariates considered). Here $\mathbb{I}$ is the $d\times d$ identity matrix and $r_k$ is the corresponding $m$-dimensional reward (or response) vector. The identity matrix (which is usually expressed with a scaling factor $\lambda$ here implicitly set to 1.) act as a constrain on the parameter $\theta_k$.
 
-The adavntage of relying on the Ridge regression is that we can interpret $\hat{\theta_k}$ a the mean of the Bayesian posterior of the parameter estimate and $\mathbb{A}_k^-1$ its covariance.  In this way we can compute the expectation for $r_{t, k}$ as in @eq-expected_reward and with it its associated standard deviation $\sqrt{x_k^\intercal \mathbb{A_k}^{-1}x_k}$ which is proven to be a reasoble tight bound.
+The advantages of relying on the Ridge regression is that we can interpret $\hat{\theta_k}$ a the mean of the Bayesian posterior of the parameter estimate and $\mathbb{A}_k^-1$ its covariance.  In this way we can compute the expectation for $r_{t, k}$ as in @eq-expected_reward and with it its associated standard deviation $\sqrt{x_k^\intercal \mathbb{A_k}^{-1}x_k}$ which is proven to be a reasonable tight bound.
 
 Based on this assumption then at any step $t$ we can select the appropriate arm $k$ to be
 
 $k_t = \arg \max_{k_t \in K_t}(x^\intercal \hat{\theta}_k + \alpha \sqrt{x_k^\intercal \mathbb{A_k}^{-1}x_k})$
 
-where $\alpha$ becomes a constant that controls the exploration vs exploitation behaviour of the algorithm. Indeed, we can think of this as taking the value sitting at $\alpha$ standard deviation at the right of the mean of a gaussian as most optimistic retun value when picking a certain arm. Larrger values of $\alpha$ will therefore encourage to select arms with highest UCB even if the return is much more uncertain (as the UCB lies far away from the expected value). 
+where $\alpha$ becomes a constant that controls the exploration vs exploitation behaviour of the algorithm. Indeed, we can think of this as taking the value sitting at $\alpha$ standard deviation at the right of the mean of a gaussian as most optimistic retun value when picking a certain arm. Larger values of $\alpha$ will therefore encourage to select arms with highest UCB even if the return is much more uncertain (as the UCB lies far away from the expected value). 
 
 The positive aspect of this is that the more an arm get selected the tighter it's confidence bound become, up to a point in which it will become more promising to explore arms that provides larger UCB by the fact that they have simply been explored less.
 
 # Implementing the Algorithm
 
-In this section we will proceeded at implementing the LinUCB algortithm, step-by-step using JAX for hardware accelaration.
+In this section we will proceeded at implementing the LinUCB algorithm, step-by-step using JAX for hardware acceleration.
 
-## Parameters Initialisation
+## Parameters Initialization
 
 As a first step we will need to initialize the matrices for $X$ and $r$ from this point onward we will call them $A$ and $b$ as mentioned in [li2010contextual].
 
@@ -301,9 +301,9 @@ def init_matrices_for_all_arms(
 
 ## Computations
 
-We will now define the code for the various computations, namely deriving the $\theta$ and $\sigma$ parameters. And subsequently estimating the expection for the return as well as the UCB.
+We will now define the code for the various computations, namely deriving the $\theta$ and $\sigma$ parameters. And subsequently estimating the expectation for the return as well as the UCB.
 
-In order to speed up the computation, we will leverage the [Just in Time Compilation](https://docs.jax.dev/en/latest/jit-compilation.html) functionality in JAX as well as its [automatic vectorisation](https://docs.jax.dev/en/latest/automatic-vectorization.html).
+In order to speed up the computation, we will leverage the [Just in Time Compilation](https://docs.jax.dev/en/latest/jit-compilation.html) functionality in JAX as well as its [automatic vectorization](https://docs.jax.dev/en/latest/automatic-vectorization.html).
 
 The first one will allow us to cache computations that are used multiple times by the LinUCB algorithm, while the second one will allow us in this case to vectorize the computation across all the arms in our bandit problem (instead of slowly iterating through them).
 
@@ -394,7 +394,7 @@ def execute_linucb(
 
 ## Update parameters
 
-This section define the code used for updating the parameters associated with each of the arms, this function will be called dynamically during the simulation and will update the arms specified by the `policy` selected by the algoirthm with the `reward` associated with said policy.
+This section define the code used for updating the parameters associated with each of the arms, this function will be called dynamically during the simulation and will update the arms specified by the `policy` selected by the algorithm with the `reward` associated with said policy.
 
 ```{python}
 #| vscode: {languageId: python}
@@ -419,11 +419,21 @@ def update_parameters(
     return arms_A, arms_b
 ```
 
-# Definining the simulation steps
+# Definining the simulation engine
 
-Here we define all the functionality required for simulating the interactions with the various arms as well as the process of receiveing rewards, executing the policies and updating the parameters. There is quite a bit to un-pack here so we will proceed step by step.
+Here we define all the functionality required for simulating the interactions with the various arms as well as the process of receiving rewards, executing the policies and updating the parameters. Also here, whenever possible, we will try to rely on the auto-vectorization and just-in-time compilation capacities provided by `jax`.
 
-Also in here, whenever is possible we will try to rely on the auto-vectorization capacity provided by `jax`.
+Since there is quite a bit to un-pack here, we will proceed step by step.
+
+## Taking a step in the simulation engine
+
+In our case taking a step simply imply simulating the delivery of the reward from the arms selected by a given `policy`. Here we use `policy` interchangeably for indicating the strategy for selecting arms and the result of the selection itself.
+
+The reward is simply given by sampling from a [bernoulli distribution](https://en.wikipedia.org/wiki/Bernoulli_distribution) with its parameter `$p$` defined by the `arms_probabilities` (the probability that a given arm will provide a reward). Since we want to makes this a bit more realistic, we will induce sparsity in the rewards by multiplying them with samples from another bernoulli distribution with parameter `$p$` defined by `1 - reward_sparsity`.  We also included a `reward_weighting` parameter for exploring how this could be used for overcoming the sparsity problem.
+
+::: {.callout-note}
+Note the importance of the `step_key` argument which is required for executing stochastic behaviors in JAX. More details can be found on the [documentation about the stateless random number generators](https://docs.jax.dev/en/latest/jax.random.html) in JAX.
+:::
 
 ```{python}
 #| vscode: {languageId: python}

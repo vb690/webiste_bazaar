@@ -1,6 +1,6 @@
 ---
 title: "Kalman Bayesian Filters Tutorial"
-description: "This is a tutorial aiming at explaining how bayesian filters work and to implement them from scratch using JAX."
+description: 'This is a tutorial aiming at explaining how bayesian filters work and to implement them from scratch using JAX. This tutorial is for the most part a re-adaption of the great book [**"Kalman and Bayesian Filters in Python"**](https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python).'
 image: "images/tutorial_logo.png"
 listing: auto
 page-layout: full

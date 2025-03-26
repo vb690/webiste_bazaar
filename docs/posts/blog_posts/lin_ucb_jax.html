@@ -251,11 +251,14 @@ window.Quarto = {
   </ul></li>
   <li><a href="#implementing-the-algorithm" id="toc-implementing-the-algorithm" class="nav-link" data-scroll-target="#implementing-the-algorithm"><span class="header-section-number">3</span> Implementing the Algorithm</a>
   <ul class="collapse">
-  <li><a href="#parameters-initialisation" id="toc-parameters-initialisation" class="nav-link" data-scroll-target="#parameters-initialisation"><span class="header-section-number">3.1</span> Parameters Initialisation</a></li>
+  <li><a href="#parameters-initialization" id="toc-parameters-initialization" class="nav-link" data-scroll-target="#parameters-initialization"><span class="header-section-number">3.1</span> Parameters Initialization</a></li>
   <li><a href="#computations" id="toc-computations" class="nav-link" data-scroll-target="#computations"><span class="header-section-number">3.2</span> Computations</a></li>
   <li><a href="#update-parameters" id="toc-update-parameters" class="nav-link" data-scroll-target="#update-parameters"><span class="header-section-number">3.3</span> Update parameters</a></li>
   </ul></li>
-  <li><a href="#definining-the-simulation-steps" id="toc-definining-the-simulation-steps" class="nav-link" data-scroll-target="#definining-the-simulation-steps"><span class="header-section-number">4</span> Definining the simulation steps</a></li>
+  <li><a href="#definining-the-simulation-engine" id="toc-definining-the-simulation-engine" class="nav-link" data-scroll-target="#definining-the-simulation-engine"><span class="header-section-number">4</span> Definining the simulation engine</a>
+  <ul class="collapse">
+  <li><a href="#taking-a-step-in-the-simulation-engine" id="toc-taking-a-step-in-the-simulation-engine" class="nav-link" data-scroll-target="#taking-a-step-in-the-simulation-engine"><span class="header-section-number">4.1</span> Taking a step in the simulation engine</a></li>
+  </ul></li>
   <li><a href="#running-the-simulation" id="toc-running-the-simulation" class="nav-link" data-scroll-target="#running-the-simulation"><span class="header-section-number">5</span> Running the simulation</a></li>
   <li><a href="#performance-visualisation" id="toc-performance-visualisation" class="nav-link" data-scroll-target="#performance-visualisation"><span class="header-section-number">6</span> Performance Visualisation</a></li>
   </ul>
@@ -300,7 +303,7 @@ window.Quarto = {
 </header>
 
 
-<div id="020a6880" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="1">
+<div id="c5d06a82" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="1">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Tuple, List, Any</span>
@@ -325,7 +328,7 @@ window.Quarto = {
 <span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib.gridspec <span class="im">import</span> GridSpec</span>
 <span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> tempered_softmax(logits, temperature<span class="op">=</span><span class="dv">1</span>):</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> tempered_softmax(logits, temperature<span class="op">=</span><span class="fl">1.</span>):</span>
 <span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Produce a tempered softmax given logits.</span></span>
 <span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co">    Args:</span></span>
@@ -344,13 +347,13 @@ window.Quarto = {
 </div>
 <section id="premise" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Premise</h1>
-<p>We want to stress how what is presented here is not at all novel but rather an exercise for leveraging the nice features that JAX offers and applying them for making the solution of a specific problem more efficient. Alot of credit for this post goes to the autohor of the original LinUCB paper, the contributors to the JAX library and to Kenneth Foo Fangwei for <a href="https://kfoofw.github.io/contextual-bandits-linear-ucb-disjoint/">this</a> very clear blogpost explaining the fundamentals of the algorithm.</p>
+<p>We want to stress how what is presented here is not at all novel but rather an exercise for leveraging the nice features that JAX offers and applying them for making the solution of a specific problem more efficient. Alot of credit for this post goes to the author of the original LinUCB paper, the contributors to the JAX library and to Kenneth Foo Fangwei for <a href="https://kfoofw.github.io/contextual-bandits-linear-ucb-disjoint/">this</a> very clear blogpost explaining the fundamentals of the algorithm.</p>
 <section id="what-we-will-cover" class="level2" data-number="1.1">
 <h2 data-number="1.1" class="anchored" data-anchor-id="what-we-will-cover"><span class="header-section-number">1.1</span> What we will cover</h2>
 <ol type="1">
 <li>Very brief introduction to multi armed and contextual multi armed bandit problems.</li>
 <li>Very brief introduction to the LinUCB algorithm.</li>
-<li>Simulating a disjoint contentual multi armed bandit problem.</li>
+<li>Simulating a disjoint contextual multi armed bandit problem.</li>
 <li>Implementing the LinUCB algorithm in JAX.</li>
 <li>Testing the algorithm on simulated data.</li>
 <li>Accelerating testing and simulation using a GPU.</li>
@@ -372,7 +375,7 @@ window.Quarto = {
 <h2 data-number="2.1" class="anchored" data-anchor-id="multi-armed-bandit-problem"><span class="header-section-number">2.1</span> Multi-Armed Bandit Problem</h2>
 <p>The multi-armed bandit problem describes a situation where an agent is faced with <span class="math inline">\(K = (k_0, k_1, \dots, k_n)\)</span> different options (or arms), each one with an associated unknown payoff (or reward) <span class="math inline">\(r_k\)</span><a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> <span class="citation" data-cites="sutton2018reinforcement">(<a href="#ref-sutton2018reinforcement" role="doc-biblioref">Sutton and Barto 2018</a>)</span>.</p>
 <p>The goal of the agent is to select, over a finite sequence of interactions <span class="math inline">\(T=(t_0, t_1, \dots, t_n)\)</span>, the set of options that will maximize the expected total payoff over <span class="math inline">\(T\)</span> <span class="citation" data-cites="sutton2018reinforcement">(<a href="#ref-sutton2018reinforcement" role="doc-biblioref">Sutton and Barto 2018</a>)</span>. What our agent is interested in then is the true value <span class="math inline">\(q*\)</span> of taking an action <span class="math inline">\(a\)</span> and selecting a given arm <span class="math inline">\(k\)</span>, the action associated with highest value should be the go-to strategy for maximizing the cumulative payoff</p>
-<p>Since the true value is not known, our agent often has to rely on an estimate of such value which comes with an associated level of uncertainity. We can think of this in terms of the relationship between the mean of the distribution from which the rewards of a given arm are sampled and its empirical estimate with associated standard error.</p>
+<p>Since the true value is not known, our agent often has to rely on an estimate of such value which comes with an associated level of uncertainty. We can think of this in terms of the relationship between the mean of the distribution from which the rewards of a given arm are sampled and its empirical estimate with associated standard error.</p>
 <p>Selecting the best set of actions over a finite number of interactions then requires a balance between and <strong>exploitative</strong> and <strong>explorative behaviour</strong></p>
 <ol type="1">
 <li>Exploit the options with the highest associated estimated reward</li>
@@ -381,19 +384,19 @@ window.Quarto = {
 </section>
 <section id="contextual-multi-armed-bandit-problem" class="level2" data-number="2.2">
 <h2 data-number="2.2" class="anchored" data-anchor-id="contextual-multi-armed-bandit-problem"><span class="header-section-number">2.2</span> Contextual Multi-Armed Bandit Problem</h2>
-<p>The conventional multi-armed bandit scenario attempts to solve what is called a nonassociative task, meaning that the payoff of a given action (e.g.&nbsp;selecting one of the <span class="math inline">\(k\)</span> available arms) doesn’t depend on any context. This means that as a measure of value for a given action, we are interested in</p>
+<p>The conventional multi-armed bandit scenario attempts to solve what is called a non-associative task, meaning that the payoff of a given action (e.g.&nbsp;selecting one of the <span class="math inline">\(k\)</span> available arms) doesn’t depend on any context. This means that as a measure of value for a given action, we are interested in</p>
 <p><span class="math inline">\(\mathbb{E}[r | K=k]\)</span></p>
 <p>In a contextual multi-amred bandit scenario instead, the payoff of a given action is dependent on the context in which the action is performed. This implies that given a matrix of context vectors <span class="math inline">\(X_{K\times h}\)</span> we try to estimate the value of a given action as</p>
 <p><span class="math inline">\(\mathbb{E}[r | K=k, X=x_k]\)</span></p>
 <p>In order to get a better understanding of what we mean here, let’s simulate a potential generating process that could give rise to data suitable for a contextual multi-armed bandit problem.</p>
 <section id="create-the-simulation-dataset" class="level3" data-number="2.2.1">
 <h3 data-number="2.2.1" class="anchored" data-anchor-id="create-the-simulation-dataset"><span class="header-section-number">2.2.1</span> Create the Simulation Dataset</h3>
-<p>We will approximate the data generating process using sklearn’s <a href="https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_classification.html"><code>make_classification</code></a> function. The idea is to re-formulate this as a multi-class classification problem where the context are features able to influece the probability to pick one of <code>n_arms</code> classes.</p>
+<p>We will approximate the data generating process using sklearn’s <a href="https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_classification.html"><code>make_classification</code></a> function. The idea is to re-formulate this as a multi-class classification problem where the context are features able to influence the probability to pick one of <code>n_arms</code> classes.</p>
 <p>In order to simulate some of the challenges we could face in a real world setting we will add the following hurdles:</p>
 <ol type="1">
-<li>Only a small portion of the fetaures will actually have predictive power on which arm is the most promising.</li>
-<li>We will generate features that have a ceertain degree of overlap (immagine them being drawn from relatively spread-out distributions)</li>
-<li>We will enforce sparsity on the reward generated by each arm. This is like saying that the reward generated by pulling a given arm comes from a zero inflated distribution of the form</li>
+<li>Only a small portion of the features will actually have predictive power on which arm is the most promising.</li>
+<li>We will generate features that have a certain degree of overlap (imagine them being drawn from relatively spread-out distributions)</li>
+<li>We will enforce sparsity on the reward generated by each arm. This is like saying that the reward generated by pulling a given arm comes from a <a href="https://en.wikipedia.org/wiki/Zero-inflated_model">zero inflated distribution</a> of the form</li>
 </ol>
 <p><span class="math display">\[
 \begin{gather}
@@ -403,7 +406,7 @@ r = \begin{cases} 0,&amp; \text{if hurdle} = 0 \\
 Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 \end{gather}
 \]</span></p>
-<div id="449ffe87" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="2">
+<div id="0ffe46c2" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>UNIT_CONTEXT_SIZE <span class="op">=</span> <span class="dv">1</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>UNIT_ARMS <span class="op">=</span> <span class="dv">2</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -422,7 +425,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>N_ARMS <span class="op">=</span> UNIT_ARMS <span class="op">**</span> <span class="dv">2</span> <span class="co"># We ensure we can always plot the arms in a squared grid</span></span>
 <span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>CLASS_SEP <span class="op">=</span> <span class="fl">.9</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="fc32f267" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="3">
+<div id="d323a3fc" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="3">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> generate_context(n_arms, n_users, context_size, redundant, repeated, informative, clusters_per_class, class_sep, with_intercept<span class="op">=</span><span class="va">True</span>):</span>
@@ -457,7 +460,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> context</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div id="c049a0cc" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="4">
+<div id="8e45ace4" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>CONTEXT, GROUPS <span class="op">=</span> generate_context(</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    n_arms<span class="op">=</span>N_ARMS, </span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    n_users<span class="op">=</span>N_USERS, </span>
@@ -480,8 +483,8 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    n_arms<span class="op">=</span>N_ARMS,</span>
 <span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>Here we will use TSNE for projecting the multidimensional context space on a 2D plane, this should allow us to get a better intuition of what is going on. What we expect to see are separate spheres or regions (this depends on how much noise we encode in our context space) with different colouring depening on which arms they are associated with</p>
-<div id="2c1096f7" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="5">
+<p>Here we will use TSNE for projecting the multidimensional context space on a 2D plane, this should allow us to get a better intuition of what is going on. What we expect to see are separate spheres or regions (this depends on how much noise we encode in our context space) with different coloring depending on which arms they are associated with</p>
+<div id="c4e132f3" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>embedding <span class="op">=</span> TSNE().fit_transform(CONTEXT[:, <span class="dv">0</span>, :])</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>fig, axs <span class="op">=</span> plt.subplots(UNIT_ARMS, UNIT_ARMS, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">8</span>), sharex<span class="op">=</span><span class="va">True</span>, sharey<span class="op">=</span><span class="va">True</span>)</span>
@@ -521,7 +524,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 \mathbb{E}[r_{t,k} | x_k] = x^\intercal \theta^*_k
 \tag{1}\]</span></span></p>
 <p>where <span class="math inline">\(\theta^*_k\)</span> are the set of parameters associated with a given arm <span class="math inline">\(k\)</span> for which the algorithm is trying to find the optimal estimate. Here we assume <span class="math inline">\(x_k\)</span> to be invariant across all <span class="math inline">\(t \in T\)</span> but that is not always the case.</p>
-<p>As the number of covariates can be large we cannot know a-priori if all of them are informative or if they are <a href="https://en.wikipedia.org/wiki/Multicollinearity">collinear</a>. For this reason LinUCB rely on a form of regularized regression called <a href="https://en.wikipedia.org/wiki/Ridge_regression">Ridge Regression</a>. Moreover since we don’t have a datset to fit this model on but rather we refine the estimate for <span class="math inline">\(\theta^*_k\)</span> as we interact with the arms <span class="math inline">\(K\)</span>, LinUCB utilizes what is <a href="https://en.wikipedia.org/wiki/Online_machine_learning">called online learning</a> for obtaining estimates of each interaction as given by</p>
+<p>As the number of covariates can be large we cannot know a-priori if all of them are informative or if they are <a href="https://en.wikipedia.org/wiki/Multicollinearity">collinear</a>. For this reason LinUCB rely on a form of regularized regression called <a href="https://en.wikipedia.org/wiki/Ridge_regression">Ridge Regression</a>. Moreover since we don’t have a dataset to fit this model on but rather we refine the estimate for <span class="math inline">\(\theta^*_k\)</span> as we interact with the arms <span class="math inline">\(K\)</span>, LinUCB utilizes what is <a href="https://en.wikipedia.org/wiki/Online_machine_learning">called online learning</a> for obtaining estimates of each interaction as given by</p>
 <p><span class="math display">\[
 \begin{gather}
 \mathbb{A}_k = \mathbb{X}_k^\intercal \mathbb{X_k} + \mathbb{I}_d\\
@@ -529,20 +532,20 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 \end{gather}
 \]</span></p>
 <p>where <span class="math inline">\(\mathbb{X}_k\)</span> is the design matrix <span class="math inline">\(m \times d\)</span> where <span class="math inline">\(m\)</span> is the number of contexts (i.e., training inputs) and <span class="math inline">\(d\)</span> the dimensionality of each context (i.e., the number of covariates considered). Here <span class="math inline">\(\mathbb{I}\)</span> is the <span class="math inline">\(d\times d\)</span> identity matrix and <span class="math inline">\(r_k\)</span> is the corresponding <span class="math inline">\(m\)</span>-dimensional reward (or response) vector. The identity matrix (which is usually expressed with a scaling factor <span class="math inline">\(\lambda\)</span> here implicitly set to 1.) act as a constrain on the parameter <span class="math inline">\(\theta_k\)</span>.</p>
-<p>The adavntage of relying on the Ridge regression is that we can interpret <span class="math inline">\(\hat{\theta_k}\)</span> a the mean of the Bayesian posterior of the parameter estimate and <span class="math inline">\(\mathbb{A}_k^-1\)</span> its covariance. In this way we can compute the expectation for <span class="math inline">\(r_{t, k}\)</span> as in <a href="#eq-expected_reward" class="quarto-xref">Equation&nbsp;1</a> and with it its associated standard deviation <span class="math inline">\(\sqrt{x_k^\intercal \mathbb{A_k}^{-1}x_k}\)</span> which is proven to be a reasoble tight bound.</p>
+<p>The advantages of relying on the Ridge regression is that we can interpret <span class="math inline">\(\hat{\theta_k}\)</span> a the mean of the Bayesian posterior of the parameter estimate and <span class="math inline">\(\mathbb{A}_k^-1\)</span> its covariance. In this way we can compute the expectation for <span class="math inline">\(r_{t, k}\)</span> as in <a href="#eq-expected_reward" class="quarto-xref">Equation&nbsp;1</a> and with it its associated standard deviation <span class="math inline">\(\sqrt{x_k^\intercal \mathbb{A_k}^{-1}x_k}\)</span> which is proven to be a reasonable tight bound.</p>
 <p>Based on this assumption then at any step <span class="math inline">\(t\)</span> we can select the appropriate arm <span class="math inline">\(k\)</span> to be</p>
 <p><span class="math inline">\(k_t = \arg \max_{k_t \in K_t}(x^\intercal \hat{\theta}_k + \alpha \sqrt{x_k^\intercal \mathbb{A_k}^{-1}x_k})\)</span></p>
-<p>where <span class="math inline">\(\alpha\)</span> becomes a constant that controls the exploration vs exploitation behaviour of the algorithm. Indeed, we can think of this as taking the value sitting at <span class="math inline">\(\alpha\)</span> standard deviation at the right of the mean of a gaussian as most optimistic retun value when picking a certain arm. Larrger values of <span class="math inline">\(\alpha\)</span> will therefore encourage to select arms with highest UCB even if the return is much more uncertain (as the UCB lies far away from the expected value).</p>
+<p>where <span class="math inline">\(\alpha\)</span> becomes a constant that controls the exploration vs exploitation behaviour of the algorithm. Indeed, we can think of this as taking the value sitting at <span class="math inline">\(\alpha\)</span> standard deviation at the right of the mean of a gaussian as most optimistic retun value when picking a certain arm. Larger values of <span class="math inline">\(\alpha\)</span> will therefore encourage to select arms with highest UCB even if the return is much more uncertain (as the UCB lies far away from the expected value).</p>
 <p>The positive aspect of this is that the more an arm get selected the tighter it’s confidence bound become, up to a point in which it will become more promising to explore arms that provides larger UCB by the fact that they have simply been explored less.</p>
 </section>
 </section>
 <section id="implementing-the-algorithm" class="level1" data-number="3">
 <h1 data-number="3"><span class="header-section-number">3</span> Implementing the Algorithm</h1>
-<p>In this section we will proceeded at implementing the LinUCB algortithm, step-by-step using JAX for hardware accelaration.</p>
-<section id="parameters-initialisation" class="level2" data-number="3.1">
-<h2 data-number="3.1" class="anchored" data-anchor-id="parameters-initialisation"><span class="header-section-number">3.1</span> Parameters Initialisation</h2>
+<p>In this section we will proceeded at implementing the LinUCB algorithm, step-by-step using JAX for hardware acceleration.</p>
+<section id="parameters-initialization" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="parameters-initialization"><span class="header-section-number">3.1</span> Parameters Initialization</h2>
 <p>As a first step we will need to initialize the matrices for <span class="math inline">\(X\)</span> and <span class="math inline">\(r\)</span> from this point onward we will call them <span class="math inline">\(A\)</span> and <span class="math inline">\(b\)</span> as mentioned in [li2010contextual].</p>
-<div id="b2b54859" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="6">
+<div id="563066b8" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> init_matrices(context_size: <span class="bu">int</span>) <span class="op">-&gt;</span> Tuple[ArrayLike, ...]:</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    A <span class="op">=</span> jnp.eye(N<span class="op">=</span>context_size)</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> jnp.zeros(shape<span class="op">=</span>(context_size, <span class="dv">1</span>))</span>
@@ -569,10 +572,10 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 </section>
 <section id="computations" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="computations"><span class="header-section-number">3.2</span> Computations</h2>
-<p>We will now define the code for the various computations, namely deriving the <span class="math inline">\(\theta\)</span> and <span class="math inline">\(\sigma\)</span> parameters. And subsequently estimating the expection for the return as well as the UCB.</p>
-<p>In order to speed up the computation, we will leverage the <a href="https://docs.jax.dev/en/latest/jit-compilation.html">Just in Time Compilation</a> functionality in JAX as well as its <a href="https://docs.jax.dev/en/latest/automatic-vectorization.html">automatic vectorisation</a>.</p>
+<p>We will now define the code for the various computations, namely deriving the <span class="math inline">\(\theta\)</span> and <span class="math inline">\(\sigma\)</span> parameters. And subsequently estimating the expectation for the return as well as the UCB.</p>
+<p>In order to speed up the computation, we will leverage the <a href="https://docs.jax.dev/en/latest/jit-compilation.html">Just in Time Compilation</a> functionality in JAX as well as its <a href="https://docs.jax.dev/en/latest/automatic-vectorization.html">automatic vectorization</a>.</p>
 <p>The first one will allow us to cache computations that are used multiple times by the LinUCB algorithm, while the second one will allow us in this case to vectorize the computation across all the arms in our bandit problem (instead of slowly iterating through them).</p>
-<div id="d327a508" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="7">
+<div id="c0b37eb1" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_theta(</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>        A_inverse: ArrayLike, </span>
@@ -658,8 +661,8 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 </section>
 <section id="update-parameters" class="level2" data-number="3.3">
 <h2 data-number="3.3" class="anchored" data-anchor-id="update-parameters"><span class="header-section-number">3.3</span> Update parameters</h2>
-<p>This section define the code used for updating the parameters associated with each of the arms, this function will be called dynamically during the simulation and will update the arms specified by the <code>policy</code> selected by the algoirthm with the <code>reward</code> associated with said policy.</p>
-<div id="48bdbacf" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="8">
+<p>This section define the code used for updating the parameters associated with each of the arms, this function will be called dynamically during the simulation and will update the arms specified by the <code>policy</code> selected by the algorithm with the <code>reward</code> associated with said policy.</p>
+<div id="e9f1fc3b" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> update_parameters(</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    arms_A: ArrayLike, </span>
@@ -682,11 +685,28 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 </div>
 </section>
 </section>
-<section id="definining-the-simulation-steps" class="level1" data-number="4">
-<h1 data-number="4"><span class="header-section-number">4</span> Definining the simulation steps</h1>
-<p>Here we define all the functionality required for simulating the interactions with the various arms as well as the process of receiveing rewards, executing the policies and updating the parameters. There is quite a bit to un-pack here so we will proceed step by step.</p>
-<p>Also in here, whenever is possible we will try to rely on the auto-vectorization capacity provided by <code>jax</code>.</p>
-<div id="9714ac3b" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="9">
+<section id="definining-the-simulation-engine" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Definining the simulation engine</h1>
+<p>Here we define all the functionality required for simulating the interactions with the various arms as well as the process of receiving rewards, executing the policies and updating the parameters. Also here, whenever possible, we will try to rely on the auto-vectorization and just-in-time compilation capacities provided by <code>jax</code>.</p>
+<p>Since there is quite a bit to un-pack here, we will proceed step by step.</p>
+<section id="taking-a-step-in-the-simulation-engine" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="taking-a-step-in-the-simulation-engine"><span class="header-section-number">4.1</span> Taking a step in the simulation engine</h2>
+<p>In our case taking a step simply imply simulating the delivery of the reward from the arms selected by a given <code>policy</code>. Here we use <code>policy</code> interchangeably for indicating the strategy for selecting arms and the result of the selection itself.</p>
+<p>The reward is simply given by sampling from a <a href="https://en.wikipedia.org/wiki/Bernoulli_distribution">bernoulli distribution</a> with its parameter <code>$p$</code> defined by the <code>arms_probabilities</code> (the probability that a given arm will provide a reward). Since we want to makes this a bit more realistic, we will induce sparsity in the rewards by multiplying them with samples from another bernoulli distribution with parameter <code>$p$</code> defined by <code>1 - reward_sparsity</code>. We also included a <code>reward_weighting</code> parameter for exploring how this could be used for overcoming the sparsity problem.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Note the importance of the <code>step_key</code> argument which is required for executing stochastic behaviors in JAX. More details can be found on the <a href="https://docs.jax.dev/en/latest/jax.random.html">documentation about the stateless random number generators</a> in JAX.</p>
+</div>
+</div>
+<div id="4706755c" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> step(</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        policy: ArrayLike, </span>
@@ -709,7 +729,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    ) <span class="op">*</span> <span class="dv">1</span></span>
 <span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (rewards <span class="op">*</span> sparsity_factor) <span class="op">*</span> reward_weighting</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="96ed3c60" class="cell" data-execution_count="10">
+<div id="01836663" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> execute_policies(</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>        upper_bound: ArrayLike, </span>
@@ -723,7 +743,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    linucb_policy <span class="op">=</span> upper_bound.argmax(axis<span class="op">=</span><span class="dv">1</span>)</span>
 <span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> linucb_policy, random_policy</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="caf66691" class="cell" data-execution_count="11">
+<div id="e9218635" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_rewards(</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>        linucb_policy: ArrayLike, </span>
@@ -747,7 +767,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> arms_rewards</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="3c714090" class="cell" data-execution_count="12">
+<div id="f164247d" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_regrets(</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>        linucb_policy: ArrayLike, </span>
@@ -764,7 +784,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    </span>
 <span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> policies_regrets</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="6f63696d" class="cell" data-execution_count="13">
+<div id="904ae007" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> simulate_interaction(</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>        carry: Tuple[ArrayLike, ...], </span>
@@ -826,9 +846,10 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb13-59"><a href="#cb13-59" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> new_carry, diagnostics</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
+</section>
 <section id="running-the-simulation" class="level1" data-number="5">
 <h1 data-number="5"><span class="header-section-number">5</span> Running the simulation</h1>
-<div id="4db69e4e" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="14">
+<div id="aad9fa18" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>SIMULATION_STEPS <span class="op">=</span> (<span class="dv">24</span> <span class="op">*</span> <span class="dv">4</span>) <span class="op">*</span> <span class="dv">7</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>split_key <span class="op">=</span> random.PRNGKey(<span class="dv">666</span>)</span>
@@ -853,7 +874,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 </section>
 <section id="performance-visualisation" class="level1" data-number="6">
 <h1 data-number="6"><span class="header-section-number">6</span> Performance Visualisation</h1>
-<div id="8de838d5" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="15">
+<div id="a7db2f72" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="15">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_policy_diagnostics_summaries(diagnostics):</span>
@@ -945,7 +966,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb15-87"><a href="#cb15-87" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fig</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div id="d861f7a7" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="16">
+<div id="fa778965" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="16">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>diagnostics_summaries <span class="op">=</span> compute_policy_diagnostics_summaries(</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    diagnostics<span class="op">=</span>diagnostics[<span class="st">"policies"</span>]</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>)</span>
@@ -964,7 +985,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 </div>
 </div>
 </div>
-<div id="23d761ca" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="17">
+<div id="0f2bc719" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="17">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_single_arm_parameters_dianoistics(arm, diagnostics, figsize, show_labels<span class="op">=</span><span class="va">True</span>):</span>
@@ -1013,7 +1034,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb17-44"><a href="#cb17-44" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fig</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div id="fbc4fb51" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="18">
+<div id="9fa3a37d" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="18">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> arm <span class="kw">in</span> <span class="bu">range</span>(N_ARMS):</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> plot_single_arm_parameters_dianoistics(</span>
