@@ -258,6 +258,7 @@ window.Quarto = {
   <li><a href="#definining-the-simulation-engine" id="toc-definining-the-simulation-engine" class="nav-link" data-scroll-target="#definining-the-simulation-engine"><span class="header-section-number">4</span> Definining the simulation engine</a>
   <ul class="collapse">
   <li><a href="#taking-a-step-in-the-simulation-engine" id="toc-taking-a-step-in-the-simulation-engine" class="nav-link" data-scroll-target="#taking-a-step-in-the-simulation-engine"><span class="header-section-number">4.1</span> Taking a step in the simulation engine</a></li>
+  <li><a href="#executing-the-policies" id="toc-executing-the-policies" class="nav-link" data-scroll-target="#executing-the-policies"><span class="header-section-number">4.2</span> Executing the policies</a></li>
   </ul></li>
   <li><a href="#running-the-simulation" id="toc-running-the-simulation" class="nav-link" data-scroll-target="#running-the-simulation"><span class="header-section-number">5</span> Running the simulation</a></li>
   <li><a href="#performance-visualisation" id="toc-performance-visualisation" class="nav-link" data-scroll-target="#performance-visualisation"><span class="header-section-number">6</span> Performance Visualisation</a></li>
@@ -303,7 +304,7 @@ window.Quarto = {
 </header>
 
 
-<div id="c5d06a82" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="1">
+<div id="8e4d9e37" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="1">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Tuple, List, Any</span>
@@ -406,7 +407,7 @@ r = \begin{cases} 0,&amp; \text{if hurdle} = 0 \\
 Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 \end{gather}
 \]</span></p>
-<div id="0ffe46c2" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="2">
+<div id="fb8ca6ed" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>UNIT_CONTEXT_SIZE <span class="op">=</span> <span class="dv">1</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>UNIT_ARMS <span class="op">=</span> <span class="dv">2</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -425,7 +426,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>N_ARMS <span class="op">=</span> UNIT_ARMS <span class="op">**</span> <span class="dv">2</span> <span class="co"># We ensure we can always plot the arms in a squared grid</span></span>
 <span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>CLASS_SEP <span class="op">=</span> <span class="fl">.9</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="d323a3fc" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="3">
+<div id="fd053f67" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="3">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> generate_context(n_arms, n_users, context_size, redundant, repeated, informative, clusters_per_class, class_sep, with_intercept<span class="op">=</span><span class="va">True</span>):</span>
@@ -460,7 +461,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> context</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div id="8e45ace4" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="4">
+<div id="5c3635ed" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>CONTEXT, GROUPS <span class="op">=</span> generate_context(</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    n_arms<span class="op">=</span>N_ARMS, </span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    n_users<span class="op">=</span>N_USERS, </span>
@@ -484,7 +485,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Here we will use TSNE for projecting the multidimensional context space on a 2D plane, this should allow us to get a better intuition of what is going on. What we expect to see are separate spheres or regions (this depends on how much noise we encode in our context space) with different coloring depending on which arms they are associated with</p>
-<div id="c4e132f3" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="5">
+<div id="d0da5303" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>embedding <span class="op">=</span> TSNE().fit_transform(CONTEXT[:, <span class="dv">0</span>, :])</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>fig, axs <span class="op">=</span> plt.subplots(UNIT_ARMS, UNIT_ARMS, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">8</span>), sharex<span class="op">=</span><span class="va">True</span>, sharey<span class="op">=</span><span class="va">True</span>)</span>
@@ -545,7 +546,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <section id="parameters-initialization" class="level2" data-number="3.1">
 <h2 data-number="3.1" class="anchored" data-anchor-id="parameters-initialization"><span class="header-section-number">3.1</span> Parameters Initialization</h2>
 <p>As a first step we will need to initialize the matrices for <span class="math inline">\(X\)</span> and <span class="math inline">\(r\)</span> from this point onward we will call them <span class="math inline">\(A\)</span> and <span class="math inline">\(b\)</span> as mentioned in [li2010contextual].</p>
-<div id="563066b8" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="6">
+<div id="95842aec" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> init_matrices(context_size: <span class="bu">int</span>) <span class="op">-&gt;</span> Tuple[ArrayLike, ...]:</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    A <span class="op">=</span> jnp.eye(N<span class="op">=</span>context_size)</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> jnp.zeros(shape<span class="op">=</span>(context_size, <span class="dv">1</span>))</span>
@@ -575,7 +576,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <p>We will now define the code for the various computations, namely deriving the <span class="math inline">\(\theta\)</span> and <span class="math inline">\(\sigma\)</span> parameters. And subsequently estimating the expectation for the return as well as the UCB.</p>
 <p>In order to speed up the computation, we will leverage the <a href="https://docs.jax.dev/en/latest/jit-compilation.html">Just in Time Compilation</a> functionality in JAX as well as its <a href="https://docs.jax.dev/en/latest/automatic-vectorization.html">automatic vectorization</a>.</p>
 <p>The first one will allow us to cache computations that are used multiple times by the LinUCB algorithm, while the second one will allow us in this case to vectorize the computation across all the arms in our bandit problem (instead of slowly iterating through them).</p>
-<div id="c0b37eb1" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="7">
+<div id="274534f6" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_theta(</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>        A_inverse: ArrayLike, </span>
@@ -662,7 +663,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <section id="update-parameters" class="level2" data-number="3.3">
 <h2 data-number="3.3" class="anchored" data-anchor-id="update-parameters"><span class="header-section-number">3.3</span> Update parameters</h2>
 <p>This section define the code used for updating the parameters associated with each of the arms, this function will be called dynamically during the simulation and will update the arms specified by the <code>policy</code> selected by the algorithm with the <code>reward</code> associated with said policy.</p>
-<div id="e9f1fc3b" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="8">
+<div id="fd7b3cb0" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> update_parameters(</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    arms_A: ArrayLike, </span>
@@ -703,10 +704,10 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Note the importance of the <code>step_key</code> argument which is required for executing stochastic behaviors in JAX. More details can be found on the <a href="https://docs.jax.dev/en/latest/jax.random.html">documentation about the stateless random number generators</a> in JAX.</p>
+<p>Note the importance of the <code>step_key</code> argument which is required for executing stochastic behaviors in JAX. More details can be found int the <a href="https://docs.jax.dev/en/latest/jax.random.html">documentation about the stateless random number generators</a>.</p>
 </div>
 </div>
-<div id="4706755c" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="9">
+<div id="bb7656fd" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> step(</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        policy: ArrayLike, </span>
@@ -729,7 +730,11 @@ Note
 <span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    ) <span class="op">*</span> <span class="dv">1</span></span>
 <span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (rewards <span class="op">*</span> sparsity_factor) <span class="op">*</span> reward_weighting</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="01836663" class="cell" data-execution_count="10">
+</section>
+<section id="executing-the-policies" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="executing-the-policies"><span class="header-section-number">4.2</span> Executing the policies</h2>
+<p>Executing the policies simply boils down to selecting the arm given the <code>upper_bound</code> computed by the LinUCB algorithm. In our case that correspond to take the arg-max of the generated <code>upper_bound</code>. For having a comparison term, we also implemented a random policy that simply selects one of the available arms at random.</p>
+<div id="a777e543" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> execute_policies(</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>        upper_bound: ArrayLike, </span>
@@ -743,7 +748,8 @@ Note
 <span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    linucb_policy <span class="op">=</span> upper_bound.argmax(axis<span class="op">=</span><span class="dv">1</span>)</span>
 <span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> linucb_policy, random_policy</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="e9218635" class="cell" data-execution_count="11">
+<p>Once we have defined the logic for our simulation step and policies, we simply have to cycle through these policies and evaluate what type of reward they would obtain.</p>
+<div id="6f81ac4b" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_rewards(</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>        linucb_policy: ArrayLike, </span>
@@ -767,7 +773,8 @@ Note
 <span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> arms_rewards</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="f164247d" class="cell" data-execution_count="12">
+<p>An interesting metric to compute on top of the reward obtained by executing a given policy is the regret. Regret can be thought as the distance between the optimal behavior the one produced by a given policy. In our case we compute the regret as the difference between the reward probability associated with the optimal arm and the probability associate with the arm selected by every policy.</p>
+<div id="b24a28ca" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_regrets(</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>        linucb_policy: ArrayLike, </span>
@@ -784,7 +791,7 @@ Note
 <span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    </span>
 <span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> policies_regrets</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="904ae007" class="cell" data-execution_count="13">
+<div id="50334eab" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> simulate_interaction(</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>        carry: Tuple[ArrayLike, ...], </span>
@@ -849,32 +856,31 @@ Note
 </section>
 <section id="running-the-simulation" class="level1" data-number="5">
 <h1 data-number="5"><span class="header-section-number">5</span> Running the simulation</h1>
-<div id="aad9fa18" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="14">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>SIMULATION_STEPS <span class="op">=</span> (<span class="dv">24</span> <span class="op">*</span> <span class="dv">4</span>) <span class="op">*</span> <span class="dv">7</span></span>
+<div id="a8cabe42" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>SIMULATION_STEPS <span class="op">=</span> <span class="dv">360</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>split_key <span class="op">=</span> random.PRNGKey(<span class="dv">666</span>)</span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>arms_A, arms_b <span class="op">=</span> init_matrices_for_all_arms(</span>
 <span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    number_of_arms<span class="op">=</span>N_ARMS, </span>
 <span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    context_size<span class="op">=</span>CONTEXT.shape[<span class="op">-</span><span class="dv">1</span>]</span>
 <span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>partialized_simulate_interaction <span class="op">=</span> partial(</span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    simulate_interaction, </span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    arms_probabilities<span class="op">=</span>ARMS_PROBAILITIES, </span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    alpha<span class="op">=</span><span class="dv">1</span>,</span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    reward_sparsity<span class="op">=</span>REWARD_SPARSITY,</span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    reward_weighting<span class="op">=</span>REWARD_WEIGHTING,</span>
-<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>carry, diagnostics <span class="op">=</span> scan(</span>
-<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    partialized_simulate_interaction, </span>
-<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    init<span class="op">=</span>(split_key, arms_A, arms_b, CONTEXT),</span>
-<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    xs<span class="op">=</span>jnp.arange(SIMULATION_STEPS)</span>
-<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>partialized_simulate_interaction <span class="op">=</span> partial(</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    simulate_interaction, </span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    arms_probabilities<span class="op">=</span>ARMS_PROBAILITIES, </span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    alpha<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    reward_sparsity<span class="op">=</span>REWARD_SPARSITY,</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    reward_weighting<span class="op">=</span>REWARD_WEIGHTING,</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>carry, diagnostics <span class="op">=</span> scan(</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    partialized_simulate_interaction, </span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    init<span class="op">=</span>(split_key, arms_A, arms_b, CONTEXT),</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    xs<span class="op">=</span>jnp.arange(SIMULATION_STEPS)</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="performance-visualisation" class="level1" data-number="6">
 <h1 data-number="6"><span class="header-section-number">6</span> Performance Visualisation</h1>
-<div id="a7db2f72" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="15">
+<div id="ecff87aa" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="15">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_policy_diagnostics_summaries(diagnostics):</span>
@@ -966,7 +972,7 @@ Note
 <span id="cb15-87"><a href="#cb15-87" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fig</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div id="fa778965" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="16">
+<div id="1d8ef4e9" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="16">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>diagnostics_summaries <span class="op">=</span> compute_policy_diagnostics_summaries(</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    diagnostics<span class="op">=</span>diagnostics[<span class="st">"policies"</span>]</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>)</span>
@@ -974,7 +980,7 @@ Note
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    diagnostics_summaries<span class="op">=</span>diagnostics_summaries, </span>
 <span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>)</span>
 <span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">"Performance of LinUCB and Random Policies"</span>)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="ss">f"Performance of LinUCB and Random Policies</span><span class="ch">\n</span><span class="ss">Reward Sparsity </span><span class="sc">{</span>REWARD_SPARSITY<span class="sc">}</span><span class="ss"> Reward Weighting </span><span class="sc">{</span>REWARD_WEIGHTING<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
 <span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
@@ -985,64 +991,76 @@ Note
 </div>
 </div>
 </div>
-<div id="0f2bc719" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="17">
-<details class="code-fold">
-<summary>Show supplementary code</summary>
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_single_arm_parameters_dianoistics(arm, diagnostics, figsize, show_labels<span class="op">=</span><span class="va">True</span>):</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> plt.figure(figsize<span class="op">=</span>figsize, tight_layout<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    grid <span class="op">=</span> GridSpec(nrows<span class="op">=</span><span class="dv">2</span>, ncols<span class="op">=</span><span class="dv">3</span>)</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    beta <span class="op">=</span> diagnostics[<span class="st">"b"</span>][:, arm, :].squeeze()</span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    midpoint <span class="op">=</span> <span class="bu">int</span>(beta.shape[<span class="dv">0</span>] <span class="op">//</span> <span class="dv">2</span>)</span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    simulation_steps <span class="op">=</span> np.arange(beta.shape[<span class="dv">0</span>])</span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    ax_beta <span class="op">=</span> fig.add_subplot(grid[<span class="dv">0</span>, :])</span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> parameter_index <span class="kw">in</span> np.arange(beta.shape[<span class="op">-</span><span class="dv">1</span>]):</span>
-<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>        ax_beta.plot(</span>
-<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>            beta[:, parameter_index],</span>
-<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>            label<span class="op">=</span><span class="ss">f"Parameter </span><span class="sc">{</span>parameter_index<span class="sc">}</span><span class="ss">"</span>            </span>
-<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> show_labels:</span>
-<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>        ax_beta.legend(loc<span class="op">=</span><span class="st">'center left'</span>, bbox_to_anchor<span class="op">=</span>(<span class="dv">1</span>, <span class="fl">0.5</span>))</span>
-<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>    ax_beta.set_ylabel(<span class="st">"Parameter Value"</span>)</span>
-<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>    ax_beta.set_xlabel(<span class="st">"Simulation Step"</span>)</span>
-<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>    ax_beta.set_title(<span class="st">"Evolution of b parameters"</span>)</span>
-<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>    ax_beta.grid()</span>
-<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> column, simulation_step <span class="kw">in</span> <span class="bu">enumerate</span>(simulation_steps[[<span class="dv">0</span>, midpoint, <span class="op">-</span><span class="dv">1</span>]]): </span>
-<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>        ax_alpha <span class="op">=</span> fig.add_subplot(grid[<span class="dv">1</span>, column])</span>
-<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>        ax_alpha.set_ylabel(<span class="st">"b Parameters"</span>)</span>
-<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>        ax_alpha.set_xlabel(<span class="st">"b Parameters"</span>)</span>
-<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>        ax_alpha.set_title(<span class="ss">f"Covariance b parameters </span><span class="ch">\n</span><span class="ss"> Simulation Step </span><span class="sc">{</span>simulation_step<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>        alpha_img <span class="op">=</span> ax_alpha.imshow(</span>
-<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>            diagnostics[<span class="st">"A"</span>][simulation_step, arm, :, :]</span>
-<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a>        plt.colorbar(</span>
-<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>            alpha_img,</span>
-<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a>            ax<span class="op">=</span>ax_alpha,</span>
-<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a>            fraction<span class="op">=</span><span class="fl">0.046</span>, </span>
-<span id="cb17-39"><a href="#cb17-39" aria-hidden="true" tabindex="-1"></a>            pad<span class="op">=</span><span class="fl">0.04</span></span>
-<span id="cb17-40"><a href="#cb17-40" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb17-41"><a href="#cb17-41" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb17-42"><a href="#cb17-42" aria-hidden="true" tabindex="-1"></a>    plt.suptitle(<span class="ss">f"Diagnostics for arm </span><span class="sc">{</span>arm<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb17-43"><a href="#cb17-43" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb17-44"><a href="#cb17-44" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fig</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
+<div id="60fab944" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>REWARD_SPARSITY <span class="op">=</span> <span class="fl">.99</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>REWARD_WEIGHTING <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>arms_A, arms_b <span class="op">=</span> init_matrices_for_all_arms(</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    number_of_arms<span class="op">=</span>N_ARMS, </span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    context_size<span class="op">=</span>CONTEXT.shape[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>partialized_simulate_interaction <span class="op">=</span> partial(</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    simulate_interaction, </span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    arms_probabilities<span class="op">=</span>ARMS_PROBAILITIES, </span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    alpha<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>    reward_sparsity<span class="op">=</span>REWARD_SPARSITY,</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    reward_weighting<span class="op">=</span>REWARD_WEIGHTING,</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>carry, diagnostics <span class="op">=</span> scan(</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>    partialized_simulate_interaction, </span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>    init<span class="op">=</span>(split_key, arms_A, arms_b, CONTEXT),</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>    xs<span class="op">=</span>jnp.arange(SIMULATION_STEPS)</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>diagnostics_summaries <span class="op">=</span> compute_policy_diagnostics_summaries(</span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>    diagnostics<span class="op">=</span>diagnostics[<span class="st">"policies"</span>]</span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> plot_all_policy_diagnostics(</span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>    diagnostics_summaries<span class="op">=</span>diagnostics_summaries, </span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>)</span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="ss">f"Performance of LinUCB and Random Policies</span><span class="ch">\n</span><span class="ss">Reward Sparsity </span><span class="sc">{</span>REWARD_SPARSITY<span class="sc">}</span><span class="ss"> Reward Weighting </span><span class="sc">{</span>REWARD_WEIGHTING<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="lin_ucb_jax_files/figure-html/cell-18-output-1.png" class="img-fluid figure-img"></p>
+</figure>
 </div>
-<div id="9fa3a37d" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="18">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> arm <span class="kw">in</span> <span class="bu">range</span>(N_ARMS):</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> plot_single_arm_parameters_dianoistics(</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>        arm<span class="op">=</span>arm, </span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>        diagnostics<span class="op">=</span>diagnostics[<span class="st">"parameters"</span>], </span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>        figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="dv">6</span>)</span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+<div id="0421b710" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>REWARD_SPARSITY <span class="op">=</span> <span class="fl">.1</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>REWARD_WEIGHTING <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>arms_A, arms_b <span class="op">=</span> init_matrices_for_all_arms(</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    number_of_arms<span class="op">=</span>N_ARMS, </span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    context_size<span class="op">=</span>CONTEXT.shape[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>partialized_simulate_interaction <span class="op">=</span> partial(</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    simulate_interaction, </span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    arms_probabilities<span class="op">=</span>ARMS_PROBAILITIES, </span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    alpha<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    reward_sparsity<span class="op">=</span>REWARD_SPARSITY,</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>    reward_weighting<span class="op">=</span>REWARD_WEIGHTING,</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>carry, diagnostics <span class="op">=</span> scan(</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    partialized_simulate_interaction, </span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    init<span class="op">=</span>(split_key, arms_A, arms_b, CONTEXT),</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    xs<span class="op">=</span>jnp.arange(SIMULATION_STEPS)</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>diagnostics_summaries <span class="op">=</span> compute_policy_diagnostics_summaries(</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>    diagnostics<span class="op">=</span>diagnostics[<span class="st">"policies"</span>]</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> plot_all_policy_diagnostics(</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>    diagnostics_summaries<span class="op">=</span>diagnostics_summaries, </span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>    figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>)</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="ss">f"Performance of LinUCB and Random Policies</span><span class="ch">\n</span><span class="ss">Reward Sparsity </span><span class="sc">{</span>REWARD_SPARSITY<span class="sc">}</span><span class="ss"> Reward Weighting </span><span class="sc">{</span>REWARD_WEIGHTING<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -1050,24 +1068,90 @@ Note
 </figure>
 </div>
 </div>
+</div>
+<div id="4162f3e0" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="19">
+<details class="code-fold">
+<summary>Show supplementary code</summary>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_single_arm_parameters_dianoistics(arm, diagnostics, figsize, show_labels<span class="op">=</span><span class="va">True</span>):</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> plt.figure(figsize<span class="op">=</span>figsize, tight_layout<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    grid <span class="op">=</span> GridSpec(nrows<span class="op">=</span><span class="dv">2</span>, ncols<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    beta <span class="op">=</span> diagnostics[<span class="st">"b"</span>][:, arm, :].squeeze()</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    midpoint <span class="op">=</span> <span class="bu">int</span>(beta.shape[<span class="dv">0</span>] <span class="op">//</span> <span class="dv">2</span>)</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    simulation_steps <span class="op">=</span> np.arange(beta.shape[<span class="dv">0</span>])</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    ax_beta <span class="op">=</span> fig.add_subplot(grid[<span class="dv">0</span>, :])</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> parameter_index <span class="kw">in</span> np.arange(beta.shape[<span class="op">-</span><span class="dv">1</span>]):</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>        ax_beta.plot(</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>            beta[:, parameter_index],</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>            label<span class="op">=</span><span class="ss">f"Parameter </span><span class="sc">{</span>parameter_index<span class="sc">}</span><span class="ss">"</span>            </span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> show_labels:</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>        ax_beta.legend(loc<span class="op">=</span><span class="st">'center left'</span>, bbox_to_anchor<span class="op">=</span>(<span class="dv">1</span>, <span class="fl">0.5</span>))</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>    ax_beta.set_ylabel(<span class="st">"Parameter Value"</span>)</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>    ax_beta.set_xlabel(<span class="st">"Simulation Step"</span>)</span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>    ax_beta.set_title(<span class="st">"Evolution of b parameters"</span>)</span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>    ax_beta.grid()</span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> column, simulation_step <span class="kw">in</span> <span class="bu">enumerate</span>(simulation_steps[[<span class="dv">0</span>, midpoint, <span class="op">-</span><span class="dv">1</span>]]): </span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>        ax_alpha <span class="op">=</span> fig.add_subplot(grid[<span class="dv">1</span>, column])</span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>        ax_alpha.set_ylabel(<span class="st">"b Parameters"</span>)</span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>        ax_alpha.set_xlabel(<span class="st">"b Parameters"</span>)</span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>        ax_alpha.set_title(<span class="ss">f"Covariance b parameters </span><span class="ch">\n</span><span class="ss"> Simulation Step </span><span class="sc">{</span>simulation_step<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>        alpha_img <span class="op">=</span> ax_alpha.imshow(</span>
+<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>            diagnostics[<span class="st">"A"</span>][simulation_step, arm, :, :]</span>
+<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>        plt.colorbar(</span>
+<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a>            alpha_img,</span>
+<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a>            ax<span class="op">=</span>ax_alpha,</span>
+<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a>            fraction<span class="op">=</span><span class="fl">0.046</span>, </span>
+<span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a>            pad<span class="op">=</span><span class="fl">0.04</span></span>
+<span id="cb19-40"><a href="#cb19-40" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb19-41"><a href="#cb19-41" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-42"><a href="#cb19-42" aria-hidden="true" tabindex="-1"></a>    plt.suptitle(<span class="ss">f"Diagnostics for arm </span><span class="sc">{</span>arm<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb19-43"><a href="#cb19-43" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb19-44"><a href="#cb19-44" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fig</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div id="eb56e7bf" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> arm <span class="kw">in</span> <span class="bu">range</span>(N_ARMS):</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> plot_single_arm_parameters_dianoistics(</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>        arm<span class="op">=</span>arm, </span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>        diagnostics<span class="op">=</span>diagnostics[<span class="st">"parameters"</span>], </span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>        figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="dv">6</span>)</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="lin_ucb_jax_files/figure-html/cell-19-output-2.png" class="img-fluid figure-img"></p>
+<p><img src="lin_ucb_jax_files/figure-html/cell-21-output-1.png" class="img-fluid figure-img"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="lin_ucb_jax_files/figure-html/cell-19-output-3.png" class="img-fluid figure-img"></p>
+<p><img src="lin_ucb_jax_files/figure-html/cell-21-output-2.png" class="img-fluid figure-img"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="lin_ucb_jax_files/figure-html/cell-19-output-4.png" class="img-fluid figure-img"></p>
+<p><img src="lin_ucb_jax_files/figure-html/cell-21-output-3.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="lin_ucb_jax_files/figure-html/cell-21-output-4.png" class="img-fluid figure-img"></p>
 </figure>
 </div>
 </div>

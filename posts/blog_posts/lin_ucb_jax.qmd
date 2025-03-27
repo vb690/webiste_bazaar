@@ -432,7 +432,7 @@ In our case taking a step simply imply simulating the delivery of the reward fro
 The reward is simply given by sampling from a [bernoulli distribution](https://en.wikipedia.org/wiki/Bernoulli_distribution) with its parameter `$p$` defined by the `arms_probabilities` (the probability that a given arm will provide a reward). Since we want to makes this a bit more realistic, we will induce sparsity in the rewards by multiplying them with samples from another bernoulli distribution with parameter `$p$` defined by `1 - reward_sparsity`.  We also included a `reward_weighting` parameter for exploring how this could be used for overcoming the sparsity problem.
 
 ::: {.callout-note}
-Note the importance of the `step_key` argument which is required for executing stochastic behaviors in JAX. More details can be found on the [documentation about the stateless random number generators](https://docs.jax.dev/en/latest/jax.random.html) in JAX.
+Note the importance of the `step_key` argument which is required for executing stochastic behaviors in JAX. More details can be found int the [documentation about the stateless random number generators](https://docs.jax.dev/en/latest/jax.random.html).
 :::
 
 ```{python}
@@ -460,6 +460,9 @@ def step(
     return (rewards * sparsity_factor) * reward_weighting
 ```
 
+## Executing the policies
+
+Executing the policies simply boils down to selecting the arm given the `upper_bound` computed by the LinUCB algorithm. In our case that correspond to take the arg-max of the generated `upper_bound`. For having a comparison term, we also implemented a random policy that simply selects one of the available arms at random.
 
 ```{python}
 @jit
@@ -475,6 +478,8 @@ def execute_policies(
     linucb_policy = upper_bound.argmax(axis=1)
     return linucb_policy, random_policy
 ```
+
+Once we have defined the logic for our simulation step and policies, we simply have to cycle through these policies and evaluate what type of reward they would obtain.
 
 ```{python}
 @jit
@@ -500,6 +505,8 @@ def compute_rewards(
 
     return arms_rewards
 ```
+
+An interesting metric to compute on top of the reward obtained by executing a given policy is the regret. Regret can be thought as the distance between the optimal behavior the one produced by a given policy. In our case we compute the regret as the difference between the reward probability associated with the optimal arm and the probability associate with the arm selected by every policy. 
 
 ```{python}
 @jit
@@ -585,14 +592,13 @@ def simulate_interaction(
 
 ```{python}
 #| vscode: {languageId: python}
-SIMULATION_STEPS = (24 * 4) * 7
+SIMULATION_STEPS = 360
 
 split_key = random.PRNGKey(666)
 arms_A, arms_b = init_matrices_for_all_arms(
     number_of_arms=N_ARMS, 
     context_size=CONTEXT.shape[-1]
 )
-
 partialized_simulate_interaction = partial(
     simulate_interaction, 
     arms_probabilities=ARMS_PROBAILITIES, 
@@ -711,7 +717,76 @@ fig = plot_all_policy_diagnostics(
     diagnostics_summaries=diagnostics_summaries, 
     figsize=(10, 5)
 )
-plt.suptitle("Performance of LinUCB and Random Policies")
+plt.suptitle(f"Performance of LinUCB and Random Policies\nReward Sparsity {REWARD_SPARSITY} Reward Weighting {REWARD_WEIGHTING}")
+plt.tight_layout()
+plt.show()
+```
+
+
+```{python}
+#| vscode: {languageId: python}
+REWARD_SPARSITY = .99
+REWARD_WEIGHTING = 1
+
+arms_A, arms_b = init_matrices_for_all_arms(
+    number_of_arms=N_ARMS, 
+    context_size=CONTEXT.shape[-1]
+)
+partialized_simulate_interaction = partial(
+    simulate_interaction, 
+    arms_probabilities=ARMS_PROBAILITIES, 
+    alpha=1,
+    reward_sparsity=REWARD_SPARSITY,
+    reward_weighting=REWARD_WEIGHTING,
+)
+carry, diagnostics = scan(
+    partialized_simulate_interaction, 
+    init=(split_key, arms_A, arms_b, CONTEXT),
+    xs=jnp.arange(SIMULATION_STEPS)
+)
+
+diagnostics_summaries = compute_policy_diagnostics_summaries(
+    diagnostics=diagnostics["policies"]
+)
+fig = plot_all_policy_diagnostics(
+    diagnostics_summaries=diagnostics_summaries, 
+    figsize=(10, 5)
+)
+plt.suptitle(f"Performance of LinUCB and Random Policies\nReward Sparsity {REWARD_SPARSITY} Reward Weighting {REWARD_WEIGHTING}")
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+#| vscode: {languageId: python}
+REWARD_SPARSITY = .1
+REWARD_WEIGHTING = 1
+
+arms_A, arms_b = init_matrices_for_all_arms(
+    number_of_arms=N_ARMS, 
+    context_size=CONTEXT.shape[-1]
+)
+partialized_simulate_interaction = partial(
+    simulate_interaction, 
+    arms_probabilities=ARMS_PROBAILITIES, 
+    alpha=1,
+    reward_sparsity=REWARD_SPARSITY,
+    reward_weighting=REWARD_WEIGHTING,
+)
+carry, diagnostics = scan(
+    partialized_simulate_interaction, 
+    init=(split_key, arms_A, arms_b, CONTEXT),
+    xs=jnp.arange(SIMULATION_STEPS)
+)
+
+diagnostics_summaries = compute_policy_diagnostics_summaries(
+    diagnostics=diagnostics["policies"]
+)
+fig = plot_all_policy_diagnostics(
+    diagnostics_summaries=diagnostics_summaries, 
+    figsize=(10, 5)
+)
+plt.suptitle(f"Performance of LinUCB and Random Policies\nReward Sparsity {REWARD_SPARSITY} Reward Weighting {REWARD_WEIGHTING}")
 plt.tight_layout()
 plt.show()
 ```
