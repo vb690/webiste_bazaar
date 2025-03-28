@@ -9,6 +9,7 @@ jupyter: python3
 ```{python}
 #| code-fold: true
 #| code-summary: "Show supplementary code"
+%load_ext watermark
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -684,3 +685,15 @@ Here we conclude this first introductory post on the basics of JAX. We want to s
 We can think of it as a distillation of some of the contents reported in the JAX [online documentation](https://jax.readthedocs.io/en/latest/)
 
 That said, what we outlined so far should equip us with enough knowledge to develop some simple models in the next posts.
+
+# Hardware and Requirements
+
+Here you can find the hardware and python requirements used for building this post.
+
+```{python}
+%watermark
+```
+
+```{python}
+%watermark --iversions
+```

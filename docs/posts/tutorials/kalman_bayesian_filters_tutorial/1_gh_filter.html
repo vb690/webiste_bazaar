@@ -234,6 +234,7 @@ window.Quarto = {
   <li><a href="#example-4---extreme-noise" id="toc-example-4---extreme-noise" class="nav-link" data-scroll-target="#example-4---extreme-noise"><span class="header-section-number">2.5.4</span> Example 4 - Extreme Noise</a></li>
   </ul></li>
   </ul></li>
+  <li><a href="#hardware-and-requirements" id="toc-hardware-and-requirements" class="nav-link" data-scroll-target="#hardware-and-requirements"><span class="header-section-number">3</span> Hardware and Requirements</a></li>
   </ul>
 </nav>
     </div>
@@ -282,14 +283,16 @@ window.Quarto = {
 </header>
 
 
-<div id="43aee71a" class="cell" data-execution_count="1">
+<div id="83df1d88" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>load_ext watermark</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> product</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> product</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <section id="why-do-we-need-filtering" class="level1" data-number="1">
@@ -301,7 +304,7 @@ window.Quarto = {
 <section id="the-g-h-filter" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> The g-h filter</h1>
 <p>Before jumping into more advanced topics however it is good to start from the core mechanisms of <strong>prediction</strong> and <strong>update</strong> and the <a href="https://en.wikipedia.org/wiki/Alpha_beta_filter">g-h filter</a> is the perfect tool for illustrating them.</p>
-<div id="43ae79af" class="cell" data-execution_count="2">
+<div id="2388324c" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
@@ -410,7 +413,7 @@ window.Quarto = {
 <h2 data-number="2.1" class="anchored" data-anchor-id="combining-noisy-measurements"><span class="header-section-number">2.1</span> Combining noisy measurements</h2>
 <p>Let’s imagine to be in a situation in which we want to evaluate a certain phenomena using two sensors (or any measuring tool). We know that both sensors provide measures with an error margin of <span class="math inline">\(\pm 5\)</span> units (expressed as standard deviations), so how can we obtain a reliable estimate of the state of the underlying phenomena?</p>
 <p>In the absence of any other information, the most straightforward strategy here is to leverage the measurements provided by both sensors and compute the <strong>expected</strong> value.</p>
-<div id="096b5f5b" class="cell" data-execution_count="3">
+<div id="ded3f130" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>measurements_dict <span class="op">=</span> {</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Sensor 1"</span>: np.random.normal(<span class="dv">30</span>, <span class="dv">5</span>, <span class="dv">50</span>),</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Sensor 2"</span>: np.random.normal(<span class="dv">20</span>, <span class="dv">5</span>, <span class="dv">50</span>)</span>
@@ -431,7 +434,7 @@ window.Quarto = {
 </div>
 <p>The computed expected value gives us a more reasonable and robust estimate of the true state of the phenomena we are trying to measure. This because it is a value compatible with the measurements provided by both sensors.</p>
 <p>This assumes both sensors to be equally trustworthy or in other words to have the same margin of error. In case we knew that one of the two sensors is sensibly more accurate than the other (let’s say a margin of error of <span class="math inline">\(\pm 2.5\)</span> units) we would probably expect it to contribute more to our estimate. However, surprisingly including some of the information provided by the less accurate sensor can give us an even better estimate!</p>
-<div id="9f8c0485" class="cell" data-execution_count="4">
+<div id="a8a0e7c3" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>measurements_dict <span class="op">=</span> {</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Accurate Sensor"</span>: np.random.normal(<span class="dv">30</span>, <span class="fl">2.5</span>, <span class="dv">50</span>),</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Noisy Sensor"</span>: np.random.normal(<span class="dv">20</span>, <span class="dv">5</span>, <span class="dv">50</span>)</span>
@@ -462,7 +465,7 @@ window.Quarto = {
 <p>A more common situation however is observed sequential measurements from a single, potentially noisy sensor. Of course the more measurements we take the closer we should get to the actual state of the phenomena we are analyzing.</p>
 <p>Unfortunately in many situations we don’t have this luxury. As we mentioned at the beginning of this post, in some situation we can only observe a handful of measurements (potentially only one!) like in the case of temporal series.</p>
 <p>In a temporal series if our measurements happen to be at a frequency higher than the dynamics of the phenomena under investigation we are in a relatively comfortable position but otherwise we are going to be in a situation where information is sparse and vulnerable to noise.</p>
-<div id="626cf7cf" class="cell" data-execution_count="5">
+<div id="2151c998" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>measurements <span class="op">=</span> np.array([<span class="dv">50</span>, <span class="dv">60</span>, <span class="dv">48</span>, <span class="dv">49</span>, <span class="dv">46</span>, <span class="dv">42</span>, <span class="dv">40</span>])</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> time_series_plots(</span>
@@ -480,7 +483,7 @@ window.Quarto = {
 </div>
 <p>If we were to use the same heuristics illustrated before, a jump of ~10 units between <code>Time 0</code>, <code>Time 1</code> and <code>Time 2</code> would be compatible with the observed measurements and their associated error bounds.</p>
 <p>Depending on the nature of the phenomena under investigation this might or might not be plausible. In order to verify this we need to “blend” the measurements provided by our noisy sensor with a model of the dynamics controlling our phenomena. Let’s start with a very naive model.</p>
-<div id="de0454fc" class="cell" data-execution_count="6">
+<div id="7ad97c69" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> time_series_plots(</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    measurements<span class="op">=</span>measurements,</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    expected_noise<span class="op">=</span><span class="dv">5</span></span>
@@ -509,7 +512,7 @@ window.Quarto = {
 <p>It is important to remember that the word <em>noise</em> doesn’t necessary indicate the presence of an <em>error</em>. It rather represents variations that are not consistent with our model or that cannot be explained by the information we have at hand.</p>
 <hr>
 <p>That said, we can also clearly see how the assumptions of a constant dynamics model do not get along well with the available measurements, which seems to be characterized by a downward trend. So maybe let’s try to draw the gradient line connecting the first to the last measurement</p>
-<div id="4c07914b" class="cell" data-execution_count="7">
+<div id="1c721f69" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> slope_model(beta, alpha, time):</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Generate predictions according to a </span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">    simple linear model.</span></span>
@@ -563,7 +566,7 @@ window.Quarto = {
 <section id="blending-measurements-and-predictions" class="level2" data-number="2.3">
 <h2 data-number="2.3" class="anchored" data-anchor-id="blending-measurements-and-predictions"><span class="header-section-number">2.3</span> Blending Measurements and predictions</h2>
 <p>So how should this blending happen? A reasonable strategy would be to weight more the source of information that we believe to be more reliable. Let’s look at how we can formalize this in python code. From here on we will occasionally rely on JAX for making our code more efficient (we won’t spend time describing what JAX is, we recommend checking out the <a href="https://jax.readthedocs.io">documentation page</a>).</p>
-<div id="40d7cf67" class="cell" data-execution_count="8">
+<div id="4b01dbf6" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> jit</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax.lax <span class="im">import</span> scan</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -633,7 +636,7 @@ window.Quarto = {
 <span id="cb8-67"><a href="#cb8-67" aria-hidden="true" tabindex="-1"></a>predictions <span class="op">=</span> np.array(predictions)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>In this case we used as gain rate the slope of our previous <code>slope_model</code> and expressed a belief that the predictions of our model are to be trusted more than the measurements. Precisely that the discrepancy between prediction and measurement should contribute only by <code>30%</code> to the overall estimate.</p>
-<div id="ff2bb306" class="cell" data-execution_count="9">
+<div id="12684664" class="cell" data-execution_count="9">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> time_series_plots(</span>
@@ -667,7 +670,7 @@ window.Quarto = {
 </div>
 </div>
 <p>By varying our belief, expressed through the <code>gain_rate</code> we can obtain estimates that are more or less influenced by either the dynamics’ model or by the measurements.</p>
-<div id="1dc3c416" class="cell" data-execution_count="10">
+<div id="14ea854a" class="cell" data-execution_count="10">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib</span>
@@ -708,7 +711,7 @@ window.Quarto = {
 <span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
-<pre><code>/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_2378/1561832762.py:3: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed in 3.11. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap()`` or ``pyplot.get_cmap()`` instead.
+<pre><code>/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_3669/1561832762.py:3: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed in 3.11. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap()`` or ``pyplot.get_cmap()`` instead.
   color_mapper = matplotlib.cm.get_cmap('Dark2')</code></pre>
 </div>
 <div class="cell-output cell-output-display">
@@ -720,7 +723,7 @@ window.Quarto = {
 </div>
 </div>
 <p>here we used as <code>gain_rate</code> a fixed value of <code>-1.7</code> as it was the slope of the linear model we used for simulating our measurements. However, having a fixed gain rate is quite an inflexible strategy which becomes particular ineffective when the rate of change varies dynamically. To circumvent this issue, we can let the <code>gain_rate</code> parameter varies based on how far are the predictions of our model dynamic from the observed measurement.</p>
-<div id="7b1fa8f7" class="cell" data-execution_count="11">
+<div id="7e9e6f7e" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> adaptive_gain_model(measurements, starting_estimate, starting_gain, gain_factor, gain_update_frequency, scale_factor):</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Create an adaptive gain model. It will iteratively estimate </span></span>
@@ -798,7 +801,7 @@ window.Quarto = {
 <span id="cb12-75"><a href="#cb12-75" aria-hidden="true" tabindex="-1"></a>predictions <span class="op">=</span> np.array(predictions)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>In this new version of <code>custom_gain_model</code> we let the <code>gain</code> (which can grossly be compared with the slope of our original <code>slope_model</code>) be a fraction (controlled by <code>gain_factor</code>) of the residuals derived from predictions and observed measurements. As before this <code>new_gain</code> parameter controls how much belief we put in either the model or the observed measurements but instead of setting its value statically we let it adapt based on the performance of the model so that if our initial guess results to be inadequate at a certain point in time (e.g.&nbsp;due to abrupt changes in the state dynamics) the model can correct itself.</p>
-<div id="d0de4cb7" class="cell" data-execution_count="12">
+<div id="b1cb747f" class="cell" data-execution_count="12">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib.gridspec <span class="im">import</span> GridSpec</span>
@@ -909,7 +912,7 @@ window.Quarto = {
 </div>
 </div>
 <p>We will now re-write the <code>adaptive_gain_model</code> into the <code>gh_filter</code> by making the steps outlined in the diagram above a little bit more explicit</p>
-<div id="26c3e382" class="cell" data-execution_count="13">
+<div id="f30ff418" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> gh_filter(measurements, starting_state, starting_gain, gain_factor, gain_update_frequency, state_factor):</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Create the gh filter model. It will iteratively estimate </span></span>
@@ -1015,7 +1018,7 @@ window.Quarto = {
 <section id="examples" class="level2" data-number="2.5">
 <h2 data-number="2.5" class="anchored" data-anchor-id="examples"><span class="header-section-number">2.5</span> Examples</h2>
 <p>Let’s try to get a visual intuition of the effect of varying <code>state_factor</code> and <code>gain_factor</code> in different situations.</p>
-<div id="0538d159" class="cell" data-execution_count="14">
+<div id="ab05f019" class="cell" data-execution_count="14">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_estimated_states(measurements, measurement_noise, estimated_states_dict, ax):</span>
@@ -1073,7 +1076,7 @@ window.Quarto = {
 </div>
 <section id="example-1---derivative-change" class="level3" data-number="2.5.1">
 <h3 data-number="2.5.1" class="anchored" data-anchor-id="example-1---derivative-change"><span class="header-section-number">2.5.1</span> Example 1 - Derivative Change</h3>
-<div id="6b58a44c" class="cell" data-execution_count="15">
+<div id="fcb96e14" class="cell" data-execution_count="15">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>measurements <span class="op">=</span> (<span class="dv">0</span> <span class="op">+</span> jnp.arange(<span class="dv">100</span>) <span class="op">*</span> <span class="fl">1.3</span>) <span class="op">+</span> random.normal(shape<span class="op">=</span>(<span class="dv">100</span>,), key<span class="op">=</span>random.PRNGKey(<span class="dv">666</span>)) <span class="op">*</span> <span class="fl">5.</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>measurements <span class="op">=</span> jnp.clip(measurements, <span class="va">None</span>, <span class="dv">100</span>)</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1083,7 +1086,7 @@ window.Quarto = {
 <span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    state_factors<span class="op">=</span>[<span class="fl">.3</span>, <span class="fl">.6</span>]</span>
 <span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_2378/3276693041.py:2: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed in 3.11. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap()`` or ``pyplot.get_cmap()`` instead.
+<pre><code>/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_3669/3276693041.py:2: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed in 3.11. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap()`` or ``pyplot.get_cmap()`` instead.
   color_mapper = matplotlib.cm.get_cmap('Dark2')</code></pre>
 </div>
 <div class="cell-output cell-output-display">
@@ -1097,7 +1100,7 @@ window.Quarto = {
 </section>
 <section id="example-2---level-shift" class="level3" data-number="2.5.2">
 <h3 data-number="2.5.2" class="anchored" data-anchor-id="example-2---level-shift"><span class="header-section-number">2.5.2</span> Example 2 - Level Shift</h3>
-<div id="f4ab6583" class="cell" data-execution_count="16">
+<div id="2a86239c" class="cell" data-execution_count="16">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>measurements <span class="op">=</span> (<span class="dv">0</span> <span class="op">+</span> jnp.arange(<span class="dv">50</span>) <span class="op">*</span> <span class="fl">1.03</span>) <span class="op">+</span> random.normal(shape<span class="op">=</span>(<span class="dv">50</span>,), key<span class="op">=</span>random.PRNGKey(<span class="dv">666</span>)) <span class="op">*</span> <span class="fl">5.</span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>measurements <span class="op">=</span> jnp.hstack(</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    (</span>
@@ -1118,7 +1121,7 @@ window.Quarto = {
 <span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    state_factors<span class="op">=</span>[<span class="fl">.3</span>, <span class="fl">.6</span>]</span>
 <span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_2378/3276693041.py:2: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed in 3.11. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap()`` or ``pyplot.get_cmap()`` instead.
+<pre><code>/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_3669/3276693041.py:2: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed in 3.11. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap()`` or ``pyplot.get_cmap()`` instead.
   color_mapper = matplotlib.cm.get_cmap('Dark2')</code></pre>
 </div>
 <div class="cell-output cell-output-display">
@@ -1132,7 +1135,7 @@ window.Quarto = {
 </section>
 <section id="example-3---inadequate-system-model-dynamics-with-acceleration" class="level3" data-number="2.5.3">
 <h3 data-number="2.5.3" class="anchored" data-anchor-id="example-3---inadequate-system-model-dynamics-with-acceleration"><span class="header-section-number">2.5.3</span> Example 3 - Inadequate System Model (Dynamics with acceleration)</h3>
-<div id="6e564490" class="cell" data-execution_count="17">
+<div id="e60cef81" class="cell" data-execution_count="17">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>time <span class="op">=</span> jnp.arange(<span class="dv">5</span>)</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>measurements <span class="op">=</span> <span class="dv">0</span> <span class="op">+</span> (time <span class="op">*</span> <span class="fl">1.03</span>) <span class="op">+</span> (jnp.power(time, <span class="dv">2</span>) <span class="op">*</span> <span class="dv">6</span>) <span class="op">+</span> random.normal(shape<span class="op">=</span>(<span class="dv">5</span>,), key<span class="op">=</span>random.PRNGKey(<span class="dv">666</span>)) <span class="op">*</span> <span class="fl">5.</span></span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1143,7 +1146,7 @@ window.Quarto = {
 <span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    state_factors<span class="op">=</span>[<span class="fl">.3</span>, <span class="fl">.6</span>]</span>
 <span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_2378/3276693041.py:2: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed in 3.11. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap()`` or ``pyplot.get_cmap()`` instead.
+<pre><code>/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_3669/3276693041.py:2: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed in 3.11. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap()`` or ``pyplot.get_cmap()`` instead.
   color_mapper = matplotlib.cm.get_cmap('Dark2')</code></pre>
 </div>
 <div class="cell-output cell-output-display">
@@ -1157,7 +1160,7 @@ window.Quarto = {
 </section>
 <section id="example-4---extreme-noise" class="level3" data-number="2.5.4">
 <h3 data-number="2.5.4" class="anchored" data-anchor-id="example-4---extreme-noise"><span class="header-section-number">2.5.4</span> Example 4 - Extreme Noise</h3>
-<div id="b3026b89" class="cell" data-execution_count="18">
+<div id="a76fe705" class="cell" data-execution_count="18">
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>measurements <span class="op">=</span> (<span class="dv">0</span> <span class="op">+</span> jnp.arange(<span class="dv">100</span>) <span class="op">*</span> <span class="fl">1.3</span>) <span class="op">+</span> random.normal(shape<span class="op">=</span>(<span class="dv">100</span>,), key<span class="op">=</span>random.PRNGKey(<span class="dv">666</span>)) <span class="op">*</span> <span class="fl">50.</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> run_example(</span>
@@ -1167,7 +1170,7 @@ window.Quarto = {
 <span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    measurement_noise<span class="op">=</span><span class="dv">50</span></span>
 <span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_2378/3276693041.py:2: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed in 3.11. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap()`` or ``pyplot.get_cmap()`` instead.
+<pre><code>/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_3669/3276693041.py:2: MatplotlibDeprecationWarning: The get_cmap function was deprecated in Matplotlib 3.7 and will be removed in 3.11. Use ``matplotlib.colormaps[name]`` or ``matplotlib.colormaps.get_cmap()`` or ``pyplot.get_cmap()`` instead.
   color_mapper = matplotlib.cm.get_cmap('Dark2')</code></pre>
 </div>
 <div class="cell-output cell-output-display">
@@ -1178,10 +1181,42 @@ window.Quarto = {
 </div>
 </div>
 </div>
-
-
 </section>
 </section>
+</section>
+<section id="hardware-and-requirements" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Hardware and Requirements</h1>
+<p>Here you can find the hardware and python requirements used for building this post.</p>
+<div id="5589108b" class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Last updated: 2025-03-28T09:22:21.031921+00:00
+
+Python implementation: CPython
+Python version       : 3.13.2
+IPython version      : 9.0.2
+
+Compiler    : Clang 18.1.8 
+OS          : Darwin
+Release     : 24.3.0
+Machine     : arm64
+Processor   : arm
+CPU cores   : 14
+Architecture: 64bit
+</code></pre>
+</div>
+</div>
+<div id="e9cc056a" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark <span class="op">--</span>iversions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>matplotlib: 3.10.1
+numpy     : 2.2.4
+jax       : 0.5.2
+</code></pre>
+</div>
+</div>
+
+
 </section>
 
 </main> <!-- /main -->

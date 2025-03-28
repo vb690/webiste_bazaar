@@ -192,6 +192,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#just-in-time-compilation" id="toc-just-in-time-compilation" class="nav-link" data-scroll-target="#just-in-time-compilation"><span class="header-section-number">3</span> Just In Time Compilation</a></li>
   <li><a href="#looping-vs-scanning" id="toc-looping-vs-scanning" class="nav-link" data-scroll-target="#looping-vs-scanning"><span class="header-section-number">4</span> Looping vs Scanning</a></li>
   <li><a href="#computing-gradients" id="toc-computing-gradients" class="nav-link" data-scroll-target="#computing-gradients"><span class="header-section-number">5</span> Computing Gradients</a></li>
+  <li><a href="#hardware-and-requirements" id="toc-hardware-and-requirements" class="nav-link" data-scroll-target="#hardware-and-requirements"><span class="header-section-number">6</span> Hardware and Requirements</a></li>
   </ul>
 </nav>
     </div>
@@ -239,40 +240,42 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<div id="8ad4d135" class="cell" data-execution_count="1">
+<div id="30f0414e" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> visualize_univariate_time_series(</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    time_series, ax<span class="op">=</span><span class="va">None</span>, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">4</span>), <span class="op">**</span>plot_kwargs</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>):</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> ax <span class="kw">is</span> <span class="va">None</span>:</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">1</span>, figsize<span class="op">=</span>figsize)</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    ax.plot(</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        np.arange(<span class="bu">len</span>(time_series)), </span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        time_series, </span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        <span class="op">**</span>plot_kwargs</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    ax.tick_params(direction<span class="op">=</span><span class="st">"in"</span>, top<span class="op">=</span><span class="va">True</span>, axis<span class="op">=</span><span class="st">"x"</span>, rotation<span class="op">=</span><span class="dv">45</span>)</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    ax.grid(</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>        visible<span class="op">=</span><span class="va">True</span>, </span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>        which<span class="op">=</span><span class="st">"major"</span>, </span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>        axis<span class="op">=</span><span class="st">"x"</span>, </span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">"k"</span>, </span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>        alpha<span class="op">=</span><span class="fl">0.25</span>, </span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>        linestyle<span class="op">=</span><span class="st">"--"</span></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ax</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>load_ext watermark</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> visualize_univariate_time_series(</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    time_series, ax<span class="op">=</span><span class="va">None</span>, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">4</span>), <span class="op">**</span>plot_kwargs</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>):</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> ax <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">1</span>, figsize<span class="op">=</span>figsize)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    ax.plot(</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        np.arange(<span class="bu">len</span>(time_series)), </span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>        time_series, </span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        <span class="op">**</span>plot_kwargs</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    ax.tick_params(direction<span class="op">=</span><span class="st">"in"</span>, top<span class="op">=</span><span class="va">True</span>, axis<span class="op">=</span><span class="st">"x"</span>, rotation<span class="op">=</span><span class="dv">45</span>)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    ax.grid(</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>        visible<span class="op">=</span><span class="va">True</span>, </span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>        which<span class="op">=</span><span class="st">"major"</span>, </span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>        axis<span class="op">=</span><span class="st">"x"</span>, </span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">"k"</span>, </span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>        alpha<span class="op">=</span><span class="fl">0.25</span>, </span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>        linestyle<span class="op">=</span><span class="st">"--"</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ax</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <section id="jax-functions-unraveled" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> JAX functions unraveled</h1>
 <p>In order to leverage the speedup granted by the XLA compiler JAX first needs to transform python code in a set of lower-lever and strictier set of instructions: a <strong>jax expression</strong>. Let’ s see how this expression would look like</p>
-<div id="4bbffeeb" class="cell" data-execution_count="2">
+<div id="cf716c2d" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax </span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -295,7 +298,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>as we can see our variables have now an explicit type (<code>f32</code>) and the functions <code>jnp.square</code> and <code>jnp.power</code> have been replaced by the <code>lax</code> equivalent <code>integer_pow</code>. <code>lax</code> can be thought as a sort of JAX low-level back-end. This expression will be then sent to the XLA compiler for being transformed in efficient machine code.</p>
 <p>But what happens to our <strong>jax expression</strong> if we try to poke one of JAX <a href="https://jax.readthedocs.io/en/latest/notebooks/Common_Gotchas_in_JAX.html">sharp edges</a>? Let’s introduce a side effect in our function and see</p>
-<div id="11bea86f" class="cell" data-execution_count="3">
+<div id="74002e4b" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax </span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -322,7 +325,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>as we can see our <code>accumulator</code> variable is not tracked in the <strong>jax expression</strong> neither are its associated computations! They will not be tracked by the compiler nor retrieved when the cached version of <code>foo</code> is executed a second time.</p>
 <p>We know that most JAX functionalities (e.g.&nbsp;computing gradients) are achieved by applying the appropriated transformations to the functions of interest. These transformed functions will go down the same route of being translated into the relevant <strong>jax expression</strong> and compiled by XLA. Let’s unravel what the gradient of <code>foo</code> would look like</p>
-<div id="a0bd5651" class="cell" data-execution_count="4">
+<div id="70e8c0d0" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> grad</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>grad_my_foo <span class="op">=</span> grad(my_foo) <span class="co"># we derive the gradient function of my_foo</span></span>
@@ -349,19 +352,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="arrrrgh-explicit-prng-states" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> ARRRRGH!!!! explicit PRNG states</h1>
 <p>Generate random numbers using numpy it is a relatively straightforward matter:</p>
-<div id="d683dd8d" class="cell" data-execution_count="5">
+<div id="203d932d" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>x_1 <span class="op">=</span> np.random.normal() <span class="co"># numpy is both easy...</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(x_1)</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>x_2 <span class="op">=</span> np.random.normal() <span class="co"># ...and intuitive!</span></span>
 <span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(x_1 <span class="op">==</span> x_2)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>0.4208397529733183
+<pre><code>1.0415928805928754
 False</code></pre>
 </div>
 </div>
 <p>under the hood numpy will do <a href="https://numpy.org/doc/stable/reference/random/index.html">alot of wizardry for us</a> implicitly setting the state of the Pseudo-Random Number Generator (PRNG) every time we ask to simulate sampling from a given distribution (e.g.&nbsp;uniform, normal etc…). With JAX we must do a bit more work as the library requires to explicitly pass a state whenever we call the PRNG</p>
-<div id="76eac32c" class="cell" data-execution_count="6">
+<div id="b708236e" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> random</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co"># jax is less easy</span></span>
@@ -376,7 +379,7 @@ False</code></pre>
 </div>
 </div>
 <p>this implies that the numbers are <strong>deterministically</strong> generated at random given a certain state. Hence if we do not make sure to generate fresh new states whenever we require a new random behaviour we might incur in some rather nasty side effects</p>
-<div id="b502c44a" class="cell" data-execution_count="7">
+<div id="097da82e" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>accumulator <span class="op">=</span> <span class="dv">0</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">100</span>):</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -390,7 +393,7 @@ False</code></pre>
 </div>
 </div>
 <p>Without modifying the state, calling <code>random.normal</code> will always generate the exact same sequence of random numbers! What we need to do in this case is to leverage the <code>split</code> function in the <code>random</code> module for splitting the original state (or key) in one or more sub-states (or sub-keys)</p>
-<div id="3a122a4c" class="cell" data-execution_count="8">
+<div id="d5a682bc" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>accumulator <span class="op">=</span> <span class="dv">0</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>seed_key <span class="op">=</span> master_key</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">100</span>):</span>
@@ -410,7 +413,7 @@ False</code></pre>
 <section id="just-in-time-compilation" class="level1" data-number="3">
 <h1 data-number="3"><span class="header-section-number">3</span> Just In Time Compilation</h1>
 <p>One of the advantages of JAX is its ability to Just In Time (JIT) compile python code to different types of accelerating devices, be them CPU, GPU or TPU. By compiling and caching slow python code to optimized machine code. So let’s see a simple example</p>
-<div id="a2aa91b5" class="cell" data-execution_count="9">
+<div id="e6b53ff3" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> silly_expensive_loopy_function(x):</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""A silly function, it does many completely useless computations.</span></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co">    However it is very loopy and expensive.</span></span>
@@ -431,11 +434,11 @@ False</code></pre>
 <span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>timeit silly_expensive_loopy_function(<span class="fl">10.</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Pure Python
-54.6 μs ± 304 ns per loop (mean ± std. dev. of 7 runs, 10,000 loops each)</code></pre>
+54.7 μs ± 202 ns per loop (mean ± std. dev. of 7 runs, 10,000 loops each)</code></pre>
 </div>
 </div>
 <p>as we can see we have a quite hefty execution time, but what happens if we JIT compile our function through the relevant JAX transformation?</p>
-<div id="1c00fac1" class="cell" data-execution_count="10">
+<div id="688f87c4" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> jit</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>jitted_silly_expensive_loopy_function <span class="op">=</span> jit(silly_expensive_loopy_function)</span>
@@ -444,26 +447,26 @@ False</code></pre>
 <span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>timeit jitted_silly_expensive_loopy_function(<span class="fl">10.</span>).block_until_ready()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Jitted Python with Compilation Time
-3 μs ± 34.7 ns per loop (mean ± std. dev. of 7 runs, 100,000 loops each)</code></pre>
+3.06 μs ± 42 ns per loop (mean ± std. dev. of 7 runs, 100,000 loops each)</code></pre>
 </div>
 </div>
 <p>as we can see execution time is almost 2 orders of magnitude lower for the JIT compiled function. The function of <code>.block_until_ready()</code> is to time not just compilation but also computation.</p>
 <p>If compilation time can be avoided, through caching for example, we can achieve even further speed-up. This because once a piece of potentially slow python code is compiled and cached by JAX, it can be skipped altogether for subsequent computations.</p>
-<div id="240e3143" class="cell" data-execution_count="11">
+<div id="c8f7f2f8" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>jitted_silly_expensive_loopy_function(<span class="fl">10.</span>).block_until_ready()</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Jitted Python without Compilation Time"</span>)</span>
 <span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>timeit jitted_silly_expensive_loopy_function(<span class="fl">666.</span>).block_until_ready()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Jitted Python without Compilation Time
-3.14 μs ± 24.7 ns per loop (mean ± std. dev. of 7 runs, 100,000 loops each)</code></pre>
+3.05 μs ± 11.9 ns per loop (mean ± std. dev. of 7 runs, 100,000 loops each)</code></pre>
 </div>
 </div>
 </section>
 <section id="looping-vs-scanning" class="level1" data-number="4">
 <h1 data-number="4"><span class="header-section-number">4</span> Looping vs Scanning</h1>
 <p>JIT compilation is a great way for optimizing our potentially slow python code, however it comes with few gotchas and looping is one of them. If we have a function executing some relatively demanding computations over a long sequence</p>
-<div id="e027e73b" class="cell" data-execution_count="12">
+<div id="cfa1f315" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>start_x_est<span class="op">=</span><span class="fl">160.</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>dx<span class="op">=</span><span class="fl">1.</span></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>h<span class="op">=</span><span class="fl">1.</span><span class="op">/</span><span class="fl">10.</span></span>
@@ -501,7 +504,7 @@ False</code></pre>
 <li>Finally, provide the current estimate along with other relative parameters needed in the next step.</li>
 </ol>
 <p>In this case, the most straightforward way to move the <code>step</code> function over the signal would be using a for loop</p>
-<div id="c92ac498" class="cell" data-execution_count="13">
+<div id="012d202d" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> loopy_function(X, start_x_est, dx, h, g, dt<span class="op">=</span><span class="fl">1.</span>):</span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Gh filter logic implmented with for loop</span></span>
@@ -530,23 +533,23 @@ False</code></pre>
 <span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>timeit loopy_function(X<span class="op">=</span>X, start_x_est<span class="op">=</span>start_x_est, dx<span class="op">=</span>dx, h<span class="op">=</span>h, g<span class="op">=</span>g, dt<span class="op">=</span>dt).block_until_ready()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Jitted for loop
-40.8 μs ± 9.19 μs per loop (mean ± std. dev. of 7 runs, 1 loop each)</code></pre>
+40 μs ± 7.2 μs per loop (mean ± std. dev. of 7 runs, 1 loop each)</code></pre>
 </div>
 </div>
 <p>JIT compiling both our function gives us a convenient speedup as we have seen before. But what happens if we increase the length of the signal over which we want to step?</p>
-<div id="fbb7809b" class="cell" data-execution_count="14">
+<div id="da011669" class="cell" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> <span class="fl">160.</span> <span class="op">+</span> (jnp.arange(<span class="dv">1</span>, <span class="dv">101</span>) <span class="op">*</span> <span class="fl">1.</span>) <span class="op">+</span> random.normal(shape<span class="op">=</span>(<span class="dv">100</span>, ), key<span class="op">=</span>master_key)</span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Jitted for loop over a long sequence"</span>)</span>
 <span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>timeit loopy_function(X<span class="op">=</span>X, start_x_est<span class="op">=</span>start_x_est, dx<span class="op">=</span>dx, h<span class="op">=</span>h, g<span class="op">=</span>g, dt<span class="op">=</span>dt).block_until_ready()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Jitted for loop over a long sequence
-67 μs ± 11.7 μs per loop (mean ± std. dev. of 7 runs, 1 loop each)</code></pre>
+70.3 μs ± 12.4 μs per loop (mean ± std. dev. of 7 runs, 1 loop each)</code></pre>
 </div>
 </div>
 <p>that is a considerable increase in computational time which doesn’t seem to increase linearly with the number of steps in our signal. What is happening under the hood is that XLA has to unroll all the computations included in our for loop in order to compile them, would our signal be much longer we would wait until the end of times for the compiler to do its job.</p>
 <p>Thankfully, JAX offers a solution to this through its the lower-level API <code>lax</code> using <code>scan</code>.</p>
-<div id="4d493061" class="cell" data-execution_count="15">
+<div id="9627486e" class="cell" data-execution_count="15">
 <div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax.lax <span class="im">import</span> scan</span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
@@ -572,7 +575,7 @@ False</code></pre>
 <span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> output</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>the syntax of <code>scan</code> might looks a bit un-intuitive if you are used to for loops but it is actually quite simple. It will iterate our <code>step</code> function over all the values of <code>X</code> and compute both the output relative to the current value of <code>X</code> and a <code>carry</code>. As the name suggests the <code>carry</code> will carry over any information that might be required by <code>step</code> in the future, be those parameters or computed values. In our example the carry is made of fixed parameters and state variables computed inside <code>step</code>. But let’s look at a quick perfromance benchmark now</p>
-<div id="cb8f69e5" class="cell" data-execution_count="16">
+<div id="85a410a9" class="cell" data-execution_count="16">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>scan_timings <span class="op">=</span> []</span>
@@ -621,25 +624,25 @@ False</code></pre>
 <span id="cb29-44"><a href="#cb29-44" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code>The slowest run took 14.47 times longer than the fastest. This could mean that an intermediate result is being cached.
-26.7 μs ± 41 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)
-The slowest run took 9.35 times longer than the fastest. This could mean that an intermediate result is being cached.
-19.5 μs ± 23.7 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)
-The slowest run took 21.22 times longer than the fastest. This could mean that an intermediate result is being cached.
-54.1 μs ± 93.9 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)
-The slowest run took 6.45 times longer than the fastest. This could mean that an intermediate result is being cached.
-20.8 μs ± 22.2 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)
-The slowest run took 31.02 times longer than the fastest. This could mean that an intermediate result is being cached.
-162 μs ± 321 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)
-The slowest run took 7.03 times longer than the fastest. This could mean that an intermediate result is being cached.
-20.6 μs ± 22.7 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)
-The slowest run took 102.23 times longer than the fastest. This could mean that an intermediate result is being cached.
-712 μs ± 1.63 ms per loop (mean ± std. dev. of 7 runs, 300 loops each)
-The slowest run took 6.14 times longer than the fastest. This could mean that an intermediate result is being cached.
-24.2 μs ± 24.8 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)
-57.6 μs ± 1.07 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)
+<pre><code>The slowest run took 14.66 times longer than the fastest. This could mean that an intermediate result is being cached.
+26.2 μs ± 41.8 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)
+The slowest run took 9.48 times longer than the fastest. This could mean that an intermediate result is being cached.
+18.5 μs ± 24.1 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)
+The slowest run took 18.78 times longer than the fastest. This could mean that an intermediate result is being cached.
+54.1 μs ± 92.8 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)
+The slowest run took 8.59 times longer than the fastest. This could mean that an intermediate result is being cached.
+17.8 μs ± 22.1 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)
+The slowest run took 31.41 times longer than the fastest. This could mean that an intermediate result is being cached.
+163 μs ± 324 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)
+The slowest run took 7.23 times longer than the fastest. This could mean that an intermediate result is being cached.
+21.2 μs ± 24 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)
+The slowest run took 100.99 times longer than the fastest. This could mean that an intermediate result is being cached.
+777 μs ± 1.77 ms per loop (mean ± std. dev. of 7 runs, 300 loops each)
+The slowest run took 7.84 times longer than the fastest. This could mean that an intermediate result is being cached.
+24.5 μs ± 26.5 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)
+63.1 μs ± 864 ns per loop (mean ± std. dev. of 7 runs, 300 loops each)
 The slowest run took 6.38 times longer than the fastest. This could mean that an intermediate result is being cached.
-22.8 μs ± 23.9 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)</code></pre>
+24.4 μs ± 24.5 μs per loop (mean ± std. dev. of 7 runs, 300 loops each)</code></pre>
 </div>
 <div class="cell-output cell-output-display">
 <div>
@@ -650,7 +653,7 @@ The slowest run took 6.38 times longer than the fastest. This could mean that an
 </div>
 </div>
 <p>as you can see the difference is negligible for short sequences (scan might even require more time!) but increases massively for longer sequences. Lets’s look at the result of our scanned function now</p>
-<div id="92af348d" class="cell" data-execution_count="17">
+<div id="dedb5e95" class="cell" data-execution_count="17">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>yhat <span class="op">=</span> scan_function(</span>
@@ -698,7 +701,7 @@ The slowest run took 6.38 times longer than the fastest. This could mean that an
 <section id="computing-gradients" class="level1" data-number="5">
 <h1 data-number="5"><span class="header-section-number">5</span> Computing Gradients</h1>
 <p>Let’s come now to the other central transformation offered by JAX: <code>grad</code>. With <code>grad</code> we can transform python functions in gradient functions, what do we mean by this? Let’s take the square function as an example</p>
-<div id="c511b395" class="cell" data-execution_count="18">
+<div id="0f7eb854" class="cell" data-execution_count="18">
 <div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> square(x):</span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Return the square of x</span></span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
@@ -714,7 +717,7 @@ The slowest run took 6.38 times longer than the fastest. This could mean that an
 <span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>dx <span class="op">=</span> grad(square)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>by passing this function to the <code>grad</code> transformation, we can obtain a new function that will evaluate the gradient of <code>x</code> with respect to <code>sq_</code> for us, pretty convenient.</p>
-<div id="ab7c3063" class="cell" data-execution_count="19">
+<div id="b1e6ad28" class="cell" data-execution_count="19">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>fig, axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">4</span>), sharex<span class="op">=</span><span class="va">True</span>)</span>
@@ -745,7 +748,7 @@ The slowest run took 6.38 times longer than the fastest. This could mean that an
 <div class="cell-output cell-output-stderr">
 <pre><code>&lt;&gt;:21: SyntaxWarning: invalid escape sequence '\d'
 &lt;&gt;:21: SyntaxWarning: invalid escape sequence '\d'
-/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_2415/2664859271.py:21: SyntaxWarning: invalid escape sequence '\d'
+/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_3597/2664859271.py:21: SyntaxWarning: invalid escape sequence '\d'
   axs[1].set_ylabel("$\dfrac{\partial f(x)}{\partial x}$")</code></pre>
 </div>
 <div class="cell-output cell-output-display">
@@ -763,7 +766,7 @@ The slowest run took 6.38 times longer than the fastest. This could mean that an
 <li><p>The syntactic sugar capabilities of <code>grad</code> allow us to customize which gradients we are interested to and to compute them with respect to many different data structures.</p></li>
 </ol>
 <p>Let’s look at the two variables function <code>sum_of_squares</code></p>
-<div id="f02d0294" class="cell" data-execution_count="20">
+<div id="11429574" class="cell" data-execution_count="20">
 <div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sum_of_squares(x_1, x_2):</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Return the sum of squares of x_1 and x_2</span></span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="co">    </span></span>
@@ -780,7 +783,7 @@ The slowest run took 6.38 times longer than the fastest. This could mean that an
 <span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>dxx <span class="op">=</span> grad(sum_of_squares, argnums<span class="op">=</span>[<span class="dv">0</span>, <span class="dv">1</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>In this case <code>sum_of_squares</code> takes two variables as inputs so we have to specify for which one we want to compute the partial derivative, we do that using the <code>argnums</code> argument. Let’s see at the results produced by <code>dxx</code></p>
-<div id="b438b60c" class="cell" data-execution_count="21">
+<div id="7b97d1b8" class="cell" data-execution_count="21">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>ssq_results <span class="op">=</span> []</span>
@@ -832,9 +835,9 @@ The slowest run took 6.38 times longer than the fastest. This could mean that an
 &lt;&gt;:40: SyntaxWarning: invalid escape sequence '\d'
 &lt;&gt;:39: SyntaxWarning: invalid escape sequence '\d'
 &lt;&gt;:40: SyntaxWarning: invalid escape sequence '\d'
-/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_2415/1542072068.py:39: SyntaxWarning: invalid escape sequence '\d'
+/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_3597/1542072068.py:39: SyntaxWarning: invalid escape sequence '\d'
   axs[1].set_xlabel("$\dfrac{\partial f(x_1, x_2)}{\partial x_1}$")
-/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_2415/1542072068.py:40: SyntaxWarning: invalid escape sequence '\d'
+/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_3597/1542072068.py:40: SyntaxWarning: invalid escape sequence '\d'
   axs[1].set_ylabel("$\dfrac{\partial f(x_1, x_2)}{\partial x_2}$")</code></pre>
 </div>
 <div class="cell-output cell-output-display">
@@ -861,7 +864,7 @@ The slowest run took 6.38 times longer than the fastest. This could mean that an
 |
 |_...                </code></pre>
 <p>each node and leaf can by default be any python data structures among lists, tuples and dicts however JAX allows to register others as valid pytree. The tree-like structure offers a great deal of flexibility for specifying things like the parameters of a model. Let’s see a concrete example with a linear regression</p>
-<div id="46a0c9a9" class="cell" data-execution_count="22">
+<div id="33f3b26b" class="cell" data-execution_count="22">
 <div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> value_and_grad</span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> random.normal(key<span class="op">=</span>master_key, shape<span class="op">=</span>(<span class="dv">1000</span>, <span class="dv">40</span>))</span>
@@ -874,7 +877,7 @@ The slowest run took 6.38 times longer than the fastest. This could mean that an
 <span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>once we have defined our parameters, we can pass them to an appropriate function and let <code>grad</code> do its magic for deriving the gradient.</p>
-<div id="f3a651b4" class="cell" data-execution_count="23">
+<div id="b747fe7b" class="cell" data-execution_count="23">
 <div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sum_of_squared_errors(y, yhat):</span>
 <span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Return the square of x</span></span>
@@ -912,7 +915,7 @@ The slowest run took 6.38 times longer than the fastest. This could mean that an
 </div>
 <p>in this case we used a variation of <code>grad</code> named <code>value_and_grad</code> that returns not just the gradient but also the output of the function, which in this case is whatever comes out of <code>sum_of_squared_errors</code>.</p>
 <p>The covenience of <code>grad</code> (and its variations) is that it will return the partial derivates of our parameters with respect to the output of <code>sum_of_squared_errors</code> keeping the same pytree structure!</p>
-<div id="0a69809a" class="cell" data-execution_count="24">
+<div id="0bba997c" class="cell" data-execution_count="24">
 <div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>sse, gradients <span class="op">=</span> linear_regression_grad(X, y, my_parameters)</span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>grad_alpha <span class="op">=</span> gradients[<span class="st">'alpha'</span>]</span>
@@ -934,7 +937,7 @@ Partial Derivatives beta: [  280.32477   272.2938   7183.9194   1950.6066  -2001
 </div>
 </div>
 <p>This behaviour is extensible to virtually any python object as far as it is registered as a pytree. So how can we register a python object as a pytree? Let’s take a <code>NamedTuple</code> as an example</p>
-<div id="06fb5b6e" class="cell" data-execution_count="25">
+<div id="ade21133" class="cell" data-execution_count="25">
 <div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> namedtuple</span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>LinearRegressionParameters <span class="op">=</span> namedtuple(</span>
@@ -943,7 +946,7 @@ Partial Derivatives beta: [  280.32477   272.2938   7183.9194   1950.6066  -2001
 <span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>when we register a pytree we have to tell JAX how to unpack the leaves into an iterable and pack them back in the original tree structure</p>
-<div id="2c1c1e2f" class="cell" data-execution_count="26">
+<div id="39b9dbc9" class="cell" data-execution_count="26">
 <div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax.tree_util <span class="im">import</span> register_pytree_node</span>
 <span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>register_pytree_node(</span>
@@ -953,7 +956,7 @@ Partial Derivatives beta: [  280.32477   272.2938   7183.9194   1950.6066  -2001
 <span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>we now just need to modify our <code>linear_regression_loss</code> function slightly in order to use the <code>LinearRegressionParameters</code> instead of a dictionary.</p>
-<div id="a63ed539" class="cell" data-execution_count="27">
+<div id="5cb9baa9" class="cell" data-execution_count="27">
 <div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> linear_regression_loss(X, y, parameters):</span>
 <span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Compute the loss,  sum_of_squared_errors, for a linear regression model.</span></span>
@@ -1003,6 +1006,38 @@ Partial Derivatives beta: [  280.32477   272.2938   7183.9194   1950.6066  -2001
 <p>Here we conclude this first introductory post on the basics of JAX. We want to stress that this is just a <strong>small</strong> selection of the features offered by JAX.</p>
 <p>We can think of it as a distillation of some of the contents reported in the JAX <a href="https://jax.readthedocs.io/en/latest/">online documentation</a></p>
 <p>That said, what we outlined so far should equip us with enough knowledge to develop some simple models in the next posts.</p>
+</section>
+<section id="hardware-and-requirements" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Hardware and Requirements</h1>
+<p>Here you can find the hardware and python requirements used for building this post.</p>
+<div id="fc003cd1" class="cell" data-execution_count="28">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Last updated: 2025-03-28T09:22:09.149860+00:00
+
+Python implementation: CPython
+Python version       : 3.13.2
+IPython version      : 9.0.2
+
+Compiler    : Clang 18.1.8 
+OS          : Darwin
+Release     : 24.3.0
+Machine     : arm64
+Processor   : arm
+CPU cores   : 14
+Architecture: 64bit
+</code></pre>
+</div>
+</div>
+<div id="40955703" class="cell" data-execution_count="29">
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark <span class="op">--</span>iversions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>numpy     : 2.2.4
+jax       : 0.5.2
+matplotlib: 3.10.1
+</code></pre>
+</div>
+</div>
 
 
 </section>

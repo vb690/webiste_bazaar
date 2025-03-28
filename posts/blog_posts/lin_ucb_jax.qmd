@@ -15,6 +15,9 @@ jupyter: python3
 #| code-fold: true
 #| code-summary: Show supplementary code
 #| vscode: {languageId: python}
+
+%load_ext watermark
+
 from typing import Tuple, List, Any
 
 from functools import partial
@@ -526,6 +529,20 @@ def compute_regrets(
     return policies_regrets
 ```
 
+## Running the simulation
+
+At this point the only thing that is left to do for us is to combine every piece of logic together into a single simulated interaction:
+
+1. Execute the LinUCB algorithm and obtain the Upper Confidence Bounds for all the arms.
+2. Derive the selected arms executing the LinUCB and Random policies.
+3. Compute rewards and regrets associated with the selected arms
+4. Update the LinUCB parameters based on the obtained rewards.
+5. Update a diagnostic dictionary for tracking information related with the simulation
+
+We can notice that `simulate_interaction` receives many of the needed variables from a `carry` parameter, which is then re-built and returned at the end. This structure is necessary for leveraging JAX [`scan`](https://docs.jax.dev/en/latest/_autosummary/jax.lax.scan.html) in place of an expensive for-loop.
+
+The `scan` primitive allows us to JIT-compile the for loop without having to un-roll all the computations first (e.g., in case of 1000 iterations, this would have required JAX for first compile all the 1000 computations), which would have required a compilation time that [grows as the square of the number of iterations](https://github.com/jax-ml/jax/discussions/15222). In our case we are using it for speeding up the compilation of the interactions-loop required for running the simulation.
+
 ```{python}
 @jit
 def simulate_interaction(
@@ -588,11 +605,17 @@ def simulate_interaction(
     return new_carry, diagnostics
 ```
 
-# Running the simulation
+# Running the simulation and visualizing the performance
+
+We now have to simply run our simulation and visualize the results! A couple of clarification point howecver are needed
+
+1. We generate a PRNG `split_key` which will then be feeded inside the simulation. This is very important as it is the root PRNG key which will generate all the others required for the stochastic behaviours in our code.
+
+2. The return from `scan` is always made of two component, the `carry` and the "result". Although the carry is "consumed" inside the function that is scanned, the result stacks as we would normally expect in a for python loop (e.g., if we scan over a 1000 elements we will obtain 1000 stacked results).
 
 ```{python}
 #| vscode: {languageId: python}
-SIMULATION_STEPS = 360
+SIMULATION_STEPS = 1000
 
 split_key = random.PRNGKey(666)
 arms_A, arms_b = init_matrices_for_all_arms(
@@ -708,6 +731,8 @@ def plot_all_policy_diagnostics(diagnostics_summaries, figsize=(10, 20)):
     return fig
 ```
 
+## Visulize reward and regret performance
+
 ```{python}
 #| vscode: {languageId: python}
 diagnostics_summaries = compute_policy_diagnostics_summaries(
@@ -722,74 +747,61 @@ plt.tight_layout()
 plt.show()
 ```
 
+Let's also have a look at how the simulation changes as we change the `reward_sparsity` and `reward_weighting` parameters
 
 ```{python}
+#| code-fold: true
+#| code-summary: Show supplementary code
 #| vscode: {languageId: python}
-REWARD_SPARSITY = .99
-REWARD_WEIGHTING = 1
+def run_parametrized_simulation(reward_sparsity, reward_weighting):
+    split_key = random.PRNGKey(666)
+    arms_A, arms_b = init_matrices_for_all_arms(
+        number_of_arms=N_ARMS, 
+        context_size=CONTEXT.shape[-1]
+    )
+    partialized_simulate_interaction = partial(
+        simulate_interaction, 
+        arms_probabilities=ARMS_PROBAILITIES, 
+        alpha=1,
+        reward_sparsity=reward_sparsity,
+        reward_weighting=reward_weighting,
+    )
+    carry, diagnostics = scan(
+        partialized_simulate_interaction, 
+        init=(split_key, arms_A, arms_b, CONTEXT),
+        xs=jnp.arange(SIMULATION_STEPS)
+    )
 
-arms_A, arms_b = init_matrices_for_all_arms(
-    number_of_arms=N_ARMS, 
-    context_size=CONTEXT.shape[-1]
-)
-partialized_simulate_interaction = partial(
-    simulate_interaction, 
-    arms_probabilities=ARMS_PROBAILITIES, 
-    alpha=1,
-    reward_sparsity=REWARD_SPARSITY,
-    reward_weighting=REWARD_WEIGHTING,
-)
-carry, diagnostics = scan(
-    partialized_simulate_interaction, 
-    init=(split_key, arms_A, arms_b, CONTEXT),
-    xs=jnp.arange(SIMULATION_STEPS)
-)
-
-diagnostics_summaries = compute_policy_diagnostics_summaries(
-    diagnostics=diagnostics["policies"]
-)
-fig = plot_all_policy_diagnostics(
-    diagnostics_summaries=diagnostics_summaries, 
-    figsize=(10, 5)
-)
-plt.suptitle(f"Performance of LinUCB and Random Policies\nReward Sparsity {REWARD_SPARSITY} Reward Weighting {REWARD_WEIGHTING}")
-plt.tight_layout()
-plt.show()
+    diagnostics_summaries = compute_policy_diagnostics_summaries(
+        diagnostics=diagnostics["policies"]
+    )
+    fig = plot_all_policy_diagnostics(
+        diagnostics_summaries=diagnostics_summaries, 
+        figsize=(10, 5)
+    )
+    plt.suptitle(f"Performance of LinUCB and Random Policies\nReward Sparsity {reward_sparsity} Reward Weighting {reward_weighting}")
+    plt.tight_layout()
+    plt.show()
+    return None
 ```
 
 ```{python}
 #| vscode: {languageId: python}
-REWARD_SPARSITY = .1
-REWARD_WEIGHTING = 1
-
-arms_A, arms_b = init_matrices_for_all_arms(
-    number_of_arms=N_ARMS, 
-    context_size=CONTEXT.shape[-1]
+run_parametrized_simulation(
+    reward_sparsity=REWARD_SPARSITY, 
+    reward_weighting=1
 )
-partialized_simulate_interaction = partial(
-    simulate_interaction, 
-    arms_probabilities=ARMS_PROBAILITIES, 
-    alpha=1,
-    reward_sparsity=REWARD_SPARSITY,
-    reward_weighting=REWARD_WEIGHTING,
-)
-carry, diagnostics = scan(
-    partialized_simulate_interaction, 
-    init=(split_key, arms_A, arms_b, CONTEXT),
-    xs=jnp.arange(SIMULATION_STEPS)
-)
-
-diagnostics_summaries = compute_policy_diagnostics_summaries(
-    diagnostics=diagnostics["policies"]
-)
-fig = plot_all_policy_diagnostics(
-    diagnostics_summaries=diagnostics_summaries, 
-    figsize=(10, 5)
-)
-plt.suptitle(f"Performance of LinUCB and Random Policies\nReward Sparsity {REWARD_SPARSITY} Reward Weighting {REWARD_WEIGHTING}")
-plt.tight_layout()
-plt.show()
 ```
+
+```{python}
+#| vscode: {languageId: python}
+run_parametrized_simulation(
+    reward_sparsity=.1, 
+    reward_weighting=1
+)
+```
+
+## Visulize Parameters Evolution
 
 ```{python}
 #| code-fold: true
@@ -853,3 +865,16 @@ for arm in range(N_ARMS):
     plt.show()
 ```
 
+# Conclusion
+
+
+# Hardware and Requirements
+Here you can find the hardware and python requirements used for building this post.
+
+```{python}
+%watermark
+```
+
+```{python}
+%watermark --iversions
+```

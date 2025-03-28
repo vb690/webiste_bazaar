@@ -9,6 +9,9 @@ jupyter: python3
 ```{python}
 #| code-fold: true
 #| code-summary: "Show supplementary code"
+
+%load_ext watermark
+
 import numpy as np
 
 from itertools import product
@@ -853,4 +856,15 @@ fig, ax = run_example(
     state_factors=[.3, .6],
     measurement_noise=50
 )
+```
+
+# Hardware and Requirements
+Here you can find the hardware and python requirements used for building this post.
+
+```{python}
+%watermark
+```
+
+```{python}
+%watermark --iversions
 ```

@@ -221,6 +221,7 @@ window.Quarto = {
   <li><a href="#updating-beliefs" id="toc-updating-beliefs" class="nav-link" data-scroll-target="#updating-beliefs"><span class="header-section-number">1.1</span> Updating Beliefs</a></li>
   <li><a href="#incorporating-dynamics" id="toc-incorporating-dynamics" class="nav-link" data-scroll-target="#incorporating-dynamics"><span class="header-section-number">1.2</span> Incorporating Dynamics</a></li>
   </ul></li>
+  <li><a href="#hardware-and-requirements" id="toc-hardware-and-requirements" class="nav-link" data-scroll-target="#hardware-and-requirements"><span class="header-section-number">2</span> Hardware and Requirements</a></li>
   </ul>
 </nav>
     </div>
@@ -270,14 +271,16 @@ window.Quarto = {
 </header>
 
 
-<div id="6880b3c8" class="cell" data-execution_count="1">
+<div id="a00c801d" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> jit</span>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>load_ext watermark</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> jit</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <section id="bayes-for-filtering" class="level1" data-number="1">
@@ -287,7 +290,7 @@ window.Quarto = {
 <h2 data-number="1.1" class="anchored" data-anchor-id="updating-beliefs"><span class="header-section-number">1.1</span> Updating Beliefs</h2>
 <p>As we have seen before the gh filter relied consistently on the idea of generating predictions given our knowledge of the state of a system and adjusting these as soon as we had observable measurements. It turns out that bayesian statistics offers a convenient and formal framework for doing this type of belief updates. Let’s look at a concrete example</p>
 <p>Let’s say that we are trying to estimate the position of an agent within an environment with a certain number of obstacles.</p>
-<div id="6342c901" class="cell" data-execution_count="2">
+<div id="79f33d43" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> random</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -313,7 +316,7 @@ window.Quarto = {
 </div>
 </div>
 <p>Without receiving any measurement from the agent our belief, we will call it prior from now on, on its position is distributed equally on all the available locations</p>
-<div id="e6505aad" class="cell" data-execution_count="3">
+<div id="15460204" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>priors <span class="op">=</span> jnp.array([<span class="fl">1.</span> <span class="op">/</span> <span class="bu">len</span>(observations)] <span class="op">*</span> <span class="bu">len</span>(observations))</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">6</span>, <span class="dv">4</span>))</span>
@@ -334,7 +337,7 @@ window.Quarto = {
 </div>
 </div>
 <p>The measurements we receive from the agent will tell us if, in its current state, it is facing an obstacle or not. We can quantify our knowledge in light of a measurement though a likelihood function</p>
-<div id="dc9f8467" class="cell" data-execution_count="4">
+<div id="b15f8046" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> custom_likelihood(measurement, observations, p):</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Compute the likelihood of the agent being in</span></span>
@@ -398,7 +401,7 @@ window.Quarto = {
 </div>
 </div>
 <p>and subsequently update our priors in view of the likelihood derived from the measurements using bayes theorem <span class="math inline">\(posterior \propto likelihood \times prior\)</span></p>
-<div id="5bcbdbbd" class="cell" data-execution_count="5">
+<div id="72b31795" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_posterior_derivation(priors, likelihood, posterior):</span>
@@ -433,7 +436,7 @@ window.Quarto = {
 </details>
 </div>
 <p>Since our priors were not providing any information the posterior we obtained was driven exclusively byt the likelihood</p>
-<div id="427d77af" class="cell" data-execution_count="6">
+<div id="4a0d440a" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> custom_update(priors, likelihood):</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Update priors about agent position given likelihood of the measurement</span></span>
@@ -473,7 +476,7 @@ window.Quarto = {
 </div>
 </div>
 <p>However it is easy enough to see how things change if we provide priors that are slightly more informative</p>
-<div id="1806ee10" class="cell" data-execution_count="7">
+<div id="8097ba0b" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># position is more likely to be </span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>priors <span class="op">=</span> jnp.array(</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    [</span>
@@ -511,9 +514,41 @@ window.Quarto = {
 <section id="incorporating-dynamics" class="level2" data-number="1.2">
 <h2 data-number="1.2" class="anchored" data-anchor-id="incorporating-dynamics"><span class="header-section-number">1.2</span> Incorporating Dynamics</h2>
 <p>We have outlined a formal way in which bayes theorem can help us updating our beliefs on the position of the agent. However we have seen how to do this given a single measurement gathered at one point in time. In order to extend this to a time series, as we did with the gh filter, we need to incorporate a model of the dynamics of the agent for being able to make predictions.</p>
-
-
 </section>
+</section>
+<section id="hardware-and-requirements" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Hardware and Requirements</h1>
+<p>Here you can find the hardware and python requirements used for building this post.</p>
+<div id="2d5ad668" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Last updated: 2025-03-28T09:22:25.914412+00:00
+
+Python implementation: CPython
+Python version       : 3.13.2
+IPython version      : 9.0.2
+
+Compiler    : Clang 18.1.8 
+OS          : Darwin
+Release     : 24.3.0
+Machine     : arm64
+Processor   : arm
+CPU cores   : 14
+Architecture: 64bit
+</code></pre>
+</div>
+</div>
+<div id="637f7cf8" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark <span class="op">--</span>iversions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>numpy     : 2.2.4
+jax       : 0.5.2
+matplotlib: 3.10.1
+</code></pre>
+</div>
+</div>
+
+
 </section>
 
 </main> <!-- /main -->

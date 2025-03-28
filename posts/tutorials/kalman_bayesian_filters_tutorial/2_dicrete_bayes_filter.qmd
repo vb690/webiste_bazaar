@@ -9,6 +9,9 @@ jupyter: python3
 ```{python}
 #| code-fold: true
 #| code-summary: "Show supplementary code"
+
+%load_ext watermark
+
 from jax import jit
 
 import numpy as np
@@ -225,3 +228,14 @@ plot_posterior_derivation(
 ## Incorporating Dynamics
 
 We have outlined a formal way in which bayes theorem can help us updating our beliefs on the position of the agent. However we have seen how to do this given a single measurement gathered at one point in time. In order to extend this to a time series, as we did with the gh filter, we need to incorporate a model of the dynamics of the agent for being able to make predictions.
+
+# Hardware and Requirements
+Here you can find the hardware and python requirements used for building this post.
+
+```{python}
+%watermark
+```
+
+```{python}
+%watermark --iversions
+```

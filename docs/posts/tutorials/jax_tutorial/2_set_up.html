@@ -229,6 +229,7 @@ window.Quarto = {
   <li><a href="#backward-computations" id="toc-backward-computations" class="nav-link" data-scroll-target="#backward-computations"><span class="header-section-number">2.3</span> Backward Computations</a></li>
   <li><a href="#optimizer" id="toc-optimizer" class="nav-link" data-scroll-target="#optimizer"><span class="header-section-number">2.4</span> Optimizer</a></li>
   </ul></li>
+  <li><a href="#hardware-and-requirements" id="toc-hardware-and-requirements" class="nav-link" data-scroll-target="#hardware-and-requirements"><span class="header-section-number">3</span> Hardware and Requirements</a></li>
   </ul>
 </nav>
     </div>
@@ -277,13 +278,15 @@ window.Quarto = {
 </header>
 
 
-<div id="2cf46fdb" class="cell" data-execution_count="1">
+<div id="108d3a40" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax.debug <span class="im">import</span> <span class="bu">print</span> <span class="im">as</span> jprint</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>load_ext watermark</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax.debug <span class="im">import</span> <span class="bu">print</span> <span class="im">as</span> jprint</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <p>In order to specify models in JAX we first need to figure out what are the core functionalities that we need to implement. We will focus on specific set of models that given an input <span class="math inline">\(X\)</span>, a target <span class="math inline">\(y\)</span> and parameters <span class="math inline">\(\theta\)</span> aim to approximate functions of the form <span class="math inline">\(f(X; \theta) \mapsto y\)</span>.</p>
@@ -315,7 +318,7 @@ window.Quarto = {
 <h2 data-number="1.1" class="anchored" data-anchor-id="parameters-container"><span class="header-section-number">1.1</span> Parameters Container</h2>
 <p>The ideal way for storing parameters would be to create an immutable data structure (e.g., the named tuple example presented in our first post), registered as a pytree node, every time we need to update our parameters.</p>
 <p>In this and future posts we will adopt a much simpler although more intuitive strategy and store our parameters in a dictionary.</p>
-<div id="1a3619c4" class="cell" data-execution_count="2">
+<div id="335b3a91" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> numpy <span class="im">as</span> jnp</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>my_parameters <span class="op">=</span> {}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -327,7 +330,7 @@ window.Quarto = {
 <li>Naturally support nested structures.</li>
 <li>Easy to update using native JAX functionalities</li>
 </ol>
-<div id="103e610b" class="cell" data-execution_count="3">
+<div id="3e8b6963" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>my_parameters[<span class="st">"alpha"</span>] <span class="op">=</span> <span class="fl">1.</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># more complicated structure</span></span>
@@ -351,7 +354,7 @@ window.Quarto = {
 <h2 data-number="1.2" class="anchored" data-anchor-id="parameters-initialisation"><span class="header-section-number">1.2</span> Parameters Initialisation</h2>
 <p>One of the first step when fitting a model to the data is to set the starting point for the optimization process for each of the considered parameters.</p>
 <p>We can achieve this by defining functions that implement specific initialisation strategies</p>
-<div id="ad070c0d" class="cell" data-execution_count="4">
+<div id="64203902" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ones(init_state, random_key):</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Initialise parameters with a vector of ones.</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -371,7 +374,7 @@ window.Quarto = {
 <p>one of the most straightforward strategies is to initialize all the parameters with the same constant value (a one in this case).</p>
 <p>In this case we our function requires an <code>init_state</code> tuple containing all the information necessaries for initializing the parameters and a <code>random_key</code> used for setting the state of the random number generator. In this case we really do not need any random behaviour but we keep the signature for keeping compatibility with other initialisation strategies.</p>
 <p>Another alternative is to generate starting values according to some statistical distribution, like a gaussian for instance</p>
-<div id="1f5e1cf0" class="cell" data-execution_count="5">
+<div id="c1158488" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax.random <span class="im">import</span> PRNGKey</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> random</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -425,7 +428,7 @@ window.Quarto = {
 <section id="parameters-sharing" class="level2" data-number="1.3">
 <h2 data-number="1.3" class="anchored" data-anchor-id="parameters-sharing"><span class="header-section-number">1.3</span> Parameters Sharing</h2>
 <p>Sharing the parameters at this point is better understood as part of a <strong>state manipulation</strong> process. What do we mean by this? If we were to perform parameters update within a an object oriented framework we might do something among these lines</p>
-<div id="9d47ea2a" class="cell" data-execution_count="6">
+<div id="31d2db41" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Model:</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>):</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._parameters <span class="op">=</span> np.array([<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>])</span>
@@ -450,7 +453,7 @@ window.Quarto = {
 </div>
 <p>the parameters are part of the state of <code>Model</code> an get updated according to the behavior of <code>add</code> and <code>subtract</code>.</p>
 <p>Since in JAX we have to stick to pure functions as much as we can, a viable option is to consider <code>parameters</code> as a state that is passed through a chain of transformation</p>
-<div id="7ae95e3a" class="cell" data-execution_count="7">
+<div id="46f582d5" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> jit</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> parameters_init():</span>
@@ -482,7 +485,7 @@ window.Quarto = {
 <h1 data-number="2"><span class="header-section-number">2</span> Model-related Functionalities</h1>
 <p>Now that we have outlined how to generate, store and share parameters we must focus on the scaffolding describing the transformations performed by our model.</p>
 <p>For the sake of simplicity we will use <a href="https://realpython.com/inner-functions-what-are-they-good-for/">closures</a> for being compliant with the functional requirements of JAX. We are aware that this might not be the optimal solution but it works just fine for the didactic purpose of this post. So let’s see how we would structure our closure</p>
-<div id="6dbd6172" class="cell" data-execution_count="8">
+<div id="e4c25084" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> jit</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> model(X, prng):</span>
@@ -512,7 +515,7 @@ window.Quarto = {
 <h2 data-number="2.1" class="anchored" data-anchor-id="forward-computations"><span class="header-section-number">2.1</span> Forward Computations</h2>
 <p>The <code>forward</code> function is in charge of performing all the the “forward computations” in the model. This naming, that we borrow from the various deep learning framework around, might not be the optimal one as we won’t necessarely need or have a complementary “backward” function but it is functional to the needs of this tutorial.</p>
 <p>Let’s look at how the forward functiona for a simple linear model might look like</p>
-<div id="74ebeb4a" class="cell" data-execution_count="9">
+<div id="05a9dde1" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> forward(X, current_state):</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Perform the forward computations for a linear model</span></span>
@@ -539,7 +542,7 @@ window.Quarto = {
 <h2 data-number="2.2" class="anchored" data-anchor-id="objective-computations"><span class="header-section-number">2.2</span> Objective Computations</h2>
 <p>The computation of the objective function will require in our case four components: the parameters, the forward function, the loss function (along with any function used for computing any regularizing term) ad the input to the model.</p>
 <p>We’ll see that we will pass all the components except the paramenters to the objective function using a closure and that the actual loss function need to be wrapped inside a <code>compute_loss</code> function.</p>
-<div id="e06008c2" class="cell" data-execution_count="10">
+<div id="8f8b0693" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> tree_leaves</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>reg_strength <span class="op">=</span> <span class="fl">0.001</span></span>
@@ -601,12 +604,12 @@ window.Quarto = {
 <span id="cb12-59"><a href="#cb12-59" aria-hidden="true" tabindex="-1"></a>    </span>
 <span id="cb12-60"><a href="#cb12-60" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> compute_loss</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_2400/2913352642.py:1: DeprecationWarning: jax.tree_leaves is deprecated: use jax.tree.leaves (jax v0.4.25 or newer) or jax.tree_util.tree_leaves (any JAX version).
+<pre><code>/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_3643/2913352642.py:1: DeprecationWarning: jax.tree_leaves is deprecated: use jax.tree.leaves (jax v0.4.25 or newer) or jax.tree_util.tree_leaves (any JAX version).
   from jax import tree_leaves</code></pre>
 </div>
 </div>
 <p>Of course there are are more intuitive ways for doing this but in this case we require this convoluted game of chinese boxes because when we apply the <code>grad</code> transformation we want it to give us the derivative of the objective function (<code>root_mean_squared_error</code> plus <code>l1_reg_loss</code>) with respect to the <code>current_parameters</code>. So in this case in order to obtain the derivative we can simple apply the relevant transformation <code>value_and_grad</code> to the <code>compute_loss</code> function</p>
-<div id="c7189363" class="cell" data-execution_count="11">
+<div id="52b0782e" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> value_and_grad</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>compute_loss <span class="op">=</span> model(X<span class="op">=</span>X, y<span class="op">=</span>y, reg_strength<span class="op">=</span>reg_strength)</span>
@@ -614,14 +617,14 @@ window.Quarto = {
 <span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>compute_loss_derivative(params)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
-<pre><code>(Array(3.768626, dtype=float32),
- {'alphas': Array([ 0.37031773,  0.36266327,  0.12937616, -0.17824878, -0.01183532,
-         -0.14802365, -0.1340809 ,  0.5473213 ,  0.50674784, -0.11148905],      dtype=float32),
-  'beta': Array(0.42029923, dtype=float32, weak_type=True)})</code></pre>
+<pre><code>(Array(4.255049, dtype=float32),
+ {'alphas': Array([ 0.06140344, -0.09273863,  0.39737535,  0.13931032,  0.11116139,
+         -0.5520289 ,  0.12071776,  0.1633386 ,  0.00850837,  0.00313382],      dtype=float32),
+  'beta': Array(-0.65518194, dtype=float32, weak_type=True)})</code></pre>
 </div>
 </div>
 <p>What is particularly convinient in the functions defined above is the <code>tree_leaves</code> we use we computing the regularisation term. This utility function provided by jax allows us to traverse an antire PyTree in order to get all its leaves values, let’s see an example in action</p>
-<div id="52fcb537" class="cell" data-execution_count="12">
+<div id="fadedccd" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>complex_nested_pytree <span class="op">=</span> {</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"a"</span>: (<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>),</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"b"</span>: <span class="dv">4</span>,</span>
@@ -645,7 +648,7 @@ window.Quarto = {
 </section>
 <section id="backward-computations" class="level2" data-number="2.3">
 <h2 data-number="2.3" class="anchored" data-anchor-id="backward-computations"><span class="header-section-number">2.3</span> Backward Computations</h2>
-<div id="a66de5c3" class="cell" data-execution_count="13">
+<div id="97a85f6f" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> model(X, y, reg_strength, loss_function, reg_function):</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">@jit</span></span>
@@ -688,7 +691,7 @@ window.Quarto = {
 </section>
 <section id="optimizer" class="level2" data-number="2.4">
 <h2 data-number="2.4" class="anchored" data-anchor-id="optimizer"><span class="header-section-number">2.4</span> Optimizer</h2>
-<div id="01778b22" class="cell" data-execution_count="14">
+<div id="ca7871ca" class="cell" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> newton_rhapson(learning_rate, beta<span class="op">=</span><span class="fl">0.9</span>):</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    </span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">@jit</span></span>
@@ -717,9 +720,42 @@ window.Quarto = {
 <span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> init_state, update_state, get_params</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-
-
 </section>
+</section>
+<section id="hardware-and-requirements" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Hardware and Requirements</h1>
+<p>Here you can find the hardware and python requirements used for building this post.</p>
+<div id="b7400ed3" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Last updated: 2025-03-28T09:22:13.055626+00:00
+
+Python implementation: CPython
+Python version       : 3.13.2
+IPython version      : 9.0.2
+
+Compiler    : Clang 18.1.8 
+OS          : Darwin
+Release     : 24.3.0
+Machine     : arm64
+Processor   : arm
+CPU cores   : 14
+Architecture: 64bit
+</code></pre>
+</div>
+</div>
+<div id="605800ad" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark <span class="op">--</span>iversions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>jax       : 0.5.2
+seaborn   : 0.13.2
+matplotlib: 3.10.1
+numpy     : 2.2.4
+</code></pre>
+</div>
+</div>
+
+
 </section>
 
 </main> <!-- /main -->

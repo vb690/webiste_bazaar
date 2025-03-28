@@ -10,6 +10,9 @@ jupyter: python3
 #| code-fold: true
 #| code-summary: "Show supplementary code"
 
+
+%load_ext watermark
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -449,4 +452,16 @@ def newton_rhapson(learning_rate, beta=0.9):
         return current_params
 
     return init_state, update_state, get_params
+```
+
+# Hardware and Requirements
+
+Here you can find the hardware and python requirements used for building this post.
+
+```{python}
+%watermark
+```
+
+```{python}
+%watermark --iversions
 ```
