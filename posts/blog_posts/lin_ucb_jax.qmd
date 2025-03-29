@@ -139,7 +139,7 @@ CONTEXT_SIZE = INFORMATIVE + REPEATED + REDUNDANT + RANDOM
 REWARD_SPARSITY = 0.99
 REWARD_WEIGHTING = 1 / (1 - REWARD_SPARSITY)
 
-N_USERS = 1000
+N_USERS = 10000
 
 N_ARMS = UNIT_ARMS ** 2 # We ensure we can always plot the arms in a squared grid
 CLASS_SEP = .9
@@ -638,6 +638,8 @@ carry, diagnostics = scan(
 
 # Performance Visualisation
 
+Let's see now how our implementation of LinUCB compares against a naive random policy and how the estimated parameters changes during the simulation. Let's keep in mind that greater (cumulative) reward indicates a more effective policy. Conversely, a lower cumulative regret is indicative of a better policy. We will see that regret becomes a particulary useful when asessing the performance in situations where reward is very sparse.
+
 ```{python}
 #| code-fold: true
 #| code-summary: Show supplementary code
@@ -733,6 +735,8 @@ def plot_all_policy_diagnostics(diagnostics_summaries, figsize=(10, 20)):
 
 ## Visulize reward and regret performance
 
+Since our simulation involves selecting the optimal arm for a large sampole of users (i.e. 10,000), we will alwways try to visualize **expected** reward and regret along with the 2.5 and 97.5 percentiles (the shaded are in the plot).
+
 ```{python}
 #| vscode: {languageId: python}
 diagnostics_summaries = compute_policy_diagnostics_summaries(
@@ -785,6 +789,8 @@ def run_parametrized_simulation(reward_sparsity, reward_weighting):
     return None
 ```
 
+Here we maintain the same sparsity level but reduce the weighting (we basically introduce no weighting)
+
 ```{python}
 #| vscode: {languageId: python}
 run_parametrized_simulation(
@@ -792,6 +798,8 @@ run_parametrized_simulation(
     reward_weighting=1
 )
 ```
+
+While in here we reduce the sparsity of the reward and maintain that weighting at 1:
 
 ```{python}
 #| vscode: {languageId: python}
@@ -802,6 +810,13 @@ run_parametrized_simulation(
 ```
 
 ## Visulize Parameters Evolution
+
+In this section we will visualize how the parameters used by the LinUCB algorithms evolve over the simulation time, in particular we will focus on the `b` parameters.
+
+Since this can be thought as the the coefficient of a (regularized) linear regression, we can see its evolution for each of the considered arm as the "relevance" that a given covariate in a context has in determining the likelyhood of receiveing a reward.
+
+Similarly, the evolution of the covariance illustrate how the relationship between the various `b` parameters change over 
+the simulation steps.
 
 ```{python}
 #| code-fold: true
@@ -867,6 +882,7 @@ for arm in range(N_ARMS):
 
 # Conclusion
 
+In this post we provided a brief overview of the LinUCB algorithm and illustrated how to implement it using JAX for speeding up computations. We saw how LinUCB resulted effective when compared with a random policy even in situation of extremely high reward sparsity. We also saw how applying weighting to the reward signal is an effective strtegy for mitigating said sparsity.
 
 # Hardware and Requirements
 Here you can find the hardware and python requirements used for building this post.

@@ -311,7 +311,7 @@ window.Quarto = {
 </header>
 
 
-<div id="bc1f0c11" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="1">
+<div id="33191ecb" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="1">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>load_ext watermark</span>
@@ -416,7 +416,7 @@ r = \begin{cases} 0,&amp; \text{if hurdle} = 0 \\
 Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 \end{gather}
 \]</span></p>
-<div id="65f9c40d" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="2">
+<div id="6a8e7996" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>UNIT_CONTEXT_SIZE <span class="op">=</span> <span class="dv">1</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>UNIT_ARMS <span class="op">=</span> <span class="dv">2</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -430,12 +430,12 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>REWARD_SPARSITY <span class="op">=</span> <span class="fl">0.99</span></span>
 <span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>REWARD_WEIGHTING <span class="op">=</span> <span class="dv">1</span> <span class="op">/</span> (<span class="dv">1</span> <span class="op">-</span> REWARD_SPARSITY)</span>
 <span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>N_USERS <span class="op">=</span> <span class="dv">1000</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>N_USERS <span class="op">=</span> <span class="dv">10000</span></span>
 <span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>N_ARMS <span class="op">=</span> UNIT_ARMS <span class="op">**</span> <span class="dv">2</span> <span class="co"># We ensure we can always plot the arms in a squared grid</span></span>
 <span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>CLASS_SEP <span class="op">=</span> <span class="fl">.9</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="e083d02e" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="3">
+<div id="4453706c" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="3">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> generate_context(n_arms, n_users, context_size, redundant, repeated, informative, clusters_per_class, class_sep, with_intercept<span class="op">=</span><span class="va">True</span>):</span>
@@ -470,7 +470,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> context</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div id="dfb9a508" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="4">
+<div id="dd2b361f" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>CONTEXT, GROUPS <span class="op">=</span> generate_context(</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    n_arms<span class="op">=</span>N_ARMS, </span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    n_users<span class="op">=</span>N_USERS, </span>
@@ -494,7 +494,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Here we will use TSNE for projecting the multidimensional context space on a 2D plane, this should allow us to get a better intuition of what is going on. What we expect to see are separate spheres or regions (this depends on how much noise we encode in our context space) with different coloring depending on which arms they are associated with</p>
-<div id="760b663f" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="5">
+<div id="57d894af" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>embedding <span class="op">=</span> TSNE().fit_transform(CONTEXT[:, <span class="dv">0</span>, :])</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>fig, axs <span class="op">=</span> plt.subplots(UNIT_ARMS, UNIT_ARMS, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">8</span>), sharex<span class="op">=</span><span class="va">True</span>, sharey<span class="op">=</span><span class="va">True</span>)</span>
@@ -555,7 +555,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <section id="parameters-initialization" class="level2" data-number="3.1">
 <h2 data-number="3.1" class="anchored" data-anchor-id="parameters-initialization"><span class="header-section-number">3.1</span> Parameters Initialization</h2>
 <p>As a first step we will need to initialize the matrices for <span class="math inline">\(X\)</span> and <span class="math inline">\(r\)</span> from this point onward we will call them <span class="math inline">\(A\)</span> and <span class="math inline">\(b\)</span> as mentioned in [li2010contextual].</p>
-<div id="570152c9" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="6">
+<div id="c643de0a" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> init_matrices(context_size: <span class="bu">int</span>) <span class="op">-&gt;</span> Tuple[ArrayLike, ...]:</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    A <span class="op">=</span> jnp.eye(N<span class="op">=</span>context_size)</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> jnp.zeros(shape<span class="op">=</span>(context_size, <span class="dv">1</span>))</span>
@@ -585,7 +585,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <p>We will now define the code for the various computations, namely deriving the <span class="math inline">\(\theta\)</span> and <span class="math inline">\(\sigma\)</span> parameters. And subsequently estimating the expectation for the return as well as the UCB.</p>
 <p>In order to speed up the computation, we will leverage the <a href="https://docs.jax.dev/en/latest/jit-compilation.html">Just in Time Compilation</a> functionality in JAX as well as its <a href="https://docs.jax.dev/en/latest/automatic-vectorization.html">automatic vectorization</a>.</p>
 <p>The first one will allow us to cache computations that are used multiple times by the LinUCB algorithm, while the second one will allow us in this case to vectorize the computation across all the arms in our bandit problem (instead of slowly iterating through them).</p>
-<div id="96cfc989" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="7">
+<div id="15eecf11" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_theta(</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>        A_inverse: ArrayLike, </span>
@@ -672,7 +672,7 @@ Bernoulli(p_{r}),&amp; \text{otherwise} \end{cases}
 <section id="update-parameters" class="level2" data-number="3.3">
 <h2 data-number="3.3" class="anchored" data-anchor-id="update-parameters"><span class="header-section-number">3.3</span> Update parameters</h2>
 <p>This section define the code used for updating the parameters associated with each of the arms, this function will be called dynamically during the simulation and will update the arms specified by the <code>policy</code> selected by the algorithm with the <code>reward</code> associated with said policy.</p>
-<div id="2d756aba" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="8">
+<div id="e0154adc" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> update_parameters(</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    arms_A: ArrayLike, </span>
@@ -716,7 +716,7 @@ Note
 <p>Note the importance of the <code>step_key</code> argument which is required for executing stochastic behaviors in JAX. More details can be found int the <a href="https://docs.jax.dev/en/latest/jax.random.html">documentation about the stateless random number generators</a>.</p>
 </div>
 </div>
-<div id="77b462ab" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="9">
+<div id="a5527a8a" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> step(</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        policy: ArrayLike, </span>
@@ -743,7 +743,7 @@ Note
 <section id="executing-the-policies" class="level2" data-number="4.2">
 <h2 data-number="4.2" class="anchored" data-anchor-id="executing-the-policies"><span class="header-section-number">4.2</span> Executing the policies</h2>
 <p>Executing the policies simply boils down to selecting the arm given the <code>upper_bound</code> computed by the LinUCB algorithm. In our case that correspond to take the arg-max of the generated <code>upper_bound</code>. For having a comparison term, we also implemented a random policy that simply selects one of the available arms at random.</p>
-<div id="4b2dd81c" class="cell" data-execution_count="10">
+<div id="de000b3f" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> execute_policies(</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>        upper_bound: ArrayLike, </span>
@@ -758,7 +758,7 @@ Note
 <span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> linucb_policy, random_policy</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Once we have defined the logic for our simulation step and policies, we simply have to cycle through these policies and evaluate what type of reward they would obtain.</p>
-<div id="fe6d2652" class="cell" data-execution_count="11">
+<div id="d99b6272" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_rewards(</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>        linucb_policy: ArrayLike, </span>
@@ -783,7 +783,7 @@ Note
 <span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> arms_rewards</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>An interesting metric to compute on top of the reward obtained by executing a given policy is the regret. Regret can be thought as the distance between the optimal behavior the one produced by a given policy. In our case we compute the regret as the difference between the reward probability associated with the optimal arm and the probability associate with the arm selected by every policy.</p>
-<div id="c5e6c975" class="cell" data-execution_count="12">
+<div id="f64dd9aa" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_regrets(</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>        linucb_policy: ArrayLike, </span>
@@ -813,7 +813,7 @@ Note
 </ol>
 <p>We can notice that <code>simulate_interaction</code> receives many of the needed variables from a <code>carry</code> parameter, which is then re-built and returned at the end. This structure is necessary for leveraging JAX <a href="https://docs.jax.dev/en/latest/_autosummary/jax.lax.scan.html"><code>scan</code></a> in place of an expensive for-loop.</p>
 <p>The <code>scan</code> primitive allows us to JIT-compile the for loop without having to un-roll all the computations first (e.g., in case of 1000 iterations, this would have required JAX for first compile all the 1000 computations), which would have required a compilation time that <a href="https://github.com/jax-ml/jax/discussions/15222">grows as the square of the number of iterations</a>. In our case we are using it for speeding up the compilation of the interactions-loop required for running the simulation.</p>
-<div id="ade9a0e3" class="cell" data-execution_count="13">
+<div id="edf76831" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> simulate_interaction(</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>        carry: Tuple[ArrayLike, ...], </span>
@@ -883,8 +883,8 @@ Note
 <li><p>We generate a PRNG <code>split_key</code> which will then be feeded inside the simulation. This is very important as it is the root PRNG key which will generate all the others required for the stochastic behaviours in our code.</p></li>
 <li><p>The return from <code>scan</code> is always made of two component, the <code>carry</code> and the “result”. Although the carry is “consumed” inside the function that is scanned, the result stacks as we would normally expect in a for python loop (e.g., if we scan over a 1000 elements we will obtain 1000 stacked results).</p></li>
 </ol>
-<div id="39bff8cd" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="14">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>SIMULATION_STEPS <span class="op">=</span> <span class="dv">1000</span></span>
+<div id="b63b6980" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>SIMULATION_STEPS <span class="op">=</span> <span class="dv">10000</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>split_key <span class="op">=</span> random.PRNGKey(<span class="dv">666</span>)</span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>arms_A, arms_b <span class="op">=</span> init_matrices_for_all_arms(</span>
@@ -907,7 +907,8 @@ Note
 </section>
 <section id="performance-visualisation" class="level1" data-number="6">
 <h1 data-number="6"><span class="header-section-number">6</span> Performance Visualisation</h1>
-<div id="2a9c18bb" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="15">
+<p>Let’s see now how our implementation of LinUCB compares against a naive random policy and how the estimated parameters changes during the simulation. Let’s keep in mind that greater (cumulative) reward indicates a more effective policy. Conversely, a lower cumulative regret is indicative of a better policy. We will see that regret becomes a particulary useful when asessing the performance in situations where reward is very sparse.</p>
+<div id="c64b880c" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="15">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> compute_policy_diagnostics_summaries(diagnostics):</span>
@@ -1001,7 +1002,8 @@ Note
 </div>
 <section id="visulize-reward-and-regret-performance" class="level2" data-number="6.1">
 <h2 data-number="6.1" class="anchored" data-anchor-id="visulize-reward-and-regret-performance"><span class="header-section-number">6.1</span> Visulize reward and regret performance</h2>
-<div id="a3bce3e6" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="16">
+<p>Since our simulation involves selecting the optimal arm for a large sampole of users (i.e.&nbsp;10,000), we will alwways try to visualize <strong>expected</strong> reward and regret along with the 2.5 and 97.5 percentiles (the shaded are in the plot).</p>
+<div id="0e079328" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="16">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>diagnostics_summaries <span class="op">=</span> compute_policy_diagnostics_summaries(</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    diagnostics<span class="op">=</span>diagnostics[<span class="st">"policies"</span>]</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>)</span>
@@ -1021,7 +1023,7 @@ Note
 </div>
 </div>
 <p>Let’s also have a look at how the simulation changes as we change the <code>reward_sparsity</code> and <code>reward_weighting</code> parameters</p>
-<div id="08d394f0" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="17">
+<div id="50675300" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="17">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> run_parametrized_simulation(reward_sparsity, reward_weighting):</span>
@@ -1056,7 +1058,8 @@ Note
 <span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="va">None</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div id="8d952108" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="18">
+<p>Here we maintain the same sparsity level but reduce the weighting (we basically introduce no weighting)</p>
+<div id="3e57f5b1" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="18">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>run_parametrized_simulation(</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    reward_sparsity<span class="op">=</span>REWARD_SPARSITY, </span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    reward_weighting<span class="op">=</span><span class="dv">1</span></span>
@@ -1069,7 +1072,8 @@ Note
 </div>
 </div>
 </div>
-<div id="c0d0f102" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="19">
+<p>While in here we reduce the sparsity of the reward and maintain that weighting at 1:</p>
+<div id="e60caf02" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="19">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>run_parametrized_simulation(</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    reward_sparsity<span class="op">=</span><span class="fl">.1</span>, </span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    reward_weighting<span class="op">=</span><span class="dv">1</span></span>
@@ -1085,7 +1089,10 @@ Note
 </section>
 <section id="visulize-parameters-evolution" class="level2" data-number="6.2">
 <h2 data-number="6.2" class="anchored" data-anchor-id="visulize-parameters-evolution"><span class="header-section-number">6.2</span> Visulize Parameters Evolution</h2>
-<div id="429b2a19" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="20">
+<p>In this section we will visualize how the parameters used by the LinUCB algorithms evolve over the simulation time, in particular we will focus on the <code>b</code> parameters.</p>
+<p>Since this can be thought as the the coefficient of a (regularized) linear regression, we can see its evolution for each of the considered arm as the “relevance” that a given covariate in a context has in determining the likelyhood of receiveing a reward.</p>
+<p>Similarly, the evolution of the covariance illustrate how the relationship between the various <code>b</code> parameters change over the simulation steps.</p>
+<div id="b640f5ce" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="20">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_single_arm_parameters_dianoistics(arm, diagnostics, figsize, show_labels<span class="op">=</span><span class="va">True</span>):</span>
@@ -1134,7 +1141,7 @@ Note
 <span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fig</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div id="b1cc9a75" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="21">
+<div id="333826fe" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="21">
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> arm <span class="kw">in</span> <span class="bu">range</span>(N_ARMS):</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> plot_single_arm_parameters_dianoistics(</span>
@@ -1176,14 +1183,15 @@ Note
 </section>
 <section id="conclusion" class="level1" data-number="7">
 <h1 data-number="7"><span class="header-section-number">7</span> Conclusion</h1>
+<p>In this post we provided a brief overview of the LinUCB algorithm and illustrated how to implement it using JAX for speeding up computations. We saw how LinUCB resulted effective when compared with a random policy even in situation of extremely high reward sparsity. We also saw how applying weighting to the reward signal is an effective strtegy for mitigating said sparsity.</p>
 </section>
 <section id="hardware-and-requirements" class="level1" data-number="8">
 <h1 data-number="8"><span class="header-section-number">8</span> Hardware and Requirements</h1>
 <p>Here you can find the hardware and python requirements used for building this post.</p>
-<div id="7d11cf7e" class="cell" data-execution_count="22">
+<div id="ed83dbfc" class="cell" data-execution_count="22">
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Last updated: 2025-03-28T09:21:46.487480+00:00
+<pre><code>Last updated: 2025-03-29T13:18:45.106569+00:00
 
 Python implementation: CPython
 Python version       : 3.13.2
@@ -1199,12 +1207,12 @@ Architecture: 64bit
 </code></pre>
 </div>
 </div>
-<div id="8e124009" class="cell" data-execution_count="23">
+<div id="55600c80" class="cell" data-execution_count="23">
 <div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark <span class="op">--</span>iversions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>jax       : 0.5.2
-sklearn   : 1.6.1
+<pre><code>sklearn   : 1.6.1
 matplotlib: 3.10.1
+jax       : 0.5.2
 numpy     : 2.2.4
 </code></pre>
 </div>
