@@ -19,6 +19,8 @@ jupyter: python3
 
 %load_ext watermark
 
+from typing import Dict, Any, Callable, Tuple
+
 from functools import partial
 
 import pandas as pd
@@ -27,11 +29,14 @@ import numpy as np
 import scipy
 from scipy.stats import lognorm, median_abs_deviation
 
-import numpyro
 import jax
+from jax.typing import ArrayLike
 import jax.random as random
+from jax import jit
+from jax import numpy as jnp
 from jax import vmap
 
+import numpyro
 import numpyro.distributions as dist
 from numpyro.infer import (
     MCMC,
@@ -40,9 +45,43 @@ from numpyro.infer import (
 )
 
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from matplotlib import gridspec
 
 import seaborn as sns
+
+def plot_univariate_series(
+        series_data: Dict[Any, Any], 
+        ax: plt.Axes, 
+        **plot_kwargs: Any
+    ) -> plt.Axes:
+    ax.scatter(
+        series_data["x"]["data"],
+        series_data["y"]["data"],
+        **plot_kwargs
+    )
+    ax.plot(
+        series_data["x"]["data"],
+        series_data["y"]["data"],
+        **plot_kwargs
+    )
+    ax.set_xlabel(series_data["x"]["label"])
+    ax.set_ylabel(series_data["y"]["label"])
+
+    ax.tick_params(
+        direction="in",
+        top=True, axis="x",
+        rotation=45,
+    )
+    ax.grid(
+        visible=True,
+        which="major",
+        axis="x",
+        color="k",
+        alpha=0.25,
+        linestyle="--",
+    )
+    return ax
 ```
 
 # Premise
@@ -52,6 +91,28 @@ import seaborn as sns
 ## What we will **not** cover
 
 # Introduction
+
+```{python}
+BLUE = (0, 83, 159)
+BLUE = tuple(value / 255. for value in BLUE)
+
+RED = (238, 28, 46)
+RED = tuple(value / 255. for value in RED)
+
+TIME_IDX = np.arange(7*6)
+DATES = pd.date_range(
+    start="01-01-2023",
+    periods=len(TIME_IDX)
+).values
+TIME = "date"
+MODELS = [
+    "Branch A",
+    "Branch B",
+    "Branch C",
+    "Branch D",
+    "Branch E",
+]
+```
 
 ## A/B tests and longitudinal A/B tests
 
@@ -63,7 +124,210 @@ import seaborn as sns
 
 ## Kernel Functions
 
+```{python}
+#| code-fold: true
+#| code-summary: Show supplementary code
+#| vscode: {languageId: python}
+
+def simulate_kernel(
+    X: ArrayLike, 
+    X_prime:ArrayLike, 
+    kernel_function: Callable, 
+    samples: int
+) -> Tuple[ArrayLike, ArrayLike, ArrayLike]:
+    generated_covariance = kernel_function(
+        X=X,
+        X_prime=X_prime,
+    )
+    distance = generated_covariance[:, len(X) // 2]
+    sampled_functions = np.random.multivariate_normal(
+        mean=np.zeros(
+            shape=generated_covariance.shape[0]
+        ),
+        cov=generated_covariance,
+        size=samples
+    )
+    return generated_covariance, distance, sampled_functions
+
+def visualize_kernel(
+    X: ArrayLike, 
+    generated_covariance: ArrayLike, 
+    distance: ArrayLike, 
+    sampled_functions: ArrayLike, 
+    kernel_name: str
+) -> Figure:
+
+    fig = plt.figure(
+        figsize=(8, 8),
+        tight_layout=True
+    )
+    grid = gridspec.GridSpec(
+        nrows=2,
+        ncols=2
+    )
+    ax_functions = fig.add_subplot(grid[0, :])
+    ax_distance = fig.add_subplot(grid[1, 0])
+    ax_covariance = fig.add_subplot(grid[1, 1])
+
+    for index in range(sampled_functions.shape[0]):
+
+        ax_functions = plot_univariate_series(
+            series_data={
+                "x": {
+                    "data": X,
+                    "label": "x"
+                },
+                "y": {
+                    "data": sampled_functions[index, :],
+                    "label": "y"
+                },
+
+            },
+            ax=ax_functions,
+            alpha=0.5
+        )
+
+    ax_functions.set_title("Sampled Functions \n from MvNormal")
+    ax_functions.axhline(0, linestyle="--", c="k")
+
+    ax_distance.plot(
+        X - (len(X) // 2),
+        distance
+    )
+    ax_distance.grid(alpha=0.5)
+    ax_distance.set_title(f"Distance Function \n Determined by {kernel_name} Kernel")
+    ax_covariance.set_ylabel("Similarity")
+    ax_covariance.set_xlabel("Distance")
+
+    ax_covariance.imshow(
+        generated_covariance
+    )
+    ax_covariance.set_ylabel("x'")
+    ax_covariance.set_xlabel("x")
+    ax_covariance.set_title(f"Covariance \n Determined by {kernel_name} Kernel")
+
+
+    plt.suptitle(f"{kernel_name} Kernel")
+    return fig
+```
+
 ## The Gaussian Process Model
+
+### Radial Basis Function Kernel
+
+```{python}
+@jit
+def RBF_kernel(
+    X: ArrayLike, 
+    X_prime: ArrayLike, 
+    variance: float, 
+    length: float, 
+    noise: float,
+    jitter: float =1.0e-6, 
+    include_noise: bool =True
+):
+    squared_differences = jnp.power(
+        (X[:, None] - X_prime),
+        2.0
+    )
+    squared_length_scale = 2 * jnp.power(
+        length,
+        2.0
+    )
+    covariance_matrix = jnp.exp(
+        - (squared_differences / squared_length_scale)
+    )
+    scaled_covariance_matrix = variance * covariance_matrix
+
+    if include_noise:
+        scaled_covariance_matrix += (noise + jitter) * jnp.eye(X.shape[0])
+
+    return scaled_covariance_matrix
+```
+
+
+```{python}
+kernel_function = partial(
+    RBF_kernel,
+    variance=1,
+    length=10,
+    noise=0.001
+)
+generated_covariance, distance, sampled_functions = simulate_kernel(
+    X=TIME_IDX,
+    X_prime=TIME_IDX,
+    kernel_function=kernel_function,
+    samples=3,
+)
+fig = visualize_kernel(
+    TIME_IDX,
+    generated_covariance=generated_covariance,
+    distance=distance,
+    sampled_functions=sampled_functions,
+    kernel_name="RBF"
+)
+plt.show()
+```
+
+### Matern Kernel
+
+```{python}
+@jit
+def rational_quadratic_kernel(
+    X: ArrayLike, 
+    X_prime: ArrayLike, 
+    variance: float, 
+    length: float, 
+    noise: float, 
+    alpha: float, 
+    jitter: float =1.0e-6, 
+    include_noise: bool =True
+):
+
+    squared_differences = jnp.power(
+        (X[:, None] - X_prime),
+        2.0
+    )
+    squared_length_scale = 2 * alpha * jnp.power(
+        length,
+        2.0
+    )
+    covariance_matrix = jnp.power(
+        1 + (squared_differences / squared_length_scale),
+        - alpha
+    )
+    scaled_covariance_matrix = variance * covariance_matrix
+
+    if include_noise:
+        scaled_covariance_matrix += (noise + jitter) * jnp.eye(X.shape[0])
+
+    return scaled_covariance_matrix
+```
+
+```{python}
+kernel_function = partial(
+    rational_quadratic_kernel,
+    variance=1,
+    length=10,
+    alpha=3,
+    noise=0.001
+)
+generated_covariance, distance, sampled_functions = simulate_kernel(
+    X=TIME_IDX,
+    X_prime=TIME_IDX,
+    kernel_function=kernel_function,
+    samples=3
+
+)
+fig = visualize_kernel(
+    TIME_IDX,
+    generated_covariance=generated_covariance,
+    distance=distance,
+    sampled_functions=sampled_functions,
+    kernel_name="Rational Quadratic"
+)
+plt.show()
+```
 
 # Simulating the data
 
