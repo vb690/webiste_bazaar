@@ -126,15 +126,60 @@
     "text": "1.2 Incorporating Dynamics\nWe have outlined a formal way in which bayes theorem can help us updating our beliefs on the position of the agent. However we have seen how to do this given a single measurement gathered at one point in time. In order to extend this to a time series, as we did with the gh filter, we need to incorporate a model of the dynamics of the agent for being able to make predictions."
   },
   {
-    "objectID": "posts/blog_posts/index.html",
-    "href": "posts/blog_posts/index.html",
-    "title": "Blog Posts",
+    "objectID": "posts/blog_posts/ab_test_gp.html",
+    "href": "posts/blog_posts/ab_test_gp.html",
+    "title": "Analyzing A/B Test Data using Gaussian Processes",
     "section": "",
-    "text": "LinUCB for Contextual Multi-Armed Bandit\n\n\n\n\n\nThis post how to implement the Linear Upper Confindence Bound [@li2010contextual] algorithm in JAX and applying it to a simulated contextual multi-armed bandit problem.\n\n\n\n\n\nSep 10, 2023\n\n\n\n\n\n\nNo matching items",
-    "crumbs": [
-      "Home",
-      "Blog"
-    ]
+    "text": "Show supplementary code\n%load_ext watermark\n\nfrom functools import partial\n\nimport pandas as pd\nimport numpy as np\n\nimport scipy\nfrom scipy.stats import lognorm, median_abs_deviation\n\nimport numpyro\nimport jax\nimport jax.random as random\nfrom jax import vmap\n\nimport numpyro.distributions as dist\nfrom numpyro.infer import (\n    MCMC,\n    NUTS,\n    Predictive\n)\n\nimport matplotlib.pyplot as plt\nfrom matplotlib import gridspec\n\nimport seaborn as sns"
+  },
+  {
+    "objectID": "posts/blog_posts/ab_test_gp.html#what-we-will-cover",
+    "href": "posts/blog_posts/ab_test_gp.html#what-we-will-cover",
+    "title": "Analyzing A/B Test Data using Gaussian Processes",
+    "section": "1.1 What we will cover",
+    "text": "1.1 What we will cover"
+  },
+  {
+    "objectID": "posts/blog_posts/ab_test_gp.html#what-we-will-not-cover",
+    "href": "posts/blog_posts/ab_test_gp.html#what-we-will-not-cover",
+    "title": "Analyzing A/B Test Data using Gaussian Processes",
+    "section": "1.2 What we will not cover",
+    "text": "1.2 What we will not cover"
+  },
+  {
+    "objectID": "posts/blog_posts/ab_test_gp.html#ab-tests-and-longitudinal-ab-tests",
+    "href": "posts/blog_posts/ab_test_gp.html#ab-tests-and-longitudinal-ab-tests",
+    "title": "Analyzing A/B Test Data using Gaussian Processes",
+    "section": "2.1 A/B tests and longitudinal A/B tests",
+    "text": "2.1 A/B tests and longitudinal A/B tests"
+  },
+  {
+    "objectID": "posts/blog_posts/ab_test_gp.html#gaussian-process",
+    "href": "posts/blog_posts/ab_test_gp.html#gaussian-process",
+    "title": "Analyzing A/B Test Data using Gaussian Processes",
+    "section": "2.2 Gaussian Process",
+    "text": "2.2 Gaussian Process"
+  },
+  {
+    "objectID": "posts/blog_posts/ab_test_gp.html#gaussian-process-for-ab-test",
+    "href": "posts/blog_posts/ab_test_gp.html#gaussian-process-for-ab-test",
+    "title": "Analyzing A/B Test Data using Gaussian Processes",
+    "section": "2.3 Gaussian Process for A/B test",
+    "text": "2.3 Gaussian Process for A/B test"
+  },
+  {
+    "objectID": "posts/blog_posts/ab_test_gp.html#kernel-functions",
+    "href": "posts/blog_posts/ab_test_gp.html#kernel-functions",
+    "title": "Analyzing A/B Test Data using Gaussian Processes",
+    "section": "3.1 Kernel Functions",
+    "text": "3.1 Kernel Functions"
+  },
+  {
+    "objectID": "posts/blog_posts/ab_test_gp.html#the-gaussian-process-model",
+    "href": "posts/blog_posts/ab_test_gp.html#the-gaussian-process-model",
+    "title": "Analyzing A/B Test Data using Gaussian Processes",
+    "section": "3.2 The Gaussian Process Model",
+    "text": "3.2 The Gaussian Process Model"
   },
   {
     "objectID": "posts/blog_posts/lin_ucb_jax.html",
@@ -240,6 +285,17 @@
     "title": "LinUCB for Contextual Multi-Armed Bandit",
     "section": "Footnotes",
     "text": "Footnotes\n\n\nThe assumption is that the payoff comes from a stationary distribution, meaning that at any point in time we can expect that \\(r_k \\sim \\mathcal{N}(\\mu_k, \\sigma_k)\\) (or any other suitable probability distribution).↩︎"
+  },
+  {
+    "objectID": "posts/blog_posts/index.html",
+    "href": "posts/blog_posts/index.html",
+    "title": "Blog Posts",
+    "section": "",
+    "text": "Analyzing A/B Test Data using Gaussian Processes\n\n\n\n\n\nThis post illustrates how to analyze longitudinal A/B test data using Gaussian Process.\n\n\n\n\n\nMar 29, 2025\n\n\n\n\n\n\n\n\n\n\n\n\nLinUCB for Contextual Multi-Armed Bandit\n\n\n\n\n\nThis post how to implement the Linear Upper Confindence Bound [@li2010contextual] algorithm in JAX and applying it to a simulated contextual multi-armed bandit problem.\n\n\n\n\n\nSep 10, 2023\n\n\n\n\n\n\nNo matching items",
+    "crumbs": [
+      "Home",
+      "Blog"
+    ]
   },
   {
     "objectID": "posts/tutorials/index.html",

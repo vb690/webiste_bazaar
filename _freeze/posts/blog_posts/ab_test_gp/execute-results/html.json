@@ -1,0 +1,12 @@
+{
+  "hash": "72858a5af4db0739f5fd609d14d943c0",
+  "result": {
+    "engine": "jupyter",
+    "markdown": "---\ntitle: Analyzing A/B Test Data using Gaussian Processes\ndescription: 'This post illustrates how to analyze longitudinal A/B test data using Gaussian Process.'\ndate: '2025-03-29'\ncategories:\n  - JAX\n  - Numpyro\n  - Bayesian Statistics\n  - A/B Test\n  - Gaussian Process\nbibliography: bibliographies/ab_test_gp.bib\njupyter: python3\n---\n\n::: {#7bd746ac .cell vscode='{\"languageId\":\"python\"}' execution_count=1}\n``` {.python .cell-code code-fold=\"true\" code-summary=\"Show supplementary code\"}\n%load_ext watermark\n\nfrom functools import partial\n\nimport pandas as pd\nimport numpy as np\n\nimport scipy\nfrom scipy.stats import lognorm, median_abs_deviation\n\nimport numpyro\nimport jax\nimport jax.random as random\nfrom jax import vmap\n\nimport numpyro.distributions as dist\nfrom numpyro.infer import (\n    MCMC,\n    NUTS,\n    Predictive\n)\n\nimport matplotlib.pyplot as plt\nfrom matplotlib import gridspec\n\nimport seaborn as sns\n```\n:::\n\n\n# Premise\n\n## What we will cover\n\n## What we will **not** cover\n\n# Introduction\n\n## A/B tests and longitudinal A/B tests\n\n## Gaussian Process\n\n## Gaussian Process for A/B test\n\n# Implementing a Gaussian Process Model in Numpyro\n\n## Kernel Functions\n\n## The Gaussian Process Model\n\n# Simulating the data\n\n# Fitting Gaussian Process Models to A/B test data\n\n# Visualize the results\n\n# Conclusion\n\n# Hardware and Requirements\nHere you can find the hardware and python requirements used for building this post.\n\n::: {#01f5d147 .cell execution_count=2}\n``` {.python .cell-code}\n%watermark\n```\n\n::: {.cell-output .cell-output-stdout}\n```\nLast updated: 2025-03-29T17:49:09.933347+00:00\n\nPython implementation: CPython\nPython version       : 3.13.2\nIPython version      : 9.0.2\n\nCompiler    : Clang 18.1.8 \nOS          : Darwin\nRelease     : 24.3.0\nMachine     : arm64\nProcessor   : arm\nCPU cores   : 14\nArchitecture: 64bit\n\n```\n:::\n:::\n\n\n::: {#aaddb41e .cell execution_count=3}\n``` {.python .cell-code}\n%watermark --iversions\n```\n\n::: {.cell-output .cell-output-stdout}\n```\nscipy     : 1.15.2\nnumpy     : 2.2.4\nseaborn   : 0.13.2\njax       : 0.5.2\nmatplotlib: 3.10.1\npandas    : 2.2.3\nnumpyro   : 0.18.0\n\n```\n:::\n:::\n\n\n",
+    "supporting": [
+      "ab_test_gp_files"
+    ],
+    "filters": [],
+    "includes": {}
+  }
+}

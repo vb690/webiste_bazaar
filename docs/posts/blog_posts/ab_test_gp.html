@@ -6,9 +6,10 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="description" content="This is a collection of self-contained blog post exploring a range of heterogeneous topics. Each post aims to address a single self-contained topic.">
+<meta name="dcterms.date" content="2025-03-29">
+<meta name="description" content="This post illustrates how to analyze longitudinal A/B test data using Gaussian Process.">
 
-<title>Blog Posts – Bazaar</title>
+<title>Analyzing A/B Test Data using Gaussian Processes – Bazaar</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -21,6 +22,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -31,9 +66,6 @@ ul.task-list li input[type="checkbox"] {
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../posts/tutorials/index.html" rel="prev">
-<script src="../../site_libs/quarto-listing/list.min.js"></script>
-<script src="../../site_libs/quarto-listing/quarto-listing.js"></script>
 <script src="../../site_libs/quarto-html/quarto.js"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
@@ -70,65 +102,7 @@ ul.task-list li input[type="checkbox"] {
     "search-label": "Search"
   }
 }</script>
-<script>
 
-  window.document.addEventListener("DOMContentLoaded", function (_event) {
-    const listingTargetEl = window.document.querySelector('#listing-listing .list');
-    if (!listingTargetEl) {
-      // No listing discovered, do not attach.
-      return; 
-    }
-
-    const options = {
-      valueNames: ['listing-date','listing-title','listing-author','listing-image','listing-description',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-file-modified-sort'] }],
-      
-      searchColumns: ["listing-date","listing-title","listing-author","listing-image","listing-description"],
-    };
-
-    window['quarto-listings'] = window['quarto-listings'] || {};
-    window['quarto-listings']['listing-listing'] = new List('listing-listing', options);
-
-    if (window['quarto-listing-loaded']) {
-      window['quarto-listing-loaded']();
-    }
-  });
-
-  window.addEventListener('hashchange',() => {
-    if (window['quarto-listing-loaded']) {
-      window['quarto-listing-loaded']();
-    }
-  })
-  </script>
-
-  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
-
-<script type="text/javascript">
-const typesetMath = (el) => {
-  if (window.MathJax) {
-    // MathJax Typeset
-    window.MathJax.typeset([el]);
-  } else if (window.katex) {
-    // KaTeX Render
-    var mathElements = el.getElementsByClassName("math");
-    var macros = [];
-    for (var i = 0; i < mathElements.length; i++) {
-      var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN") {
-        window.katex.render(texText.data, mathElements[i], {
-          displayMode: mathElements[i].classList.contains('display'),
-          throwOnError: false,
-          macros: macros,
-          fleqn: false
-        });
-      }
-    }
-  }
-}
-window.Quarto = {
-  typesetMath
-};
-</script>
 
 <link rel="stylesheet" href="../../styles.css">
 </head>
@@ -136,7 +110,7 @@ window.Quarto = {
 <body class="nav-sidebar floating nav-fixed">
 
 <div id="quarto-search-results"></div>
-  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+  <header id="quarto-header" class="headroom fixed-top">
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
@@ -178,35 +152,14 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../posts/blog_posts/index.html">Blog</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item">Analyzing A/B Test Data using Gaussian Processes</li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
   </nav>
 </header>
 <!-- content -->
-<header id="title-block-header" class="quarto-title-block default page-columns page-full">
-  <div class="quarto-title-banner page-columns page-full">
-    <div class="quarto-title column-page-right">
-      <h1 class="title">Blog Posts</h1>
-                  <div>
-        <div class="description">
-          This is a collection of self-contained blog post exploring a range of heterogeneous topics. Each post aims to address a single self-contained topic.
-        </div>
-      </div>
-                </div>
-  </div>
-    
-  
-  <div class="quarto-title-meta column-page-right">
-
-      
-    
-      
-    </div>
-    
-  
-  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
   <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
     <div class="sidebar-menu-container"> 
@@ -219,7 +172,7 @@ window.Quarto = {
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="../../posts/blog_posts/index.html" class="sidebar-item-text sidebar-link active">
+  <a href="../../posts/blog_posts/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Blog</span></a>
   </div>
 </li>
@@ -228,77 +181,188 @@ window.Quarto = {
 </nav>
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
-        
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">What’s on this page</h2>
+   
+  <ul>
+  <li><a href="#premise" id="toc-premise" class="nav-link active" data-scroll-target="#premise"><span class="header-section-number">1</span> Premise</a>
+  <ul class="collapse">
+  <li><a href="#what-we-will-cover" id="toc-what-we-will-cover" class="nav-link" data-scroll-target="#what-we-will-cover"><span class="header-section-number">1.1</span> What we will cover</a></li>
+  <li><a href="#what-we-will-not-cover" id="toc-what-we-will-not-cover" class="nav-link" data-scroll-target="#what-we-will-not-cover"><span class="header-section-number">1.2</span> What we will <strong>not</strong> cover</a></li>
+  </ul></li>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction"><span class="header-section-number">2</span> Introduction</a>
+  <ul class="collapse">
+  <li><a href="#ab-tests-and-longitudinal-ab-tests" id="toc-ab-tests-and-longitudinal-ab-tests" class="nav-link" data-scroll-target="#ab-tests-and-longitudinal-ab-tests"><span class="header-section-number">2.1</span> A/B tests and longitudinal A/B tests</a></li>
+  <li><a href="#gaussian-process" id="toc-gaussian-process" class="nav-link" data-scroll-target="#gaussian-process"><span class="header-section-number">2.2</span> Gaussian Process</a></li>
+  <li><a href="#gaussian-process-for-ab-test" id="toc-gaussian-process-for-ab-test" class="nav-link" data-scroll-target="#gaussian-process-for-ab-test"><span class="header-section-number">2.3</span> Gaussian Process for A/B test</a></li>
+  </ul></li>
+  <li><a href="#implementing-a-gaussian-process-model-in-numpyro" id="toc-implementing-a-gaussian-process-model-in-numpyro" class="nav-link" data-scroll-target="#implementing-a-gaussian-process-model-in-numpyro"><span class="header-section-number">3</span> Implementing a Gaussian Process Model in Numpyro</a>
+  <ul class="collapse">
+  <li><a href="#kernel-functions" id="toc-kernel-functions" class="nav-link" data-scroll-target="#kernel-functions"><span class="header-section-number">3.1</span> Kernel Functions</a></li>
+  <li><a href="#the-gaussian-process-model" id="toc-the-gaussian-process-model" class="nav-link" data-scroll-target="#the-gaussian-process-model"><span class="header-section-number">3.2</span> The Gaussian Process Model</a></li>
+  </ul></li>
+  <li><a href="#simulating-the-data" id="toc-simulating-the-data" class="nav-link" data-scroll-target="#simulating-the-data"><span class="header-section-number">4</span> Simulating the data</a></li>
+  <li><a href="#fitting-gaussian-process-models-to-ab-test-data" id="toc-fitting-gaussian-process-models-to-ab-test-data" class="nav-link" data-scroll-target="#fitting-gaussian-process-models-to-ab-test-data"><span class="header-section-number">5</span> Fitting Gaussian Process Models to A/B test data</a></li>
+  <li><a href="#visualize-the-results" id="toc-visualize-the-results" class="nav-link" data-scroll-target="#visualize-the-results"><span class="header-section-number">6</span> Visualize the results</a></li>
+  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">7</span> Conclusion</a></li>
+  <li><a href="#hardware-and-requirements" id="toc-hardware-and-requirements" class="nav-link" data-scroll-target="#hardware-and-requirements"><span class="header-section-number">8</span> Hardware and Requirements</a></li>
+  </ul>
+</nav>
     </div>
 <!-- main -->
-<main class="content quarto-banner-title-block column-page-right" id="quarto-document-content">
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Analyzing A/B Test Data using Gaussian Processes</h1>
+  <div class="quarto-categories">
+    <div class="quarto-category">JAX</div>
+    <div class="quarto-category">Numpyro</div>
+    <div class="quarto-category">Bayesian Statistics</div>
+    <div class="quarto-category">A/B Test</div>
+    <div class="quarto-category">Gaussian Process</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    This post illustrates how to analyze longitudinal A/B test data using Gaussian Process.
+  </div>
+</div>
 
 
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">March 29, 2025</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
 
 
+</header>
 
 
+<div id="7bd746ac" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="1">
+<details class="code-fold">
+<summary>Show supplementary code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>load_ext watermark</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> scipy</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> lognorm, median_abs_deviation</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpyro</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.random <span class="im">as</span> random</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> vmap</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpyro.distributions <span class="im">as</span> dist</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> numpyro.infer <span class="im">import</span> (</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    MCMC,</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    NUTS,</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    Predictive</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> gridspec</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<section id="premise" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Premise</h1>
+<section id="what-we-will-cover" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="what-we-will-cover"><span class="header-section-number">1.1</span> What we will cover</h2>
+</section>
+<section id="what-we-will-not-cover" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="what-we-will-not-cover"><span class="header-section-number">1.2</span> What we will <strong>not</strong> cover</h2>
+</section>
+</section>
+<section id="introduction" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Introduction</h1>
+<section id="ab-tests-and-longitudinal-ab-tests" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="ab-tests-and-longitudinal-ab-tests"><span class="header-section-number">2.1</span> A/B tests and longitudinal A/B tests</h2>
+</section>
+<section id="gaussian-process" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="gaussian-process"><span class="header-section-number">2.2</span> Gaussian Process</h2>
+</section>
+<section id="gaussian-process-for-ab-test" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="gaussian-process-for-ab-test"><span class="header-section-number">2.3</span> Gaussian Process for A/B test</h2>
+</section>
+</section>
+<section id="implementing-a-gaussian-process-model-in-numpyro" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Implementing a Gaussian Process Model in Numpyro</h1>
+<section id="kernel-functions" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="kernel-functions"><span class="header-section-number">3.1</span> Kernel Functions</h2>
+</section>
+<section id="the-gaussian-process-model" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="the-gaussian-process-model"><span class="header-section-number">3.2</span> The Gaussian Process Model</h2>
+</section>
+</section>
+<section id="simulating-the-data" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Simulating the data</h1>
+</section>
+<section id="fitting-gaussian-process-models-to-ab-test-data" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Fitting Gaussian Process Models to A/B test data</h1>
+</section>
+<section id="visualize-the-results" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Visualize the results</h1>
+</section>
+<section id="conclusion" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> Conclusion</h1>
+</section>
+<section id="hardware-and-requirements" class="level1" data-number="8">
+<h1 data-number="8"><span class="header-section-number">8</span> Hardware and Requirements</h1>
+<p>Here you can find the hardware and python requirements used for building this post.</p>
+<div id="01f5d147" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Last updated: 2025-03-29T17:49:09.933347+00:00
+
+Python implementation: CPython
+Python version       : 3.13.2
+IPython version      : 9.0.2
+
+Compiler    : Clang 18.1.8 
+OS          : Darwin
+Release     : 24.3.0
+Machine     : arm64
+Processor   : arm
+CPU cores   : 14
+Architecture: 64bit
+</code></pre>
+</div>
+</div>
+<div id="aaddb41e" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark <span class="op">--</span>iversions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>scipy     : 1.15.2
+numpy     : 2.2.4
+seaborn   : 0.13.2
+jax       : 0.5.2
+matplotlib: 3.10.1
+pandas    : 2.2.3
+numpyro   : 0.18.0
+</code></pre>
+</div>
+</div>
 
 
+</section>
 
-<div class="quarto-listing quarto-listing-container-default" id="listing-listing">
-<div class="list quarto-listing-default">
-<div class="quarto-post image-right" data-index="0" data-categories="SkFYJTJDTnVtcHlybyUyQ0JheWVzaWFuJTIwU3RhdGlzdGljcyUyQ0ElMkZCJTIwVGVzdCUyQ0dhdXNzaWFuJTIwUHJvY2Vzcw==" data-listing-date-sort="1743206400000" data-listing-file-modified-sort="1743270541711" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="128">
-<div class="thumbnail">
-<p><a href="../../posts/blog_posts/ab_test_gp.html" class="no-external"></a></p><a href="../../posts/blog_posts/ab_test_gp.html" class="no-external">
-<div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
-</a><p><a href="../../posts/blog_posts/ab_test_gp.html" class="no-external"></a></p>
-</div>
-<div class="body">
-<h3 class="no-anchor listing-title">
-<a href="../../posts/blog_posts/ab_test_gp.html" class="no-external">Analyzing A/B Test Data using Gaussian Processes</a>
-</h3>
-<div class="listing-subtitle">
-<a href="../../posts/blog_posts/ab_test_gp.html" class="no-external"></a>
-</div>
-<div class="listing-description">
-<a href="../../posts/blog_posts/ab_test_gp.html" class="no-external">This post illustrates how to analyze longitudinal A/B test data using Gaussian Process.</a>
-</div>
-</div>
-<div class="metadata">
-<a href="../../posts/blog_posts/ab_test_gp.html" class="no-external">
-<div class="listing-date">
-Mar 29, 2025
-</div>
-</a>
-</div>
-</div>
-<div class="quarto-post image-right" data-index="1" data-categories="SkFYJTJDcmVpbmZvcmNlbWVudCUyMGxlYXJuaW5nJTJDTGluVUNCJTJDY29udGV4dHVhbCUyMGJhbmRpdHM=" data-listing-date-sort="1694300400000" data-listing-file-modified-sort="1743254258215" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="31" data-listing-word-count-sort="6169">
-<div class="thumbnail">
-<p><a href="../../posts/blog_posts/lin_ucb_jax.html" class="no-external"></a></p><a href="../../posts/blog_posts/lin_ucb_jax.html" class="no-external">
-<p class="card-img-top"><img src="lin_ucb_jax_files/figure-html/cell-6-output-1.png"  class="thumbnail-image card-img"/></p>
-</a><p><a href="../../posts/blog_posts/lin_ucb_jax.html" class="no-external"></a></p>
-</div>
-<div class="body">
-<h3 class="no-anchor listing-title">
-<a href="../../posts/blog_posts/lin_ucb_jax.html" class="no-external">LinUCB for Contextual Multi-Armed Bandit</a>
-</h3>
-<div class="listing-subtitle">
-<a href="../../posts/blog_posts/lin_ucb_jax.html" class="no-external"></a>
-</div>
-<div class="listing-description">
-<a href="../../posts/blog_posts/lin_ucb_jax.html" class="no-external">This post how to implement the Linear Upper Confindence Bound <span class="citation" data-cites="li2010contextual">[@li2010contextual]</span> algorithm in <span>JAX</span> and applying it to a simulated contextual multi-armed bandit problem.</a>
-</div>
-</div>
-<div class="metadata">
-<a href="../../posts/blog_posts/lin_ucb_jax.html" class="no-external">
-<div class="listing-date">
-Sep 10, 2023
-</div>
-</a>
-</div>
-</div>
-</div>
-<div class="listing-no-matching d-none">
-No matching items
-</div>
-</div></main> <!-- /main -->
+</main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
@@ -716,15 +780,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
 });
 </script>
-<nav class="page-navigation column-page-right">
-  <div class="nav-page nav-page-previous">
-      <a href="../../posts/tutorials/index.html" class="pagination-link" aria-label="Tutorials">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Tutorials</span>
-      </a>          
-  </div>
-  <div class="nav-page nav-page-next">
-  </div>
-</nav>
 </div> <!-- /content -->
 
 

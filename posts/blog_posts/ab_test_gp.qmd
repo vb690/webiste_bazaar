@@ -1,0 +1,85 @@
+---
+title: Analyzing A/B Test Data using Gaussian Processes
+description: 'This post illustrates how to analyze longitudinal A/B test data using Gaussian Process.'
+date: '2025-03-29'
+categories:
+  - JAX
+  - Numpyro
+  - Bayesian Statistics
+  - A/B Test
+  - Gaussian Process
+bibliography: bibliographies/ab_test_gp.bib
+jupyter: python3
+---
+
+```{python}
+#| code-fold: true
+#| code-summary: Show supplementary code
+#| vscode: {languageId: python}
+
+%load_ext watermark
+
+from functools import partial
+
+import pandas as pd
+import numpy as np
+
+import scipy
+from scipy.stats import lognorm, median_abs_deviation
+
+import numpyro
+import jax
+import jax.random as random
+from jax import vmap
+
+import numpyro.distributions as dist
+from numpyro.infer import (
+    MCMC,
+    NUTS,
+    Predictive
+)
+
+import matplotlib.pyplot as plt
+from matplotlib import gridspec
+
+import seaborn as sns
+```
+
+# Premise
+
+## What we will cover
+
+## What we will **not** cover
+
+# Introduction
+
+## A/B tests and longitudinal A/B tests
+
+## Gaussian Process
+
+## Gaussian Process for A/B test
+
+# Implementing a Gaussian Process Model in Numpyro
+
+## Kernel Functions
+
+## The Gaussian Process Model
+
+# Simulating the data
+
+# Fitting Gaussian Process Models to A/B test data
+
+# Visualize the results
+
+# Conclusion
+
+# Hardware and Requirements
+Here you can find the hardware and python requirements used for building this post.
+
+```{python}
+%watermark
+```
+
+```{python}
+%watermark --iversions
+```
