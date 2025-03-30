@@ -136,7 +136,8 @@ def simulate_kernel(
     X: ArrayLike, 
     X_prime:ArrayLike, 
     kernel_function: Callable, 
-    samples: int
+    samples: int,
+    mean: float = 0.
 ) -> Tuple[ArrayLike, ArrayLike, ArrayLike]:
     generated_covariance = kernel_function(
         X=X,
@@ -146,7 +147,7 @@ def simulate_kernel(
     sampled_functions = np.random.multivariate_normal(
         mean=np.zeros(
             shape=generated_covariance.shape[0]
-        ),
+        ) + mean,
         cov=generated_covariance,
         size=samples
     )

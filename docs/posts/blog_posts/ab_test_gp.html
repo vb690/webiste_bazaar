@@ -258,7 +258,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<div id="6d88b6d1" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="1">
+<div id="9a5b665f" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="1">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>load_ext watermark</span>
@@ -342,7 +342,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="introduction" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> Introduction</h1>
-<div id="269240c2" class="cell" data-execution_count="2">
+<div id="c2df2471" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>BLUE <span class="op">=</span> (<span class="dv">0</span>, <span class="dv">83</span>, <span class="dv">159</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>BLUE <span class="op">=</span> <span class="bu">tuple</span>(value <span class="op">/</span> <span class="fl">255.</span> <span class="cf">for</span> value <span class="kw">in</span> BLUE)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -377,94 +377,95 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1 data-number="3"><span class="header-section-number">3</span> Implementing a Gaussian Process Model in Numpyro</h1>
 <section id="kernel-functions" class="level2" data-number="3.1">
 <h2 data-number="3.1" class="anchored" data-anchor-id="kernel-functions"><span class="header-section-number">3.1</span> Kernel Functions</h2>
-<div id="62c966aa" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="3">
+<div id="2dcb06d9" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="3">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> simulate_kernel(</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    X: ArrayLike, </span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    X_prime:ArrayLike, </span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    kernel_function: Callable, </span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    samples: <span class="bu">int</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> Tuple[ArrayLike, ArrayLike, ArrayLike]:</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    generated_covariance <span class="op">=</span> kernel_function(</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        X<span class="op">=</span>X,</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        X_prime<span class="op">=</span>X_prime,</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    distance <span class="op">=</span> generated_covariance[:, <span class="bu">len</span>(X) <span class="op">//</span> <span class="dv">2</span>]</span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    sampled_functions <span class="op">=</span> np.random.multivariate_normal(</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        mean<span class="op">=</span>np.zeros(</span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>            shape<span class="op">=</span>generated_covariance.shape[<span class="dv">0</span>]</span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>        ),</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>        cov<span class="op">=</span>generated_covariance,</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>        size<span class="op">=</span>samples</span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> generated_covariance, distance, sampled_functions</span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> visualize_kernel(</span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    X: ArrayLike, </span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    generated_covariance: ArrayLike, </span>
-<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    distance: ArrayLike, </span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    sampled_functions: ArrayLike, </span>
-<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    kernel_name: <span class="bu">str</span></span>
-<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> Figure:</span>
-<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> plt.figure(</span>
-<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>        figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">8</span>),</span>
-<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>        tight_layout<span class="op">=</span><span class="va">True</span></span>
-<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>    grid <span class="op">=</span> gridspec.GridSpec(</span>
-<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>        nrows<span class="op">=</span><span class="dv">2</span>,</span>
-<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>        ncols<span class="op">=</span><span class="dv">2</span></span>
-<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>    ax_functions <span class="op">=</span> fig.add_subplot(grid[<span class="dv">0</span>, :])</span>
-<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>    ax_distance <span class="op">=</span> fig.add_subplot(grid[<span class="dv">1</span>, <span class="dv">0</span>])</span>
-<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>    ax_covariance <span class="op">=</span> fig.add_subplot(grid[<span class="dv">1</span>, <span class="dv">1</span>])</span>
-<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> index <span class="kw">in</span> <span class="bu">range</span>(sampled_functions.shape[<span class="dv">0</span>]):</span>
-<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>        ax_functions <span class="op">=</span> plot_univariate_series(</span>
-<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>            series_data<span class="op">=</span>{</span>
-<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>                <span class="st">"x"</span>: {</span>
-<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"data"</span>: X,</span>
-<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"label"</span>: <span class="st">"x"</span></span>
-<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>                },</span>
-<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>                <span class="st">"y"</span>: {</span>
-<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"data"</span>: sampled_functions[index, :],</span>
-<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"label"</span>: <span class="st">"y"</span></span>
-<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>                },</span>
-<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>            },</span>
-<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a>            ax<span class="op">=</span>ax_functions,</span>
-<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a>            alpha<span class="op">=</span><span class="fl">0.5</span></span>
-<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a>    ax_functions.set_title(<span class="st">"Sampled Functions </span><span class="ch">\n</span><span class="st"> from MvNormal"</span>)</span>
-<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a>    ax_functions.axhline(<span class="dv">0</span>, linestyle<span class="op">=</span><span class="st">"--"</span>, c<span class="op">=</span><span class="st">"k"</span>)</span>
-<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a>    ax_distance.plot(</span>
-<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a>        X <span class="op">-</span> (<span class="bu">len</span>(X) <span class="op">//</span> <span class="dv">2</span>),</span>
-<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a>        distance</span>
-<span id="cb3-65"><a href="#cb3-65" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb3-66"><a href="#cb3-66" aria-hidden="true" tabindex="-1"></a>    ax_distance.grid(alpha<span class="op">=</span><span class="fl">0.5</span>)</span>
-<span id="cb3-67"><a href="#cb3-67" aria-hidden="true" tabindex="-1"></a>    ax_distance.set_title(<span class="ss">f"Distance Function </span><span class="ch">\n</span><span class="ss"> Determined by </span><span class="sc">{</span>kernel_name<span class="sc">}</span><span class="ss"> Kernel"</span>)</span>
-<span id="cb3-68"><a href="#cb3-68" aria-hidden="true" tabindex="-1"></a>    ax_covariance.set_ylabel(<span class="st">"Similarity"</span>)</span>
-<span id="cb3-69"><a href="#cb3-69" aria-hidden="true" tabindex="-1"></a>    ax_covariance.set_xlabel(<span class="st">"Distance"</span>)</span>
-<span id="cb3-70"><a href="#cb3-70" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-71"><a href="#cb3-71" aria-hidden="true" tabindex="-1"></a>    ax_covariance.imshow(</span>
-<span id="cb3-72"><a href="#cb3-72" aria-hidden="true" tabindex="-1"></a>        generated_covariance</span>
-<span id="cb3-73"><a href="#cb3-73" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb3-74"><a href="#cb3-74" aria-hidden="true" tabindex="-1"></a>    ax_covariance.set_ylabel(<span class="st">"x'"</span>)</span>
-<span id="cb3-75"><a href="#cb3-75" aria-hidden="true" tabindex="-1"></a>    ax_covariance.set_xlabel(<span class="st">"x"</span>)</span>
-<span id="cb3-76"><a href="#cb3-76" aria-hidden="true" tabindex="-1"></a>    ax_covariance.set_title(<span class="ss">f"Covariance </span><span class="ch">\n</span><span class="ss"> Determined by </span><span class="sc">{</span>kernel_name<span class="sc">}</span><span class="ss"> Kernel"</span>)</span>
-<span id="cb3-77"><a href="#cb3-77" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    samples: <span class="bu">int</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    mean: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> Tuple[ArrayLike, ArrayLike, ArrayLike]:</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    generated_covariance <span class="op">=</span> kernel_function(</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        X<span class="op">=</span>X,</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        X_prime<span class="op">=</span>X_prime,</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    distance <span class="op">=</span> generated_covariance[:, <span class="bu">len</span>(X) <span class="op">//</span> <span class="dv">2</span>]</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    sampled_functions <span class="op">=</span> np.random.multivariate_normal(</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>        mean<span class="op">=</span>np.zeros(</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>            shape<span class="op">=</span>generated_covariance.shape[<span class="dv">0</span>]</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>        ) <span class="op">+</span> mean,</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>        cov<span class="op">=</span>generated_covariance,</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>        size<span class="op">=</span>samples</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> generated_covariance, distance, sampled_functions</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> visualize_kernel(</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    X: ArrayLike, </span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    generated_covariance: ArrayLike, </span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    distance: ArrayLike, </span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    sampled_functions: ArrayLike, </span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    kernel_name: <span class="bu">str</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> Figure:</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> plt.figure(</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>        figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">8</span>),</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>        tight_layout<span class="op">=</span><span class="va">True</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>    grid <span class="op">=</span> gridspec.GridSpec(</span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>        nrows<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>        ncols<span class="op">=</span><span class="dv">2</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>    ax_functions <span class="op">=</span> fig.add_subplot(grid[<span class="dv">0</span>, :])</span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>    ax_distance <span class="op">=</span> fig.add_subplot(grid[<span class="dv">1</span>, <span class="dv">0</span>])</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>    ax_covariance <span class="op">=</span> fig.add_subplot(grid[<span class="dv">1</span>, <span class="dv">1</span>])</span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> index <span class="kw">in</span> <span class="bu">range</span>(sampled_functions.shape[<span class="dv">0</span>]):</span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>        ax_functions <span class="op">=</span> plot_univariate_series(</span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>            series_data<span class="op">=</span>{</span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>                <span class="st">"x"</span>: {</span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"data"</span>: X,</span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"label"</span>: <span class="st">"x"</span></span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>                },</span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>                <span class="st">"y"</span>: {</span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"data"</span>: sampled_functions[index, :],</span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"label"</span>: <span class="st">"y"</span></span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>                },</span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a>            },</span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a>            ax<span class="op">=</span>ax_functions,</span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a>            alpha<span class="op">=</span><span class="fl">0.5</span></span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a>    ax_functions.set_title(<span class="st">"Sampled Functions </span><span class="ch">\n</span><span class="st"> from MvNormal"</span>)</span>
+<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a>    ax_functions.axhline(<span class="dv">0</span>, linestyle<span class="op">=</span><span class="st">"--"</span>, c<span class="op">=</span><span class="st">"k"</span>)</span>
+<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a>    ax_distance.plot(</span>
+<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a>        X <span class="op">-</span> (<span class="bu">len</span>(X) <span class="op">//</span> <span class="dv">2</span>),</span>
+<span id="cb3-65"><a href="#cb3-65" aria-hidden="true" tabindex="-1"></a>        distance</span>
+<span id="cb3-66"><a href="#cb3-66" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb3-67"><a href="#cb3-67" aria-hidden="true" tabindex="-1"></a>    ax_distance.grid(alpha<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb3-68"><a href="#cb3-68" aria-hidden="true" tabindex="-1"></a>    ax_distance.set_title(<span class="ss">f"Distance Function </span><span class="ch">\n</span><span class="ss"> Determined by </span><span class="sc">{</span>kernel_name<span class="sc">}</span><span class="ss"> Kernel"</span>)</span>
+<span id="cb3-69"><a href="#cb3-69" aria-hidden="true" tabindex="-1"></a>    ax_covariance.set_ylabel(<span class="st">"Similarity"</span>)</span>
+<span id="cb3-70"><a href="#cb3-70" aria-hidden="true" tabindex="-1"></a>    ax_covariance.set_xlabel(<span class="st">"Distance"</span>)</span>
+<span id="cb3-71"><a href="#cb3-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-72"><a href="#cb3-72" aria-hidden="true" tabindex="-1"></a>    ax_covariance.imshow(</span>
+<span id="cb3-73"><a href="#cb3-73" aria-hidden="true" tabindex="-1"></a>        generated_covariance</span>
+<span id="cb3-74"><a href="#cb3-74" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb3-75"><a href="#cb3-75" aria-hidden="true" tabindex="-1"></a>    ax_covariance.set_ylabel(<span class="st">"x'"</span>)</span>
+<span id="cb3-76"><a href="#cb3-76" aria-hidden="true" tabindex="-1"></a>    ax_covariance.set_xlabel(<span class="st">"x"</span>)</span>
+<span id="cb3-77"><a href="#cb3-77" aria-hidden="true" tabindex="-1"></a>    ax_covariance.set_title(<span class="ss">f"Covariance </span><span class="ch">\n</span><span class="ss"> Determined by </span><span class="sc">{</span>kernel_name<span class="sc">}</span><span class="ss"> Kernel"</span>)</span>
 <span id="cb3-78"><a href="#cb3-78" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-79"><a href="#cb3-79" aria-hidden="true" tabindex="-1"></a>    plt.suptitle(<span class="ss">f"</span><span class="sc">{</span>kernel_name<span class="sc">}</span><span class="ss"> Kernel"</span>)</span>
-<span id="cb3-80"><a href="#cb3-80" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fig</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-79"><a href="#cb3-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-80"><a href="#cb3-80" aria-hidden="true" tabindex="-1"></a>    plt.suptitle(<span class="ss">f"</span><span class="sc">{</span>kernel_name<span class="sc">}</span><span class="ss"> Kernel"</span>)</span>
+<span id="cb3-81"><a href="#cb3-81" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fig</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <section id="radial-basis-function-kernel" class="level3" data-number="3.1.1">
 <h3 data-number="3.1.1" class="anchored" data-anchor-id="radial-basis-function-kernel"><span class="header-section-number">3.1.1</span> Radial Basis Function Kernel</h3>
-<div id="9753e8b0" class="cell" data-execution_count="4">
+<div id="e3ec287e" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> RBF_kernel(</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    X: ArrayLike, </span>
@@ -493,7 +494,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> scaled_covariance_matrix</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="227437b5" class="cell" data-execution_count="5">
+<div id="9e7551db" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>kernel_function <span class="op">=</span> partial(</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    RBF_kernel,</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    variance<span class="op">=</span><span class="dv">1</span>,</span>
@@ -525,7 +526,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="matern-kernel" class="level3" data-number="3.1.2">
 <h3 data-number="3.1.2" class="anchored" data-anchor-id="matern-kernel"><span class="header-section-number">3.1.2</span> Matern Kernel</h3>
-<div id="6da9c7bd" class="cell" data-execution_count="6">
+<div id="3c354264" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rational_quadratic_kernel(</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    X: ArrayLike, </span>
@@ -557,7 +558,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> scaled_covariance_matrix</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="4b88291b" class="cell" data-execution_count="7">
+<div id="f360c3ff" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>kernel_function <span class="op">=</span> partial(</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    rational_quadratic_kernel,</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    variance<span class="op">=</span><span class="dv">1</span>,</span>
@@ -591,7 +592,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="periodic-kernel" class="level3" data-number="3.1.3">
 <h3 data-number="3.1.3" class="anchored" data-anchor-id="periodic-kernel"><span class="header-section-number">3.1.3</span> Periodic Kernel</h3>
-<div id="77ef33e7" class="cell" data-execution_count="8">
+<div id="c0e2e72b" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> periodic_kernel(</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    X: ArrayLike, </span>
@@ -623,7 +624,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> scaled_covariance_matrix</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="5f5db42a" class="cell" data-execution_count="9">
+<div id="5ca05286" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>kernel_function <span class="op">=</span> partial(</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    periodic_kernel,</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    variance<span class="op">=</span><span class="dv">1</span>,</span>
@@ -657,7 +658,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="linear-kernel" class="level3" data-number="3.1.4">
 <h3 data-number="3.1.4" class="anchored" data-anchor-id="linear-kernel"><span class="header-section-number">3.1.4</span> Linear Kernel</h3>
-<div id="1901b48f" class="cell" data-execution_count="10">
+<div id="265327cb" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> linear_kernel(</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    X: ArrayLike, </span>
@@ -673,7 +674,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> scaled_covariance_matrix</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="20b8231e" class="cell" data-execution_count="11">
+<div id="7035e669" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>kernel_function <span class="op">=</span> partial(</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    linear_kernel,</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    variance<span class="op">=</span><span class="fl">0.01</span>,</span>
@@ -704,7 +705,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="white-noise-kernel" class="level3" data-number="3.1.5">
 <h3 data-number="3.1.5" class="anchored" data-anchor-id="white-noise-kernel"><span class="header-section-number">3.1.5</span> White Noise Kernel</h3>
-<div id="d90b0747" class="cell" data-execution_count="12">
+<div id="75b90871" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> white_noise_kernel(</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    X: ArrayLike, </span>
@@ -714,7 +715,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    covariance_matrix <span class="op">=</span> variance <span class="op">*</span> jnp.eye(X.shape[<span class="dv">0</span>])</span>
 <span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> covariance_matrix</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="f9fd8f58" class="cell" data-execution_count="13">
+<div id="e7c7746d" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>kernel_function <span class="op">=</span> partial(</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    white_noise_kernel,</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    variance<span class="op">=</span><span class="fl">0.01</span>,</span>
@@ -744,7 +745,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="combining-kernels" class="level3" data-number="3.1.6">
 <h3 data-number="3.1.6" class="anchored" data-anchor-id="combining-kernels"><span class="header-section-number">3.1.6</span> Combining Kernels</h3>
-<div id="313be24b" class="cell" data-execution_count="14">
+<div id="89fbcaf5" class="cell" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="at">@partial</span>(jit, static_argnums<span class="op">=</span>(<span class="dv">2</span>,<span class="dv">3</span>))</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> additive_combined_kernel(</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    X: ArrayLike, </span>
@@ -763,7 +764,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> ArrayLike:</span>
 <span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> first_kernel(X<span class="op">=</span>X, X_prime<span class="op">=</span>X_prime) <span class="op">*</span> second_kernel(X<span class="op">=</span>X, X_prime<span class="op">=</span>X_prime)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="ceba91b5" class="cell" data-execution_count="15">
+<div id="dae099f7" class="cell" data-execution_count="15">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>kernel_function_linear <span class="op">=</span> partial(</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    linear_kernel,</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    variance<span class="op">=</span><span class="fl">0.0001</span>,</span>
@@ -804,7 +805,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="0f195774" class="cell" data-execution_count="16">
+<div id="ea4f89d5" class="cell" data-execution_count="16">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>kernel_function_periodic <span class="op">=</span> partial(</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    periodic_kernel,</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    variance<span class="op">=</span><span class="dv">5</span>,</span>
@@ -851,7 +852,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="the-gaussian-process-model" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="the-gaussian-process-model"><span class="header-section-number">3.2</span> The Gaussian Process Model</h2>
-<div id="2ef3fa88" class="cell" data-execution_count="17">
+<div id="6bcb706b" class="cell" data-execution_count="17">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> RBF_gaussian_process(</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>        trend_kernel_variance_dist,</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>        trend_kernel_noise_dist,</span>
@@ -973,10 +974,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="hardware-and-requirements" class="level1" data-number="8">
 <h1 data-number="8"><span class="header-section-number">8</span> Hardware and Requirements</h1>
 <p>Here you can find the hardware and python requirements used for building this post.</p>
-<div id="5c02c162" class="cell" data-execution_count="18">
+<div id="1cc64160" class="cell" data-execution_count="18">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Last updated: 2025-03-30T10:58:39.605019+01:00
+<pre><code>Last updated: 2025-03-30T16:41:27.423449+01:00
 
 Python implementation: CPython
 Python version       : 3.13.2
@@ -992,16 +993,16 @@ Architecture: 64bit
 </code></pre>
 </div>
 </div>
-<div id="320549b0" class="cell" data-execution_count="19">
+<div id="adc5fa61" class="cell" data-execution_count="19">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark <span class="op">--</span>iversions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>matplotlib: 3.10.1
-pandas    : 2.2.3
-seaborn   : 0.13.2
-jax       : 0.5.2
+<pre><code>seaborn   : 0.13.2
 numpyro   : 0.18.0
 numpy     : 2.2.4
+pandas    : 2.2.3
+jax       : 0.5.2
 scipy     : 1.15.2
+matplotlib: 3.10.1
 </code></pre>
 </div>
 </div>
