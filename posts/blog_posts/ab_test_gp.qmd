@@ -19,6 +19,8 @@ jupyter: python3
 
 %load_ext watermark
 
+NUM_CHAINS = 4
+
 from typing import Dict, Any, Callable, Tuple
 
 from functools import partial
@@ -37,6 +39,7 @@ from jax import numpy as jnp
 from jax import vmap
 
 import numpyro
+numpyro.set_host_device_count(NUM_CHAINS)
 import numpyro.distributions as dist
 from numpyro.infer import (
     MCMC,
@@ -211,8 +214,6 @@ def visualize_kernel(
     return fig
 ```
 
-## The Gaussian Process Model
-
 ### Radial Basis Function Kernel
 
 ```{python}
@@ -225,7 +226,7 @@ def RBF_kernel(
     noise: float,
     jitter: float =1.0e-6, 
     include_noise: bool =True
-):
+) -> ArrayLike:
     squared_differences = jnp.power(
         (X[:, None] - X_prime),
         2.0
@@ -282,7 +283,7 @@ def rational_quadratic_kernel(
     alpha: float, 
     jitter: float =1.0e-6, 
     include_noise: bool =True
-):
+) -> ArrayLike:
 
     squared_differences = jnp.power(
         (X[:, None] - X_prime),
@@ -327,6 +328,343 @@ fig = visualize_kernel(
     kernel_name="Rational Quadratic"
 )
 plt.show()
+```
+
+### Periodic Kernel
+
+```{python}
+@jit
+def periodic_kernel(
+    X: ArrayLike, 
+    X_prime: ArrayLike, 
+    variance: float, 
+    length: float, 
+    noise: float, 
+    period: float, 
+    jitter: float = 1.0e-6, 
+    include_noise: bool =True
+) -> ArrayLike:
+
+    periodic_difference = jnp.pi * jnp.abs(X[:, None] - X_prime) / period
+    sine_squared_difference = 2 * jnp.power(
+        jnp.sin(periodic_difference),
+        2.0
+    )
+    squared_length_scale = jnp.power(
+        length,
+        2.0
+    )
+    covariance_matrix = jnp.exp(
+        - (sine_squared_difference / squared_length_scale)
+    )
+    scaled_covariance_matrix = variance * covariance_matrix
+
+    if include_noise:
+        scaled_covariance_matrix += (noise + jitter) * jnp.eye(X.shape[0])
+
+    return scaled_covariance_matrix
+```
+
+```{python}
+kernel_function = partial(
+    periodic_kernel,
+    variance=1,
+    length=5,
+    period=10,
+    noise=0.001
+)
+
+generated_covariance, distance, sampled_functions = simulate_kernel(
+    X=TIME_IDX,
+    X_prime=TIME_IDX,
+    kernel_function=kernel_function,
+    samples=3,
+)
+fig = visualize_kernel(
+    TIME_IDX,
+    generated_covariance=generated_covariance,
+    distance=distance,
+    sampled_functions=sampled_functions,
+    kernel_name="Periodic"
+)
+plt.show()
+```
+
+### Linear Kernel
+
+```{python}
+@jit
+def linear_kernel(
+    X: ArrayLike, 
+    X_prime: ArrayLike, 
+    variance: float, 
+    noise: float, 
+    jitter: float = 1.0e-6, 
+    include_noise: bool = True
+) -> ArrayLike:
+    scaled_covariance_matrix = variance + (X[:, None] * X_prime)
+    if include_noise:
+        scaled_covariance_matrix += (noise + jitter) * jnp.eye(X.shape[0])
+
+    return scaled_covariance_matrix
+```
+
+```{python}
+kernel_function = partial(
+    linear_kernel,
+    variance=0.01,
+    noise=0.001
+)
+generated_covariance, distance, sampled_functions = simulate_kernel(
+    X=TIME_IDX,
+    X_prime=TIME_IDX,
+    kernel_function=kernel_function,
+    samples=3,
+)
+fig = visualize_kernel(
+    TIME_IDX,
+    generated_covariance=generated_covariance,
+    distance=distance,
+    sampled_functions=sampled_functions,
+    kernel_name="Linear"
+)
+plt.show()
+```
+
+### White Noise Kernel
+
+```{python}
+@jit
+def white_noise_kernel(
+    X: ArrayLike, 
+    X_prime: ArrayLike, 
+    variance: float
+) -> ArrayLike:
+    covariance_matrix = variance * jnp.eye(X.shape[0])
+    return covariance_matrix
+```
+
+```{python}
+kernel_function = partial(
+    white_noise_kernel,
+    variance=0.01,
+)
+generated_covariance, distance, sampled_functions = simulate_kernel(
+    X=TIME_IDX,
+    X_prime=TIME_IDX,
+    kernel_function=kernel_function,
+    samples=3,
+)
+fig = visualize_kernel(
+    TIME_IDX,
+    generated_covariance=generated_covariance,
+    distance=distance,
+    sampled_functions=sampled_functions,
+    kernel_name="White Noise"
+)
+plt.show()
+```
+
+### Combining Kernels
+
+```{python}
+@partial(jit, static_argnums=(2,3))
+def additive_combined_kernel(
+    X: ArrayLike, 
+    X_prime: ArrayLike, 
+    first_kernel: Callable, 
+    second_kernel: Callable
+) -> ArrayLike:
+    return first_kernel(X=X, X_prime=X_prime) + second_kernel(X=X, X_prime=X_prime)
+
+@partial(jit, static_argnums=(2,3))
+def multiplicative_combined_kernel(
+    X: ArrayLike, 
+    X_prime: ArrayLike, 
+    first_kernel: Callable, 
+    second_kernel: Callable
+) -> ArrayLike:
+    return first_kernel(X=X, X_prime=X_prime) * second_kernel(X=X, X_prime=X_prime)
+```
+
+```{python}
+kernel_function_linear = partial(
+    linear_kernel,
+    variance=0.0001,
+    noise=0.000
+)
+kernel_function_rbf = partial(
+    RBF_kernel,
+    variance=30,
+    length=2,
+    noise=10
+)
+
+kernel_function = partial(
+    additive_combined_kernel,
+    first_kernel=kernel_function_linear,
+    second_kernel=kernel_function_rbf
+)
+
+generated_covariance, distance, sampled_functions = simulate_kernel(
+    X=TIME_IDX,
+    X_prime=TIME_IDX,
+    kernel_function=kernel_function,
+    samples=3,
+)
+fig = visualize_kernel(
+    TIME_IDX,
+    generated_covariance=generated_covariance,
+    distance=distance,
+    sampled_functions=sampled_functions,
+    kernel_name="Additive Linear+RBF"
+)
+plt.show()
+```
+
+```{python}
+kernel_function_periodic = partial(
+    periodic_kernel,
+    variance=5,
+    length=5,
+    period=10,
+    noise=0.0001
+)
+kernel_function_rbf = partial(
+    RBF_kernel,
+    variance=.1,
+    length=50,
+    noise=0.0001
+)
+
+kernel_function = partial(
+    multiplicative_combined_kernel,
+    first_kernel=kernel_function_periodic,
+    second_kernel=kernel_function_rbf
+)
+
+generated_covariance, distance, sampled_functions = simulate_kernel(
+    X=TIME_IDX,
+    X_prime=TIME_IDX,
+    kernel_function=kernel_function,
+    samples=3,
+)
+fig = visualize_kernel(
+    TIME_IDX,
+    generated_covariance=generated_covariance,
+    distance=distance,
+    sampled_functions=sampled_functions,
+    kernel_name="Multiplicative Periodic RBF"
+)
+plt.show()
+```
+
+## The Gaussian Process Model
+
+```{python}
+def RBF_gaussian_process(
+        trend_kernel_variance_dist,
+        trend_kernel_noise_dist,
+        trend_kernel_length_dist,
+
+        seasonal_kernel_variance_dist,
+        seasonal_kernel_noise_dist,
+        seasonal_kernel_length_dist,
+        seasonal_kernel_period_dist,
+
+
+        day_dist,
+        noise_dist
+    ):
+
+    def get_model(X, y, days):
+        # The parameters of the kernel function are sampled from their
+        # associated prior distributions
+        trend_kernel_variance = numpyro.sample(
+            "trend_kernel_variance",
+            trend_kernel_variance_dist
+        )
+        trend_kernel_noise = numpyro.sample(
+            "trend_kernel_noise",
+            trend_kernel_noise_dist
+        )
+        trend_kernel_length = numpyro.sample(
+            "trend_kernel_length",
+            trend_kernel_length_dist
+        )
+
+        seasonal_kernel_variance = numpyro.sample(
+            "seasonal_kernel_variance",
+            seasonal_kernel_variance_dist
+        )
+        seasonal_kernel_noise = numpyro.sample(
+            "seasonal_kernel_noise",
+            seasonal_kernel_noise_dist
+        )
+        seasonal_kernel_length = numpyro.sample(
+            "seasonal_kernel_length",
+            seasonal_kernel_length_dist
+        )
+        seasonal_kernel_period = numpyro.sample(
+            "seasonal_kernel_length_periodic",
+            seasonal_kernel_period_dist
+        )
+
+        coefficients_days = numpyro.sample(
+            "coefficients_days",
+            day_dist
+        )
+        noise = numpyro.sample(
+            "noise",
+            noise_dist
+        )
+
+        # Compute the covariance matrix using the RBF kernel
+        covariance_matrix_trend = RBF_kernel(
+            X=X,
+            X_prime=X,
+            variance=trend_kernel_variance,
+            length=trend_kernel_length,
+            noise=trend_kernel_noise
+        )
+        covariance_matrix_seasonal = periodic_kernel(
+            X=X,
+            X_prime=X,
+            variance=seasonal_kernel_variance,
+            length=seasonal_kernel_length,
+            period=seasonal_kernel_period,
+            noise=seasonal_kernel_noise
+        )
+        trend_intercept =  numpyro.sample(
+            "trend_intercept",
+            dist.MultivariateNormal(
+                loc=jnp.zeros(X.shape[0]),
+                covariance_matrix=covariance_matrix_trend
+            )
+        )
+        seasonal_intercept =  numpyro.sample(
+            "seasonal_intercept",
+            dist.MultivariateNormal(
+                loc=jnp.zeros(X.shape[0]),
+                covariance_matrix=covariance_matrix_seasonal
+            )
+        )
+
+        intercept = trend_intercept + seasonal_intercept
+
+
+        # Sample y from a MV Normal distribution of mean 0
+        # and covariance determined by the kernel function
+        numpyro.sample(
+            "y",
+            dist.Normal(
+                intercept + jnp.dot(days, coefficients_days),
+                noise
+            ),
+            obs=y,
+        )
+
+    return get_model
 ```
 
 # Simulating the data
