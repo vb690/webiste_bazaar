@@ -575,10 +575,12 @@ def RBF_gaussian_process(
 
 
         day_dist,
-        noise_dist
+        effect_mean_dist,
+        effect_mu_dist,
+        effect_sigma_dist,
     ):
 
-    def get_model(X, y, days):
+    def get_model(X, y, days, arm_indexes):
         # The parameters of the kernel function are sampled from their
         # associated prior distributions
         trend_kernel_variance = numpyro.sample(
@@ -616,9 +618,26 @@ def RBF_gaussian_process(
             day_dist
         )
         noise = numpyro.sample(
-            "noise",
+            "noise_dist",
             noise_dist
         )
+
+        effect_mu = numpyro.sample(
+            "effect_mu",
+            effect_mu_dist,
+        )
+        effect_sigma = numpyro.sample(
+            "effect_sigma",
+            effect_sigma_dist,
+        )
+        with numpyro.plate("number_arms", X.shape[1]):
+            effect = numpyro.sample(
+                "effect_dist",
+                dist.Normal(
+                    effect_mu,
+                    effect_sigma,
+                )
+            )
 
         # Compute the covariance matrix using the RBF kernel
         covariance_matrix_trend = RBF_kernel(
@@ -647,19 +666,25 @@ def RBF_gaussian_process(
             "seasonal_intercept",
             dist.MultivariateNormal(
                 loc=jnp.zeros(X.shape[0]),
-                covariance_matrix=covariance_matrix_seasonal
+                covariance_matrix=covariance_matrix_seasonal,
             )
         )
 
-        intercept = trend_intercept + seasonal_intercept
-
+        global_intercept = numpyro.deterministic(
+            "global_intercept", 
+            trend_intercept + seasonal_intercept,
+        )
+        days_effect = numpyro.deterministic(
+            "days_effect", 
+            jnp.dot(days, coefficients_days),
+        )
 
         # Sample y from a MV Normal distribution of mean 0
         # and covariance determined by the kernel function
         numpyro.sample(
             "y",
             dist.Normal(
-                intercept + jnp.dot(days, coefficients_days),
+                global_intercept + days_effect + effect[arm_indexes],
                 noise
             ),
             obs=y,
