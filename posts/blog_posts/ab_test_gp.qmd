@@ -95,7 +95,7 @@ This post assumes some level of knowledge in bayesian statistics and probabilist
 
 ## What we will cover
 
-1. Very brief illustration of longitudinal A/B test.
+1. Very brief illustration of longitudinal A/B test within and observational paradigm.
 2. Very brief illustration of gaussian processes and their application to analyzing A/B test data.
 3. Overview of how to implement a gaussian process model using [Numpyro](https://num.pyro.ai/en/stable/index.html) and [JAX](https://docs.jax.dev/en/latest/index.html).
 4. Simulating A/B test data.
@@ -110,6 +110,16 @@ This post assumes some level of knowledge in bayesian statistics and probabilist
 5. Probabilistic programming and sampling algorithms.
 
 # Introduction
+
+## Longitudinal A/B tests in observational settings
+
+When we talk about A/B test we usually refer to a research method used for evaluating if a given intervention is having an impact on a pre-defined outcome variable measured inside a sample. For doing so, we can draw two distinct samples (the A and B group) from a population of interest, subject one of the two to the intervention and then measure observed differences in the outcome variable. Subject to **several** assumptions and pre-conditions (we suggest reading part V of "Regression and Other Stories" [@gelman2021regression]), if we observe a difference between the two groups when can conclude that our intervention might have had an impact on our outcome variable.
+
+## Gaussian Process
+
+## Gaussian Process for A/B test
+
+# Implementing a Gaussian Process Model in Numpyro
 
 ```{python}
 BLUE = (0, 83, 159)
@@ -132,14 +142,6 @@ MODELS = [
     "Branch E",
 ]
 ```
-
-## A/B tests and longitudinal A/B tests
-
-## Gaussian Process
-
-## Gaussian Process for A/B test
-
-# Implementing a Gaussian Process Model in Numpyro
 
 ## Kernel Functions
 
