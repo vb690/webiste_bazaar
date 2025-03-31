@@ -56,7 +56,27 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
@@ -258,7 +278,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<div id="b0e3b7f9" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="1">
+<div id="7a7bebec" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="1">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>load_ext watermark</span>
@@ -333,16 +353,32 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <section id="premise" class="level1" data-number="1">
 <h1 data-number="1"><span class="header-section-number">1</span> Premise</h1>
+<p>What will be illustrated in this post is strongly in spired by the content of the books “Statistical Rethinking” <span class="citation" data-cites="mcelreath2018statistical">(<a href="#ref-mcelreath2018statistical" role="doc-biblioref">McElreath 2018</a>)</span> and “Bayesian Data Analysis 3rd Edition” <span class="citation" data-cites="gelman1995bayesian">(<a href="#ref-gelman1995bayesian" role="doc-biblioref">Gelman et al. 1995</a>)</span>. In particular, the idea to separately code and illustrate the behavior of different covariance kernel functions comes from the amazing <a href="https://www.cs.toronto.edu/~duvenaud/cookbook/">“Kernel Cookbook”</a> and PhD thesis of David Duvenaud <span class="citation" data-cites="duvenaud2014automatic">(<a href="#ref-duvenaud2014automatic" role="doc-biblioref">Duvenaud 2014</a>)</span>.</p>
+<p>This post assumes some level of knowledge in bayesian statistics and probabilistic programming.</p>
 <section id="what-we-will-cover" class="level2" data-number="1.1">
 <h2 data-number="1.1" class="anchored" data-anchor-id="what-we-will-cover"><span class="header-section-number">1.1</span> What we will cover</h2>
+<ol type="1">
+<li>Very brief illustration of longitudinal A/B test.</li>
+<li>Very brief illustration of gaussian processes and their application to analyzing A/B test data.</li>
+<li>Overview of how to implement a gaussian process model using <a href="https://num.pyro.ai/en/stable/index.html">Numpyro</a> and <a href="https://docs.jax.dev/en/latest/index.html">JAX</a>.</li>
+<li>Simulating A/B test data.</li>
+<li>Analyzing A/B test data within an modelling setting.</li>
+</ol>
 </section>
 <section id="what-we-will-not-cover" class="level2" data-number="1.2">
 <h2 data-number="1.2" class="anchored" data-anchor-id="what-we-will-not-cover"><span class="header-section-number">1.2</span> What we will <strong>not</strong> cover</h2>
+<ol type="1">
+<li>Detailed coverage of A/B test (e.g., sampling, randomization etc…).</li>
+<li>Hypothesis testing (we will focus on modelling).</li>
+<li>Fundamentals of bayesian statistics.</li>
+<li>Detailed overview of Gaussian processes.</li>
+<li>Probabilistic programming and sampling algorithms.</li>
+</ol>
 </section>
 </section>
 <section id="introduction" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> Introduction</h1>
-<div id="833793c3" class="cell" data-execution_count="2">
+<div id="2065f354" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>BLUE <span class="op">=</span> (<span class="dv">0</span>, <span class="dv">83</span>, <span class="dv">159</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>BLUE <span class="op">=</span> <span class="bu">tuple</span>(value <span class="op">/</span> <span class="fl">255.</span> <span class="cf">for</span> value <span class="kw">in</span> BLUE)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -377,7 +413,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1 data-number="3"><span class="header-section-number">3</span> Implementing a Gaussian Process Model in Numpyro</h1>
 <section id="kernel-functions" class="level2" data-number="3.1">
 <h2 data-number="3.1" class="anchored" data-anchor-id="kernel-functions"><span class="header-section-number">3.1</span> Kernel Functions</h2>
-<div id="8c67c6d7" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="3">
+<div id="7d37bdb9" class="cell" data-vscode="{&quot;languageId&quot;:&quot;python&quot;}" data-execution_count="3">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> simulate_kernel(</span>
@@ -465,7 +501,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <section id="radial-basis-function-kernel" class="level3" data-number="3.1.1">
 <h3 data-number="3.1.1" class="anchored" data-anchor-id="radial-basis-function-kernel"><span class="header-section-number">3.1.1</span> Radial Basis Function Kernel</h3>
-<div id="ad8949d8" class="cell" data-execution_count="4">
+<div id="9be14157" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> RBF_kernel(</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    X: ArrayLike, </span>
@@ -494,7 +530,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> scaled_covariance_matrix</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="a1ef2a2e" class="cell" data-execution_count="5">
+<div id="1751f868" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>kernel_function <span class="op">=</span> partial(</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    RBF_kernel,</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    variance<span class="op">=</span><span class="dv">1</span>,</span>
@@ -526,7 +562,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="matern-kernel" class="level3" data-number="3.1.2">
 <h3 data-number="3.1.2" class="anchored" data-anchor-id="matern-kernel"><span class="header-section-number">3.1.2</span> Matern Kernel</h3>
-<div id="31aa26f4" class="cell" data-execution_count="6">
+<div id="f1c86142" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rational_quadratic_kernel(</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    X: ArrayLike, </span>
@@ -558,7 +594,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> scaled_covariance_matrix</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="d7cb9b62" class="cell" data-execution_count="7">
+<div id="681928d3" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>kernel_function <span class="op">=</span> partial(</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    rational_quadratic_kernel,</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    variance<span class="op">=</span><span class="dv">1</span>,</span>
@@ -592,7 +628,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="periodic-kernel" class="level3" data-number="3.1.3">
 <h3 data-number="3.1.3" class="anchored" data-anchor-id="periodic-kernel"><span class="header-section-number">3.1.3</span> Periodic Kernel</h3>
-<div id="cb3856e1" class="cell" data-execution_count="8">
+<div id="a16d1de3" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> periodic_kernel(</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    X: ArrayLike, </span>
@@ -624,7 +660,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> scaled_covariance_matrix</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="b47e7113" class="cell" data-execution_count="9">
+<div id="3e2363e6" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>kernel_function <span class="op">=</span> partial(</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    periodic_kernel,</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    variance<span class="op">=</span><span class="dv">1</span>,</span>
@@ -658,7 +694,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="linear-kernel" class="level3" data-number="3.1.4">
 <h3 data-number="3.1.4" class="anchored" data-anchor-id="linear-kernel"><span class="header-section-number">3.1.4</span> Linear Kernel</h3>
-<div id="1b260938" class="cell" data-execution_count="10">
+<div id="e0afd7ce" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> linear_kernel(</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    X: ArrayLike, </span>
@@ -674,7 +710,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> scaled_covariance_matrix</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="d7c3dfb2" class="cell" data-execution_count="11">
+<div id="06728cdf" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>kernel_function <span class="op">=</span> partial(</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    linear_kernel,</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    variance<span class="op">=</span><span class="fl">0.01</span>,</span>
@@ -705,7 +741,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="white-noise-kernel" class="level3" data-number="3.1.5">
 <h3 data-number="3.1.5" class="anchored" data-anchor-id="white-noise-kernel"><span class="header-section-number">3.1.5</span> White Noise Kernel</h3>
-<div id="0c637cfb" class="cell" data-execution_count="12">
+<div id="13b2db35" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> white_noise_kernel(</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    X: ArrayLike, </span>
@@ -715,7 +751,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    covariance_matrix <span class="op">=</span> variance <span class="op">*</span> jnp.eye(X.shape[<span class="dv">0</span>])</span>
 <span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> covariance_matrix</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="a00b4eef" class="cell" data-execution_count="13">
+<div id="315aa866" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>kernel_function <span class="op">=</span> partial(</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    white_noise_kernel,</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    variance<span class="op">=</span><span class="fl">0.01</span>,</span>
@@ -745,7 +781,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="combining-kernels" class="level3" data-number="3.1.6">
 <h3 data-number="3.1.6" class="anchored" data-anchor-id="combining-kernels"><span class="header-section-number">3.1.6</span> Combining Kernels</h3>
-<div id="889c369c" class="cell" data-execution_count="14">
+<div id="6cd3da16" class="cell" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="at">@partial</span>(jit, static_argnums<span class="op">=</span>(<span class="dv">2</span>,<span class="dv">3</span>))</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> additive_combined_kernel(</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    X: ArrayLike, </span>
@@ -764,7 +800,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> ArrayLike:</span>
 <span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> first_kernel(X<span class="op">=</span>X, X_prime<span class="op">=</span>X_prime) <span class="op">*</span> second_kernel(X<span class="op">=</span>X, X_prime<span class="op">=</span>X_prime)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="b83537fe" class="cell" data-execution_count="15">
+<div id="e1f25ca6" class="cell" data-execution_count="15">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>kernel_function_linear <span class="op">=</span> partial(</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    linear_kernel,</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    variance<span class="op">=</span><span class="fl">0.0001</span>,</span>
@@ -805,7 +841,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="d343d7f1" class="cell" data-execution_count="16">
+<div id="af7ecd88" class="cell" data-execution_count="16">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>kernel_function_periodic <span class="op">=</span> partial(</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    periodic_kernel,</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    variance<span class="op">=</span><span class="dv">5</span>,</span>
@@ -852,7 +888,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="the-gaussian-process-model" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="the-gaussian-process-model"><span class="header-section-number">3.2</span> The Gaussian Process Model</h2>
-<div id="fe468dbf" class="cell" data-execution_count="17">
+<div id="f84c0ea3" class="cell" data-execution_count="17">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> RBF_gaussian_process(</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>        trend_kernel_variance_dist,</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>        trend_kernel_noise_dist,</span>
@@ -999,10 +1035,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="hardware-and-requirements" class="level1" data-number="8">
 <h1 data-number="8"><span class="header-section-number">8</span> Hardware and Requirements</h1>
 <p>Here you can find the hardware and python requirements used for building this post.</p>
-<div id="d2ab8966" class="cell" data-execution_count="18">
+<div id="a1c3ac2d" class="cell" data-execution_count="18">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Last updated: 2025-03-30T21:05:19.061663+01:00
+<pre><code>Last updated: 2025-03-31T08:17:37.059520+01:00
 
 Python implementation: CPython
 Python version       : 3.13.2
@@ -1018,24 +1054,35 @@ Architecture: 64bit
 </code></pre>
 </div>
 </div>
-<div id="2d098582" class="cell" data-execution_count="19">
+<div id="8669fedb" class="cell" data-execution_count="19">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark <span class="op">--</span>iversions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>seaborn   : 0.13.2
-numpy     : 2.2.4
-pandas    : 2.2.3
+<pre><code>pandas    : 2.2.3
+jax       : 0.5.2
 scipy     : 1.15.2
 numpyro   : 0.18.0
+numpy     : 2.2.4
 matplotlib: 3.10.1
-jax       : 0.5.2
+seaborn   : 0.13.2
 </code></pre>
 </div>
 </div>
 
 
+
 </section>
 
-</main> <!-- /main -->
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-duvenaud2014automatic" class="csl-entry" role="listitem">
+Duvenaud, David. 2014. <span>“Automatic Model Construction with Gaussian Processes.”</span> PhD thesis.
+</div>
+<div id="ref-gelman1995bayesian" class="csl-entry" role="listitem">
+Gelman, Andrew, John B Carlin, Hal S Stern, and Donald B Rubin. 1995. <em>Bayesian Data Analysis</em>. Chapman; Hall/CRC.
+</div>
+<div id="ref-mcelreath2018statistical" class="csl-entry" role="listitem">
+McElreath, Richard. 2018. <em>Statistical Rethinking: A Bayesian Course with Examples in r and Stan</em>. Chapman; Hall/CRC.
+</div>
+</div></section></div></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {

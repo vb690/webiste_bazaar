@@ -137,14 +137,14 @@
     "href": "posts/blog_posts/ab_test_gp.html#what-we-will-cover",
     "title": "Analyzing A/B Test Data using Gaussian Processes",
     "section": "1.1 What we will cover",
-    "text": "1.1 What we will cover"
+    "text": "1.1 What we will cover\n\nVery brief illustration of longitudinal A/B test.\nVery brief illustration of gaussian processes and their application to analyzing A/B test data.\nOverview of how to implement a gaussian process model using Numpyro and JAX.\nSimulating A/B test data.\nAnalyzing A/B test data within an modelling setting."
   },
   {
     "objectID": "posts/blog_posts/ab_test_gp.html#what-we-will-not-cover",
     "href": "posts/blog_posts/ab_test_gp.html#what-we-will-not-cover",
     "title": "Analyzing A/B Test Data using Gaussian Processes",
     "section": "1.2 What we will not cover",
-    "text": "1.2 What we will not cover"
+    "text": "1.2 What we will not cover\n\nDetailed coverage of A/B test (e.g., sampling, randomization etc…).\nHypothesis testing (we will focus on modelling).\nFundamentals of bayesian statistics.\nDetailed overview of Gaussian processes.\nProbabilistic programming and sampling algorithms."
   },
   {
     "objectID": "posts/blog_posts/ab_test_gp.html#ab-tests-and-longitudinal-ab-tests",

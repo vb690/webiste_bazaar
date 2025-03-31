@@ -89,9 +89,25 @@ def plot_univariate_series(
 
 # Premise
 
+What will be illustrated in this post is strongly in spired by the content of the books "Statistical Rethinking" [@mcelreath2018statistical] and "Bayesian Data Analysis 3rd Edition" [@gelman1995bayesian]. In particular, the idea to separately code and illustrate the behavior of different covariance kernel functions comes from the amazing ["Kernel Cookbook"](https://www.cs.toronto.edu/~duvenaud/cookbook/) and PhD thesis of David Duvenaud [@duvenaud2014automatic].
+
+This post assumes some level of knowledge in bayesian statistics and probabilistic programming.
+
 ## What we will cover
 
+1. Very brief illustration of longitudinal A/B test.
+2. Very brief illustration of gaussian processes and their application to analyzing A/B test data.
+3. Overview of how to implement a gaussian process model using [Numpyro](https://num.pyro.ai/en/stable/index.html) and [JAX](https://docs.jax.dev/en/latest/index.html).
+4. Simulating A/B test data.
+5. Analyzing A/B test data within an modelling setting.
+
 ## What we will **not** cover
+
+1. Detailed coverage of A/B test (e.g., sampling, randomization etc...).
+2. Hypothesis testing (we will focus on modelling).
+3. Fundamentals of bayesian statistics.
+4. Detailed overview of Gaussian processes.
+5. Probabilistic programming and sampling algorithms.
 
 # Introduction
 
