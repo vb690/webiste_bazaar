@@ -129,7 +129,7 @@ $$
 \mu(x) \sim GP(m, k)
 $$
 
-where $m$ is a mean function and $k$ is a covariance function. We can already have an intuition of how defining the $GP$ in terms mean and covariance **function** provides us quite some flexibility.
+where $m$ is a mean function and $k$ is a covariance function. We can already have an intuition of how defining the $GP$ in terms mean and covariance **functions** gives us quite some flexibility.
 
 ## Gaussian Process for A/B test
 
@@ -726,6 +726,176 @@ def RBF_gaussian_process(
 ```
 
 # Simulating the data
+
+## Generating the underlying process
+
+```{python}
+kernel_function_seasonality = partial(
+    periodic_kernel,
+    variance=.25,
+    length=2,
+    period=7, # every seven days we have weekly variations
+    noise=0.0001
+)
+kernel_function_slow_variation = partial(
+    RBF_kernel,
+    variance=1,
+    length=16, # slow variation with 21 days decay
+    noise=0.0001
+)
+
+kernel_function_underlying = partial(
+    additive_combined_kernel,
+    first_kernel=kernel_function_seasonality,
+    second_kernel=kernel_function_slow_variation
+)
+
+generated_covariance, distance, sampled_function_underlying = simulate_kernel(
+    X=TIME_IDX,
+    X_prime=TIME_IDX,
+    kernel_function=kernel_function_underlying,
+    samples=1,
+)
+sampled_function_underlying = (
+    (sampled_function_underlying - sampled_function_underlying.min()) / 
+    (sampled_function_underlying.max() - sampled_function_underlying.min())
+)
+
+fig = visualize_kernel(
+    TIME_IDX,
+    generated_covariance=generated_covariance,
+    distance=distance,
+    sampled_functions=sampled_function_underlying,
+    kernel_name="Simulated Underlying Process"
+)
+plt.show()
+```
+
+## Adding the experimental effects
+
+```{python}
+# We assume constant effect as a fraction of standard deviation
+# This is somehow unrealistic
+experimental_delta = np.array(
+    [
+        0.,
+        sampled_function_underlying.std() * 0.5,
+        sampled_function_underlying.std() * 0.75,
+        sampled_function_underlying.std() * 1.,
+        sampled_function_underlying.std() * 1.25
+    ]
+).reshape(-1, 1)
+
+
+sampled_functions_underlying = []
+for arm in range(experimental_delta.shape[0]):
+
+    kernel_function = partial(
+        white_noise_kernel,
+        variance=.01,
+
+    )
+    _, _, sampled_experimental_effect_function = simulate_kernel(
+        X=TIME_IDX,
+        X_prime=TIME_IDX,
+        kernel_function=kernel_function,
+        mean=experimental_delta[arm, :],
+        samples=1,
+    )
+    
+    sampled_functions_underlying.append(
+        (
+            sampled_function_underlying + 
+            sampled_experimental_effect_function
+        ).flatten()
+    )
+
+sampled_functions_underlying = np.array(sampled_functions_underlying)
+```
+
+
+```{python}
+fig, ax = plt.subplots(1, 1, figsize=(8, 4))
+for idx, series in enumerate(range(sampled_functions_underlying.shape[0])):
+
+    ax = plot_univariate_series(
+        series_data={
+            "x": {
+                "data": TIME_IDX,
+                "label": "x"
+            },
+            "y": {
+                "data":  sampled_functions_underlying[series, :],
+                "label": "y"
+            },
+
+        },
+        ax=ax,
+        alpha=0.25 if idx != 0 else 1.
+    )
+plt.show()
+```
+
+## Adding WeekDay Effects
+
+```{python}
+weekday_effect = np.array(
+    [
+        0.,
+        0.,
+        0.,
+        0.,
+        0.15,
+        -0.1,
+        -0.05
+    ]
+)
+weekday_effect = np.hstack([weekday_effect for _ in range(TIME_IDX.shape[0] // 6)])
+weekday_effect = weekday_effect[:TIME_IDX.shape[0]]
+
+fig, ax = plt.subplots(1, 1, figsize=(8, 4))
+ax = plot_univariate_series(
+    series_data={
+        "x": {
+            "data": TIME_IDX,
+            "label": "x"
+        },
+        "y": {
+            "data":  np.ones(shape=(TIME_IDX.shape[0])) * weekday_effect,
+            "label": "y"
+        },
+
+    },
+    ax=ax,
+    alpha=0.5
+)
+plt.show()
+```
+
+```{python}
+weekday_deltas = (sampled_functions_underlying) * weekday_effect
+simulated_series = sampled_functions_underlying + weekday_deltas
+
+fig, ax = plt.subplots(1, 1, figsize=(8, 4))
+for idx, series in enumerate(range(simulated_series.shape[0])):
+
+    ax = plot_univariate_series(
+        series_data={
+            "x": {
+                "data": TIME_IDX,
+                "label": "x"
+            },
+            "y": {
+                "data":  simulated_series[series, :],
+                "label": "y"
+            },
+
+        },
+        ax=ax,
+        alpha=0.25 if idx != 0 else 1.
+    )
+plt.show()
+```
 
 # Fitting Gaussian Process Models to A/B test data
 
