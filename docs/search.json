@@ -137,7 +137,7 @@
     "href": "posts/blog_posts/ab_test_gp.html#what-we-will-cover",
     "title": "Analyzing A/B Test Data using Gaussian Processes",
     "section": "1.1 What we will cover",
-    "text": "1.1 What we will cover\n\nVery brief illustration of longitudinal A/B test.\nVery brief illustration of gaussian processes and their application to analyzing A/B test data.\nOverview of how to implement a gaussian process model using Numpyro and JAX.\nSimulating A/B test data.\nAnalyzing A/B test data within an modelling setting."
+    "text": "1.1 What we will cover\n\nVery brief illustration of longitudinal A/B test within and observational paradigm.\nVery brief illustration of gaussian processes and their application to analyzing A/B test data.\nOverview of how to implement a gaussian process model using Numpyro and JAX.\nSimulating A/B test data.\nAnalyzing A/B test data within an modelling setting."
   },
   {
     "objectID": "posts/blog_posts/ab_test_gp.html#what-we-will-not-cover",
@@ -147,18 +147,18 @@
     "text": "1.2 What we will not cover\n\nDetailed coverage of A/B test (e.g., sampling, randomization etc…).\nHypothesis testing (we will focus on modelling).\nFundamentals of bayesian statistics.\nDetailed overview of Gaussian processes.\nProbabilistic programming and sampling algorithms."
   },
   {
-    "objectID": "posts/blog_posts/ab_test_gp.html#ab-tests-and-longitudinal-ab-tests",
-    "href": "posts/blog_posts/ab_test_gp.html#ab-tests-and-longitudinal-ab-tests",
+    "objectID": "posts/blog_posts/ab_test_gp.html#longitudinal-ab-tests-in-observational-settings",
+    "href": "posts/blog_posts/ab_test_gp.html#longitudinal-ab-tests-in-observational-settings",
     "title": "Analyzing A/B Test Data using Gaussian Processes",
-    "section": "2.1 A/B tests and longitudinal A/B tests",
-    "text": "2.1 A/B tests and longitudinal A/B tests"
+    "section": "2.1 Longitudinal A/B tests in observational settings",
+    "text": "2.1 Longitudinal A/B tests in observational settings\nWhen we talk about A/B test we usually refer to a research method used for evaluating if a given intervention is having an impact on a pre-defined outcome variable measured inside a sample. For doing so, we can draw two distinct samples (the A and B group) from a population of interest, subject one of the two to the intervention and then measure observed differences in the outcome variable. Subject to several assumptions and pre-conditions (we suggest reading part V of “Regression and Other Stories” (Gelman, Hill, and Vehtari 2021)), if we observe a difference between the two groups when can conclude that our intervention might have had an impact on our outcome variable."
   },
   {
     "objectID": "posts/blog_posts/ab_test_gp.html#gaussian-process",
     "href": "posts/blog_posts/ab_test_gp.html#gaussian-process",
     "title": "Analyzing A/B Test Data using Gaussian Processes",
     "section": "2.2 Gaussian Process",
-    "text": "2.2 Gaussian Process"
+    "text": "2.2 Gaussian Process\nThe Gaussian Process \\(GP\\) can be thought as the continuous generalization of basis function regression (see Chapter 20 of (Gelman et al. 1995)). We can think of it as a stochastic process where any point drawn from it, \\(x_1, \\dots, x_n\\), comes from a multi-dimensional gaussian. In other words, it is as a prior distribution over an un-known function \\(\\mu(x)\\) defined as\n\\[\n\\mu(x_1), \\dots, \\mu(x_n) \\sim \\mathcal{N}((m(x_1), \\dots, m(x_n)), k(x, \\dots, x_n))\n\\]\nor more compactly\n\\[\n\\mu(x) \\sim GP(m, k)\n\\]\nwhere \\(m\\) is a mean function and \\(k\\) is a covariance function. We can already have an intuition of how defining the \\(GP\\) in terms mean and covariance function provides us quite some flexibility."
   },
   {
     "objectID": "posts/blog_posts/ab_test_gp.html#gaussian-process-for-ab-test",

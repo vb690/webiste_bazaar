@@ -117,6 +117,20 @@ When we talk about A/B test we usually refer to a research method used for evalu
 
 ## Gaussian Process
 
+The Gaussian Process $GP$ can be thought as the continuous generalization of basis function regression (see Chapter 20 of [@gelman1995bayesian]). We can think of it as a stochastic process where any point drawn from it, $x_1, \dots, x_n$, comes from a multi-dimensional gaussian. In other words, it is as a prior distribution over an un-known function $\mu(x)$ defined as
+
+$$
+\mu(x_1), \dots, \mu(x_n) \sim \mathcal{N}((m(x_1), \dots, m(x_n)), k(x, \dots, x_n))
+$$
+
+or more compactly
+
+$$
+\mu(x) \sim GP(m, k)
+$$
+
+where $m$ is a mean function and $k$ is a covariance function. We can already have an intuition of how defining the $GP$ in terms mean and covariance **function** provides us quite some flexibility.
+
 ## Gaussian Process for A/B test
 
 # Implementing a Gaussian Process Model in Numpyro
