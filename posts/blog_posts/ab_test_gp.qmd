@@ -129,11 +129,23 @@ $$
 \mu(x) \sim GP(m, k)
 $$
 
-where $m$ is a mean function and $k$ is a covariance function. We can already have an intuition of how defining the $GP$ in terms mean and covariance **functions** gives us quite some flexibility.
+where $m$ is a mean function and $k$ is a covariance function. We can already have an intuition of how defining the $GP$ in terms mean and covariance **functions** gives us quite some flexibility as it allows us to produce a model than can interpolate for all the value of $x$.
+
+The $m$ function provides the most likely guess for the $GP$ like the mean vector of a multi-dimensional Gaussian, deviation from this expected model are then handled by the covariance function $k$.
+
+The $k$ function (often called Kernel) allows to structurally define the $GP$ behavior at any two points by producing an $n \times n$ covariance function given by evaluating $k(x, x')$ for every $x_1, \dots, x_n$.
+
+One convenient property of $GP$ is that the sum and multiplication of two or more $GP$ is itself a $GP$, this allows to combine different types of Kernels for imposing specific structural constrains.
 
 ## Gaussian Process for A/B test
 
+Although there aren't many papers illustrating how $GP$ can be used for analyzing A/B test data we found this interesting work by [@benavoli2015gaussian] from [IDSIA](https://www.idsia.usi-supsi.ch/) that we decided to adapt to our use-case.
+
+
+
 # Implementing a Gaussian Process Model in Numpyro
+
+In this section we will illustrate how we can implement a $GP$ model using Numpyro. Numpyro offers a Numpy-like Backend for [Pyro](https://pyro.ai/) a Probabilistic Programming Language (PPL). Other than offering the flexibility of specifying models using the familiar Numpy interface, Numpyro is perfectly integrated with JAX allowing us to tap into its JIT compilation capabilities.
 
 ```{python}
 BLUE = (0, 83, 159)
@@ -142,7 +154,7 @@ BLUE = tuple(value / 255. for value in BLUE)
 RED = (238, 28, 46)
 RED = tuple(value / 255. for value in RED)
 
-TIME_IDX = np.arange(7*6)
+TIME_IDX = np.arange(7*12)
 DATES = pd.date_range(
     start="01-01-2023",
     periods=len(TIME_IDX)
@@ -730,42 +742,61 @@ def RBF_gaussian_process(
 ## Generating the underlying process
 
 ```{python}
-kernel_function_seasonality = partial(
-    periodic_kernel,
-    variance=.25,
-    length=2,
+def generate_underlying(
+    time_index, 
+    periodic_variance, 
+    periodic_length, 
+    period, 
+    rbf_variance, 
+    rbf_length
+):
+    kernel_function_seasonality = partial(
+        periodic_kernel,
+        variance=periodic_variance,
+        length=periodic_length,
+        period=period, 
+        noise=0.0001
+    )
+    kernel_function_slow_variation = partial(
+        RBF_kernel,
+        variance=rbf_variance,
+        length=rbf_length,
+        noise=0.0001
+    )
+
+    kernel_function_underlying = partial(
+        additive_combined_kernel,
+        first_kernel=kernel_function_seasonality,
+        second_kernel=kernel_function_slow_variation
+    )
+
+    generated_covariance, distance, sampled_function_underlying = simulate_kernel(
+        X=time_index,
+        X_prime=time_index,
+        kernel_function=kernel_function_underlying,
+        samples=1,
+    )
+    return generated_covariance, distance, sampled_function_underlying
+
+
+generated_covariance, distance, sampled_based_function = generate_underlying(
+    time_index=TIME_IDX, 
+    periodic_variance=0.25, 
+    periodic_length=14, 
     period=7, # every seven days we have weekly variations
-    noise=0.0001
-)
-kernel_function_slow_variation = partial(
-    RBF_kernel,
-    variance=1,
-    length=16, # slow variation with 21 days decay
-    noise=0.0001
+    rbf_variance=0.125, 
+    rbf_length=21,  # slow variation with 21 days decay
 )
 
-kernel_function_underlying = partial(
-    additive_combined_kernel,
-    first_kernel=kernel_function_seasonality,
-    second_kernel=kernel_function_slow_variation
+sampled_based_function = (
+    (sampled_based_function - sampled_based_function.min()) / 
+    (sampled_based_function.max() - sampled_based_function.min())
 )
-
-generated_covariance, distance, sampled_function_underlying = simulate_kernel(
-    X=TIME_IDX,
-    X_prime=TIME_IDX,
-    kernel_function=kernel_function_underlying,
-    samples=1,
-)
-sampled_function_underlying = (
-    (sampled_function_underlying - sampled_function_underlying.min()) / 
-    (sampled_function_underlying.max() - sampled_function_underlying.min())
-)
-
 fig = visualize_kernel(
     TIME_IDX,
     generated_covariance=generated_covariance,
     distance=distance,
-    sampled_functions=sampled_function_underlying,
+    sampled_functions=sampled_based_function,
     kernel_name="Simulated Underlying Process"
 )
 plt.show()
@@ -776,37 +807,60 @@ plt.show()
 ```{python}
 # We assume constant effect as a fraction of standard deviation
 # This is somehow unrealistic
-experimental_delta = np.array(
-    [
-        0.,
-        sampled_function_underlying.std() * 0.5,
-        sampled_function_underlying.std() * 0.75,
-        sampled_function_underlying.std() * 1.,
-        sampled_function_underlying.std() * 1.25
-    ]
-).reshape(-1, 1)
+models_parameters = {
+    "Branch B": {
+        "experimental_delta": sampled_based_function.std() * .5, 
+        "periodic_length": 6, 
+        "period": 3, 
+        "rbf_length": 5,
+    }, 
+    "Branch C": {
+        "experimental_delta": sampled_based_function.std() * .75, 
+        "periodic_length": 10, 
+        "period": 5, 
+        "rbf_length": 14,
+    }, 
+    "Branch D": {
+        "experimental_delta": sampled_based_function.std() * 1., 
+        "periodic_length": 10, 
+        "period": 14, 
+        "rbf_length": 28,
+    }, 
+    "Branch E": {
+        "experimental_delta": sampled_based_function.std() * 1.25, 
+        "periodic_length": 14, 
+        "period": 7, 
+        "rbf_length": 3,
+    }, 
+}
 
-
-sampled_functions_underlying = []
-for arm in range(experimental_delta.shape[0]):
+sampled_functions_underlying = [sampled_based_function.flatten()]
+for arm in ["Branch B", "Branch C", "Branch D", "Branch E"]:
 
     kernel_function = partial(
         white_noise_kernel,
         variance=.01,
 
     )
+    _, _, sampled_function_underlying = generate_underlying(
+        time_index=TIME_IDX, 
+        periodic_variance=0.25, 
+        periodic_length=models_parameters[arm]["periodic_length"], 
+        period=models_parameters[arm]["period"],
+        rbf_variance=0.125, 
+        rbf_length=models_parameters[arm]["rbf_length"],
+    )
     _, _, sampled_experimental_effect_function = simulate_kernel(
         X=TIME_IDX,
         X_prime=TIME_IDX,
         kernel_function=kernel_function,
-        mean=experimental_delta[arm, :],
-        samples=1,
+        mean=models_parameters[arm]["experimental_delta"],
+        samples=1
     )
     
     sampled_functions_underlying.append(
         (
-            sampled_function_underlying + 
-            sampled_experimental_effect_function
+            sampled_function_underlying + sampled_experimental_effect_function
         ).flatten()
     )
 
