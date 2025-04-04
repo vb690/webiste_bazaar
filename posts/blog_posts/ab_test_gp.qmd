@@ -154,7 +154,7 @@ BLUE = tuple(value / 255. for value in BLUE)
 RED = (238, 28, 46)
 RED = tuple(value / 255. for value in RED)
 
-TIME_IDX = np.arange(7*12)
+TIME_IDX = np.arange(7*8)
 DATES = pd.date_range(
     start="01-01-2023",
     periods=len(TIME_IDX)
@@ -785,7 +785,7 @@ generated_covariance, distance, sampled_based_function = generate_underlying(
     periodic_length=14, 
     period=7, # every seven days we have weekly variations
     rbf_variance=0.125, 
-    rbf_length=21,  # slow variation with 21 days decay
+    rbf_length=14,  # slow variation with 21 days decay
 )
 
 sampled_based_function = (
@@ -952,6 +952,204 @@ plt.show()
 ```
 
 # Fitting Gaussian Process Models to A/B test data
+
+```{python}
+df = pd.DataFrame(
+    simulated_series.T,
+    # the names here indicates the 5 branches of an AB test.
+    columns=MODELS
+)
+df["date"] = DATES
+df["day_week"] = df["date"].dt.day_name()
+df.head()
+```
+
+```{python}
+#| code-fold: true
+#| code-summary: "Show supplementary code"
+def _set_x_axis_grid(ax):
+    ax.tick_params(
+        direction="in",
+        top=True,
+        axis="x"
+    )
+    ax.grid(
+        visible=True,
+        which="major",
+        axis="x",
+        color="k",
+        alpha=0.25,
+        linestyle="--"
+    )
+    return ax
+
+def plot_arms_time_series(time, arm_a, arm_b, df, ax, y_label, title):
+    ax.scatter(
+        df[time].values,
+        df[arm_a].values,
+        marker="x",
+        c="blue",
+        label=arm_a
+    )
+    ax.scatter(
+        df[time].values,
+        df[arm_b].values,
+        marker="*",
+        c="red",
+        label=arm_b
+    )
+    ax = _set_x_axis_grid(ax=ax)
+    ax.set_title(title)
+    ax.set_xlabel("Time")
+    ax.set_ylabel(y_label)
+    return ax
+```
+
+```{python}
+plt.figure(figsize=(15, 5))
+sns.violinplot(
+    data=df.melt(
+        id_vars=("date"),
+        value_vars=MODELS,
+        var_name="Arm",
+        value_name="Dependent Variable"
+    ),
+    x="Arm",
+    y="Dependent Variable",
+    hue="Arm",
+)
+plt.xlabel("AB Test Arms")
+plt.grid(alpha=0.5)
+plt.show()
+```
+
+```{python}
+plt.figure(figsize=(8, 4))
+sns.violinplot(
+    data=df.melt(
+        id_vars=("date", "day_week"),
+        value_vars=MODELS,
+        var_name="Arm",
+        value_name="Dependent Variable"
+    ),
+    x="day_week",
+    y="Dependent Variable",
+    order=[
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday"
+    ],
+    hue="day_week"
+)
+plt.xlabel("Day of the Week")
+plt.grid(alpha=0.5)
+plt.show()
+```
+
+```{python}
+fig = plt.figure(figsize=(8, 4))
+ax = sns.violinplot(
+    data=df.melt(
+        id_vars=("date", "day_week"),
+        value_vars=MODELS,
+        var_name="Arm",
+        value_name="Dependent Variable"
+    ),
+    x="day_week",
+    y="Dependent Variable",
+    hue="Arm",
+    order=[
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday"
+    ]
+)
+sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
+plt.xlabel("Day of the Week")
+plt.grid(alpha=0.5)
+plt.show()
+```
+
+```{python}
+fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(12, 6), sharex=True, sharey=True)
+arms = MODELS.copy()
+arms.remove("Branch A")
+
+for arm_b, ax in zip(arms, axs.flatten()):
+
+    ax = plot_arms_time_series(
+        time="date",
+        arm_a="Branch A",
+        arm_b=arm_b,
+        df=df,
+        ax=ax,
+        y_label="Dependent Variable",
+        title="AB Test"
+    )
+    ax.legend()
+
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+arms = MODELS.copy()
+arms.remove("Branch A")
+
+fig, axs = plt.subplots(
+    nrows=2,
+    ncols=2,
+    figsize=(12, 6),
+    sharex=True,
+    sharey=True
+)
+for arm_b, ax in zip(arms, axs.flatten()):
+
+    delta = df[arm_b] - df["Branch A"]
+    time = df[TIME]
+
+    semed = median_abs_deviation(delta) / np.sqrt(len(time))
+
+    ax.scatter(
+        time,
+        delta,
+        marker="o",
+        facecolors='none',
+        edgecolors='r',
+        linestyle=":"
+    )
+    ax.set_title(arm_b)
+    ax.plot(
+        time,
+        [np.median(delta)] * len(time),
+        c='r',
+    )
+    ax.fill_between(
+        time,
+        [np.median(delta) - (1.96 * semed)] * len(time),
+        [np.median(delta) + (1.96 * semed)] * len(time),
+        color='r',
+        alpha=0.1
+    )
+    ax.axhline(
+        0,
+        linestyle=":",
+        c="k"
+    )
+    ax.set_xlabel("Date")
+    ax.set_ylabel("$ \Delta $\nDependent Variable")
+
+plt.tight_layout()
+plt.show()
+```
 
 # Visualize the results
 
