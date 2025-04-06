@@ -1,6 +1,6 @@
 ---
 title: Analyzing A/B Test Data using Gaussian Processes
-description: 'This post illustrates how to analyze longitudinal A/B test data using Gaussian Process.'
+description: This post illustrates how to analyze longitudinal A/B test data using Gaussian Process.
 date: '2025-03-29'
 categories:
   - JAX
@@ -15,7 +15,6 @@ jupyter: python3
 ```{python}
 #| code-fold: true
 #| code-summary: Show supplementary code
-#| vscode: {languageId: python}
 
 %load_ext watermark
 
@@ -154,7 +153,7 @@ BLUE = tuple(value / 255. for value in BLUE)
 RED = (238, 28, 46)
 RED = tuple(value / 255. for value in RED)
 
-TIME_IDX = np.arange(7*8)
+TIME_IDX = np.arange(7*4)
 DATES = pd.date_range(
     start="01-01-2023",
     periods=len(TIME_IDX)
@@ -174,7 +173,6 @@ MODELS = [
 ```{python}
 #| code-fold: true
 #| code-summary: Show supplementary code
-#| vscode: {languageId: python}
 
 def simulate_kernel(
     X: ArrayLike, 
@@ -285,12 +283,14 @@ def RBF_kernel(
     )
     scaled_covariance_matrix = variance * covariance_matrix
 
-    if include_noise:
-        scaled_covariance_matrix += (noise + jitter) * jnp.eye(X.shape[0])
+    scaled_covariance_matrix = jnp.where(
+        include_noise, 
+        scaled_covariance_matrix + (noise + jitter) * jnp.eye(X.shape[0]), 
+        scaled_covariance_matrix,
+    )
 
     return scaled_covariance_matrix
 ```
-
 
 ```{python}
 kernel_function = partial(
@@ -344,8 +344,11 @@ def rational_quadratic_kernel(
     )
     scaled_covariance_matrix = variance * covariance_matrix
 
-    if include_noise:
-        scaled_covariance_matrix += (noise + jitter) * jnp.eye(X.shape[0])
+    scaled_covariance_matrix = jnp.where(
+        include_noise, 
+        scaled_covariance_matrix + (noise + jitter) * jnp.eye(X.shape[0]), 
+        scaled_covariance_matrix,
+    )
 
     return scaled_covariance_matrix
 ```
@@ -404,9 +407,11 @@ def periodic_kernel(
     )
     scaled_covariance_matrix = variance * covariance_matrix
 
-    if include_noise:
-        scaled_covariance_matrix += (noise + jitter) * jnp.eye(X.shape[0])
-
+    scaled_covariance_matrix = jnp.where(
+        include_noise, 
+        scaled_covariance_matrix + (noise + jitter) * jnp.eye(X.shape[0]), 
+        scaled_covariance_matrix,
+    )
     return scaled_covariance_matrix
 ```
 
@@ -448,8 +453,11 @@ def linear_kernel(
     include_noise: bool = True
 ) -> ArrayLike:
     scaled_covariance_matrix = variance + (X[:, None] * X_prime)
-    if include_noise:
-        scaled_covariance_matrix += (noise + jitter) * jnp.eye(X.shape[0])
+    scaled_covariance_matrix = jnp.where(
+        include_noise, 
+        scaled_covariance_matrix + (noise + jitter) * jnp.eye(X.shape[0]), 
+        scaled_covariance_matrix,
+    )
 
     return scaled_covariance_matrix
 ```
@@ -604,142 +612,13 @@ fig = visualize_kernel(
 plt.show()
 ```
 
-## The Gaussian Process Model
-
-```{python}
-def RBF_gaussian_process(
-        trend_kernel_variance_dist,
-        trend_kernel_noise_dist,
-        trend_kernel_length_dist,
-
-        seasonal_kernel_variance_dist,
-        seasonal_kernel_noise_dist,
-        seasonal_kernel_length_dist,
-        seasonal_kernel_period_dist,
-
-
-        day_dist,
-        effect_mean_dist,
-        effect_mu_dist,
-        effect_sigma_dist,
-    ):
-
-    def get_model(X, y, days, arm_indexes):
-        # The parameters of the kernel function are sampled from their
-        # associated prior distributions
-        trend_kernel_variance = numpyro.sample(
-            "trend_kernel_variance",
-            trend_kernel_variance_dist
-        )
-        trend_kernel_noise = numpyro.sample(
-            "trend_kernel_noise",
-            trend_kernel_noise_dist
-        )
-        trend_kernel_length = numpyro.sample(
-            "trend_kernel_length",
-            trend_kernel_length_dist
-        )
-
-        seasonal_kernel_variance = numpyro.sample(
-            "seasonal_kernel_variance",
-            seasonal_kernel_variance_dist
-        )
-        seasonal_kernel_noise = numpyro.sample(
-            "seasonal_kernel_noise",
-            seasonal_kernel_noise_dist
-        )
-        seasonal_kernel_length = numpyro.sample(
-            "seasonal_kernel_length",
-            seasonal_kernel_length_dist
-        )
-        seasonal_kernel_period = numpyro.sample(
-            "seasonal_kernel_length_periodic",
-            seasonal_kernel_period_dist
-        )
-
-        coefficients_days = numpyro.sample(
-            "coefficients_days",
-            day_dist
-        )
-        noise = numpyro.sample(
-            "noise_dist",
-            noise_dist
-        )
-
-        effect_mu = numpyro.sample(
-            "effect_mu",
-            effect_mu_dist,
-        )
-        effect_sigma = numpyro.sample(
-            "effect_sigma",
-            effect_sigma_dist,
-        )
-        with numpyro.plate("number_arms", X.shape[1]):
-            effect = numpyro.sample(
-                "effect_dist",
-                dist.Normal(
-                    effect_mu,
-                    effect_sigma,
-                )
-            )
-
-        # Compute the covariance matrix using the RBF kernel
-        covariance_matrix_trend = RBF_kernel(
-            X=X,
-            X_prime=X,
-            variance=trend_kernel_variance,
-            length=trend_kernel_length,
-            noise=trend_kernel_noise
-        )
-        covariance_matrix_seasonal = periodic_kernel(
-            X=X,
-            X_prime=X,
-            variance=seasonal_kernel_variance,
-            length=seasonal_kernel_length,
-            period=seasonal_kernel_period,
-            noise=seasonal_kernel_noise
-        )
-        trend_intercept =  numpyro.sample(
-            "trend_intercept",
-            dist.MultivariateNormal(
-                loc=jnp.zeros(X.shape[0]),
-                covariance_matrix=covariance_matrix_trend
-            )
-        )
-        seasonal_intercept =  numpyro.sample(
-            "seasonal_intercept",
-            dist.MultivariateNormal(
-                loc=jnp.zeros(X.shape[0]),
-                covariance_matrix=covariance_matrix_seasonal,
-            )
-        )
-
-        global_intercept = numpyro.deterministic(
-            "global_intercept", 
-            trend_intercept + seasonal_intercept,
-        )
-        days_effect = numpyro.deterministic(
-            "days_effect", 
-            jnp.dot(days, coefficients_days),
-        )
-
-        # Sample y from a MV Normal distribution of mean 0
-        # and covariance determined by the kernel function
-        numpyro.sample(
-            "y",
-            dist.Normal(
-                global_intercept + days_effect + effect[arm_indexes],
-                noise
-            ),
-            obs=y,
-        )
-
-    return get_model
-```
-
 # Simulating the data
 
 ## Generating the underlying process
+
+```{python}
+1 / 14 
+```
 
 ```{python}
 def generate_underlying(
@@ -782,15 +661,14 @@ def generate_underlying(
 generated_covariance, distance, sampled_based_function = generate_underlying(
     time_index=TIME_IDX, 
     periodic_variance=0.25, 
-    periodic_length=14, 
+    periodic_length=7, 
     period=7, # every seven days we have weekly variations
-    rbf_variance=0.125, 
+    rbf_variance=0.1, 
     rbf_length=14,  # slow variation with 21 days decay
 )
 
 sampled_based_function = (
-    (sampled_based_function - sampled_based_function.min()) / 
-    (sampled_based_function.max() - sampled_based_function.min())
+    (sampled_based_function - sampled_based_function.mean()) / sampled_based_function.std()
 )
 fig = visualize_kernel(
     TIME_IDX,
@@ -807,66 +685,64 @@ plt.show()
 ```{python}
 # We assume constant effect as a fraction of standard deviation
 # This is somehow unrealistic
+
+@partial(jit, static_argnums=2)
+def exponential_decay_function(initial_value, rate_decay, max_t):
+    decayed_function = jnp.repeat(initial_value, max_t)
+    return decayed_function * jnp.power(1 - rate_decay, jnp.arange(max_t))
+
 models_parameters = {
+    "Branch A": {
+        "experimental_delta": 0, 
+    }, 
     "Branch B": {
-        "experimental_delta": sampled_based_function.std() * .5, 
-        "periodic_length": 6, 
-        "period": 3, 
-        "rbf_length": 5,
+        "experimental_delta": sampled_based_function.std() * 1., 
     }, 
     "Branch C": {
-        "experimental_delta": sampled_based_function.std() * .75, 
-        "periodic_length": 10, 
-        "period": 5, 
-        "rbf_length": 14,
+        "experimental_delta": sampled_based_function.std() * 1.25, 
     }, 
     "Branch D": {
-        "experimental_delta": sampled_based_function.std() * 1., 
-        "periodic_length": 10, 
-        "period": 14, 
-        "rbf_length": 28,
+        "experimental_delta": sampled_based_function.std() * 1.5,
     }, 
     "Branch E": {
-        "experimental_delta": sampled_based_function.std() * 1.25, 
-        "periodic_length": 14, 
-        "period": 7, 
-        "rbf_length": 3,
+        "experimental_delta": sampled_based_function.std() * 1.75, 
     }, 
 }
 
-sampled_functions_underlying = [sampled_based_function.flatten()]
-for arm in ["Branch B", "Branch C", "Branch D", "Branch E"]:
+sampled_functions_underlying = []
+sampled_functions_effect = []
+for arm in ["Branch A", "Branch B", "Branch C", "Branch D", "Branch E"]:
 
     kernel_function = partial(
         white_noise_kernel,
-        variance=.01,
-
+        variance=.1,
     )
-    _, _, sampled_function_underlying = generate_underlying(
-        time_index=TIME_IDX, 
-        periodic_variance=0.25, 
-        periodic_length=models_parameters[arm]["periodic_length"], 
-        period=models_parameters[arm]["period"],
-        rbf_variance=0.125, 
-        rbf_length=models_parameters[arm]["rbf_length"],
+    exponential_decay_mean = exponential_decay_function(
+        initial_value=models_parameters[arm]["experimental_delta"],
+        rate_decay=0.05,
+        max_t=sampled_based_function.shape[1],
     )
+    
     _, _, sampled_experimental_effect_function = simulate_kernel(
         X=TIME_IDX,
         X_prime=TIME_IDX,
         kernel_function=kernel_function,
-        mean=models_parameters[arm]["experimental_delta"],
+        mean=exponential_decay_mean,
         samples=1
     )
     
+    sampled_functions_effect.append(
+         sampled_experimental_effect_function.flatten()
+    )
     sampled_functions_underlying.append(
         (
-            sampled_function_underlying + sampled_experimental_effect_function
+            sampled_based_function + sampled_experimental_effect_function
         ).flatten()
     )
 
+sampled_functions_effect = np.array(sampled_functions_effect)
 sampled_functions_underlying = np.array(sampled_functions_underlying)
 ```
-
 
 ```{python}
 fig, ax = plt.subplots(1, 1, figsize=(8, 4))
@@ -887,6 +763,29 @@ for idx, series in enumerate(range(sampled_functions_underlying.shape[0])):
         ax=ax,
         alpha=0.25 if idx != 0 else 1.
     )
+plt.show()
+```
+
+```{python}
+fig, ax = plt.subplots(1, 1, figsize=(8, 4))
+for idx, series in enumerate(range(sampled_functions_effect.shape[0])):
+
+    ax = plot_univariate_series(
+        series_data={
+            "x": {
+                "data": TIME_IDX,
+                "label": "x"
+            },
+            "y": {
+                "data":  sampled_functions_effect[series, :],
+                "label": "y"
+            },
+
+        },
+        ax=ax,
+        alpha=0.25 if idx != 0 else 1.
+    )
+plt.axhline(0, linestyle=":", c="k")
 plt.show()
 ```
 
@@ -966,7 +865,7 @@ df.head()
 
 ```{python}
 #| code-fold: true
-#| code-summary: "Show supplementary code"
+#| code-summary: Show supplementary code
 def _set_x_axis_grid(ax):
     ax.tick_params(
         direction="in",
@@ -1151,7 +1050,631 @@ plt.tight_layout()
 plt.show()
 ```
 
+## The Gaussian Process Model
+
+```{python}
+def gaussian_process_model(
+        trend_kernel_variance_dist,
+        trend_kernel_noise_dist,
+        trend_kernel_length_dist,
+
+        seasonal_kernel_variance_dist,
+        seasonal_kernel_noise_dist,
+        seasonal_kernel_length_dist,
+        seasonal_kernel_period_dist,
+
+        effect_initial_dist,
+        effect_decay_rate_dist,
+
+        model_noise_dist,
+        coefficients_days_dist,
+    ):
+
+    def build_trend_covariance(
+            X, 
+            trend_kernel_variance_dist, 
+            trend_kernel_noise_dist, 
+            trend_kernel_length_dist,
+        ):
+        trend_kernel_variance = numpyro.sample(
+            "trend_kernel_variance",
+            trend_kernel_variance_dist,
+        )
+        trend_kernel_noise = numpyro.sample(
+            "trend_kernel_noise",
+            trend_kernel_noise_dist,
+        )
+        trend_kernel_length = numpyro.sample(
+            "trend_kernel_length",
+            trend_kernel_length_dist,
+        )
+        covariance_matrix_trend = RBF_kernel(
+            X=X,
+            X_prime=X,
+            variance=trend_kernel_variance,
+            length=trend_kernel_length,
+            noise=trend_kernel_noise,
+        )
+        return covariance_matrix_trend
+    
+    def build_seasonal_covariance(
+            X, 
+            seasonal_kernel_variance_dist, 
+            seasonal_kernel_noise_dist,
+            seasonal_kernel_length_dist,
+            seasonal_kernel_period_dist,
+        ):
+        seasonal_kernel_variance = numpyro.sample(
+            "seasonal_kernel_variance",
+            seasonal_kernel_variance_dist,
+        )
+        seasonal_kernel_noise = numpyro.sample(
+            "seasonal_kernel_noise",
+            seasonal_kernel_noise_dist,
+        )
+        seasonal_kernel_length = numpyro.sample(
+            "seasonal_kernel_length",
+            seasonal_kernel_length_dist,
+        )
+        seasonal_kernel_period = numpyro.sample(
+            "seasonal_kernel_length_periodic",
+            seasonal_kernel_period_dist,
+        )
+        covariance_matrix_seasonal = periodic_kernel(
+            X=X,
+            X_prime=X,
+            variance=seasonal_kernel_variance,
+            length=seasonal_kernel_length,
+            period=seasonal_kernel_period,
+            noise=seasonal_kernel_noise,
+        )
+        return covariance_matrix_seasonal
+    
+    def build_effect_component(
+            X, 
+            effect_initial_dist, 
+            effect_decay_rate_dist,
+        ):
+        effect_initial = numpyro.sample(
+            "effect_initial",
+            effect_initial_dist,
+        )
+        effect_decay_rate = numpyro.sample(
+            "effect_decay_rate",
+            effect_decay_rate_dist,
+        )
+        effect_component = numpyro.deterministic(
+            "effect_component",
+            exponential_decay_function(
+                initial_value=effect_initial,
+                rate_decay=effect_decay_rate,
+                max_t=X.shape[0],
+            )
+        )
+        return effect_component
+
+
+    def get_model(X, y, days):
+        # The parameters of the kernel function are sampled from their
+        # associated prior distributions
+
+        trend_covariance = build_trend_covariance(
+            X=X, 
+            trend_kernel_variance_dist=trend_kernel_variance_dist, 
+            trend_kernel_noise_dist=trend_kernel_noise_dist, 
+            trend_kernel_length_dist=trend_kernel_length_dist,
+        )
+        seasonal_covariance = build_seasonal_covariance(
+            X=X, 
+            seasonal_kernel_variance_dist=seasonal_kernel_variance_dist, 
+            seasonal_kernel_noise_dist=seasonal_kernel_noise_dist,
+            seasonal_kernel_length_dist=seasonal_kernel_length_dist,
+            seasonal_kernel_period_dist=seasonal_kernel_period_dist,
+        )
+        effect_component = build_effect_component(
+            X=X, 
+            effect_initial_dist=effect_initial_dist, 
+            effect_decay_rate_dist=effect_decay_rate_dist,
+        )
+        intercept =  numpyro.sample(
+            "intercept",
+            dist.MultivariateNormal(
+                loc=jnp.zeros(X.shape[0]),
+                covariance_matrix=trend_covariance +  seasonal_covariance,
+            )
+        )
+
+        coefficients_days = numpyro.sample(
+            "coefficients_days",
+            coefficients_days_dist,
+        )
+        days_effect = numpyro.deterministic(
+            "days_effect", 
+            jnp.dot(days, coefficients_days),
+        )
+        model_noise = numpyro.sample(
+            "model_noise",
+            model_noise_dist,
+        )
+
+        numpyro.sample(
+            "y",
+            dist.Normal(
+                intercept + days_effect + effect_component,
+                model_noise
+            ),
+            obs=y,
+        )
+
+    return build_trend_covariance, build_seasonal_covariance, get_model
+```
+
+```{python}
+#| code-fold: true
+#| code-summary: Show supplementary code
+def standardize_targets_to_common_statistics(reference_X, targets_X):
+    standardizing_mean, standardizing_std = _derive_mean_std(
+        X=reference_X
+    )
+    standardized_reference_X = (reference_X - standardizing_mean) / standardizing_std
+    standardized_tragets_X = {}
+    for target_name, target_X in targets_X.items():
+
+        standardized_tragets_X[target_name] = (target_X - standardizing_mean) / standardizing_std
+
+    return standardizing_mean, standardizing_std, standardized_reference_X, standardized_tragets_X
+
+def inverse_standardize(X, mean, std):
+    return X * std + mean
+
+def _derive_mean_std(X):
+    return np.mean(X), np.std(X)
+```
+
+```{python}
+from sklearn.preprocessing import OneHotEncoder
+
+y_control = df["Branch A"].values.copy()
+y_models = {
+    model_name: df[model_name].values.copy() for model_name in arms
+}
+
+(
+    standardizing_mean,
+    standardizing_std,
+    y_control_standardized,
+    y_models_standardized
+) = standardize_targets_to_common_statistics(
+    reference_X=y_control,
+    targets_X=y_models
+)
+
+# This can be read as the N of days over which the AB test was conducted
+X = np.linspace(0, 1, len(y_control))
+
+days = OneHotEncoder(sparse_output=False).fit_transform(df["day_week"].values.reshape(-1, 1))
+```
+
+```{python}
+#| code-fold: true
+#| code-summary: Show supplementary code
+def plot_prior_marginal(ax, prior_frozen, prior_name, samples=1000):
+    support = np.sort(prior_frozen.rvs(samples))
+    density = prior_frozen.pdf(support)
+    ax.plot(
+        support,
+        density,
+        linewidth=2.5,
+        c=BLUE
+    )
+    ax.set_title(f"Prior \n {prior_name}")
+    ax.set_xlabel("Support")
+    ax.set_ylabel("Density")
+    return ax
+
+def plot_sampled_functions(ax, X, X_prime, kernel, priors, n_samples=10):
+    alphas = np.linspace(0, 1, n_samples * 2)
+    for sample in range(n_samples):
+
+        priors_sample = {}
+
+        for prior_name, prior_frozen_dist in priors.items():
+
+            priors_sample[prior_name] = prior_frozen_dist.rvs(1)
+
+        k = kernel(X, X_prime, **priors_sample)
+        sampled_f = np.random.multivariate_normal(np.zeros(len(X)), k)
+        ax.plot(
+            X,
+            sampled_f,
+            alpha=alphas[sample],
+            c=RED
+        )
+
+    ax.set_title("Prior over $f$")
+    ax.set_xlabel("$X$")
+    ax.set_ylabel("$f(X)$")
+    return ax
+```
+
+```{python}
+def sample_posterior(model, sampler_kernel_algo, rng_key, X, y, days,
+                     **mcmc_kwargs):
+    # We obtain the kernel used by the MCMC sampler
+    sampler_kernel = sampler_kernel_algo(model)
+    mcmc = MCMC(
+        sampler_kernel,
+        **mcmc_kwargs
+    )
+    mcmc.run(
+        rng_key=rng_key,
+        X=X,
+        y=y,
+        days=days,
+    )
+    mcmc.print_summary()
+    posterior_samples = mcmc.get_samples()
+    return posterior_samples
+
+
+def compute_posterior_predictive(rng_key, X, y, X_test, variance,
+                                 length, noise):
+    # In this case p means that the computations are executing using
+    # the test data,
+    covariance_xp_xp = RBF_kernel(
+        X=X_test,
+        X_prime=X_test,
+        variance=variance,
+        length=length,
+        noise=noise,
+        include_noise=True
+    )
+    covariance_xp_x = RBF_kernel(
+        X=X_test,
+        X_prime=X,
+        variance=variance,
+        length=length,
+        noise=noise,
+        include_noise=False
+    )
+    covariance_x_x = RBF_kernel(
+        X=X,
+        X_prime=X,
+        variance=variance,
+        length=length,
+        noise=noise,
+        include_noise=True
+    )
+
+    covariance_x_x_inverse = jnp.linalg.inv(covariance_x_x)
+    full_covariance = covariance_xp_xp - jnp.matmul(
+        covariance_xp_x,
+        jnp.matmul(
+            covariance_x_x_inverse,
+            jnp.transpose(covariance_xp_x)
+        )
+    )
+
+    predictive_noise = jnp.sqrt(
+        jnp.clip(jnp.diag(full_covariance), a_min=0.0)
+    ) * jax.random.normal(rng_key, X_test.shape[:1])
+
+    predictive_mean = jnp.matmul(
+        covariance_xp_x,
+        jnp.matmul(covariance_x_x_inverse, y)
+    )
+
+    return predictive_mean, predictive_mean + predictive_noise
+
+def sample_posterior_predictive(rng_key, X, X_test, y, samples,
+                                compute_posterior_predictive):
+    vmap_args = (
+        random.split(rng_key, samples["trend_kernel_variance"].shape[0]),
+        samples["trend_kernel_variance"],
+        samples["trend_kernel_length"],
+        samples["trend_kernel_noise"],
+    )
+    predictive_mean, predictive_distribution = vmap(
+    lambda rng_key, variance, length, noise: compute_posterior_predictive(
+        rng_key, X, y, X_test, variance, length, noise
+    )
+    )(*vmap_args)
+    return predictive_mean, predictive_distribution
+```
+
+```{python}
+rng_key, rng_key_predictive = random.split(random.PRNGKey(0))
+
+posteriors_models = {}
+build_trend_component, build_seasonal_component, get_model = gaussian_process_model(
+    trend_kernel_variance_dist=dist.LogNormal(0., .05),
+    trend_kernel_noise_dist=dist.LogNormal(0., .05),
+    trend_kernel_length_dist=dist.LogNormal(0., .05),
+
+    seasonal_kernel_variance_dist=dist.LogNormal(0., .05),
+    seasonal_kernel_noise_dist=dist.LogNormal(0., .05),
+    seasonal_kernel_length_dist=dist.LogNormal(0., .05),
+    seasonal_kernel_period_dist=dist.LogNormal(0., .05),
+
+    effect_initial_dist=dist.Normal(0., 1.),
+    effect_decay_rate_dist=dist.Beta(1., 4.),
+
+    coefficients_days_dist=dist.Normal(0., jnp.ones(days.shape[1]) * 1.),
+
+    model_noise_dist=dist.LogNormal(0., .05),
+)
+
+posterior_samples = sample_posterior(
+    model=get_model,
+    sampler_kernel_algo=NUTS,
+    rng_key=rng_key,
+    X=X,
+    y=y_control_standardized,
+    days=days,
+    num_warmup=2000,
+    num_samples=2000,
+    num_chains=4,
+    chain_method='parallel',
+)
+
+for model_name in arms:
+
+    print(f"Fitting for model {model_name}")
+
+    posterior_samples_model = sample_posterior(
+        model=get_model,
+        sampler_kernel_algo=NUTS,
+        rng_key=rng_key,
+        X=X,
+        days=days,
+        y=y_models_standardized[model_name],
+        num_warmup=2000,
+        num_samples=2000,
+        num_chains=NUM_CHAINS
+    )
+    posteriors_models[model_name] = posterior_samples_model
+```
+
+```{python}
+samples_mean_control, _ = sample_posterior_predictive(
+    rng_key_predictive,
+    X,
+    X,
+    y_control,
+    posterior_samples,
+    compute_posterior_predictive
+)
+samples_mean_control = inverse_standardize(
+    X=samples_mean_control,
+    mean=standardizing_mean,
+    std=standardizing_std
+)
+
+samples_mean_models = {}
+samples_mean_differences = {}
+for model_name in arms:
+
+    samples_mean_model, _ = sample_posterior_predictive(
+        rng_key_predictive,
+        X,
+        X,
+        y_models_standardized[model_name],
+        posteriors_models[model_name],
+        compute_posterior_predictive
+    )
+    samples_mean_model = inverse_standardize(
+        X=samples_mean_model,
+        mean=standardizing_mean,
+        std=standardizing_std
+    )
+
+    samples_mean_models[model_name] = samples_mean_model
+    samples_mean_differences[model_name] = samples_mean_model - samples_mean_control
+```
+
 # Visualize the results
+
+```{python}
+#| code-fold: true
+#| code-summary: Show supplementary code
+def compute_mean_percentiles(time_series_samples):
+    expected_time_series = np.mean(time_series_samples, axis=0)
+    percentiles_time_series = np.percentile(
+        time_series_samples,
+        [2.5, 97.5],
+        axis=0
+    )
+    return expected_time_series, percentiles_time_series
+
+def plot_estimated_time_series(ax, color, time, expected_values,
+                               percentiles_values, **plot_kwargs):
+    ax.plot(
+        time,
+        expected_values,
+        color=color,
+        **plot_kwargs
+    )
+    ax.fill_between(
+        time,
+        percentiles_values[0, :],
+        percentiles_values[1, :],
+        color=color,
+        alpha=0.1
+    )
+    return ax
+```
+
+```{python}
+expected_mean_control, percentiles_mean_control = compute_mean_percentiles(
+    time_series_samples=samples_mean_control
+)
+expected_residuals_control, percentiles_residuals_control = compute_mean_percentiles(
+    time_series_samples=samples_mean_control - y_control
+)
+
+means_models = {}
+residuals_models = {}
+deltas_models = {}
+statistics_differences_models = {}
+for model_name in arms:
+
+    expected_mean_model, percentiles_mean_model = compute_mean_percentiles(
+        time_series_samples=samples_mean_models[model_name]
+    )
+    expected_residuals_model, percentiles_residuals_model = compute_mean_percentiles(
+        time_series_samples=samples_mean_models[model_name] - y_models[model_name]
+    )
+    expected_mean_difference, percentiles_mean_difference = compute_mean_percentiles(
+        time_series_samples=samples_mean_differences[model_name]
+    )
+
+    samples_expected_difference = np.mean(samples_mean_differences[model_name], axis=1)
+    percentiles_difference = np.percentile(samples_expected_difference, [2.5, 97.5], axis=0)
+
+    means_models[model_name] = {
+        "mean": expected_mean_model,
+        "percentiles": percentiles_mean_model
+    }
+    residuals_models[model_name] = {
+        "mean": expected_residuals_model,
+        "percentiles": percentiles_residuals_model
+    }
+    deltas_models[model_name] = {
+        "mean": expected_mean_difference,
+        "percentiles": percentiles_mean_difference
+    }
+    statistics_differences_models[model_name] = {
+        "expected_difference": samples_expected_difference,
+        "percentiles_difference": percentiles_difference
+    }
+```
+
+```{python}
+fig, axs = plt.subplots(
+    2,
+    2,
+    tight_layout=True,
+    figsize=(12, 8),
+    sharey=True
+)
+
+for model_name, ax in zip(arms, axs.flatten()):
+
+    expeceted_residuals = round(np.mean(residuals_models[model_name]["mean"]), 2)
+    ax_residuals= plot_estimated_time_series(
+        ax=ax,
+        time=df["date"].values,
+        expected_values=residuals_models[model_name]["mean"],
+        percentiles_values=residuals_models[model_name]["percentiles"],
+        color="k",
+        label=f"Mean Residuals {expeceted_residuals}"
+    )
+    ax_residuals.set_title(model_name)
+    ax_residuals.set_ylabel("Residuals")
+    ax.legend()
+
+for ax in fig.axes:
+
+    ax.axhline(0, linestyle=":", c="k")
+    ax = _set_x_axis_grid(ax=ax)
+
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+for model in arms:
+
+    fig = plt.figure(tight_layout=True, figsize=(10, 7))
+    gs = gridspec.GridSpec(2, 3, figure=fig)
+
+    ax_time_series = fig.add_subplot(gs[0, :])
+    ax_difference = fig.add_subplot(gs[1, :2])
+    ax_distribution = fig.add_subplot(gs[1, -1])
+
+    ax_time_series = plot_arms_time_series(
+        time="date",
+        arm_a="Branch A",
+        arm_b=model,
+        df=df,
+        y_label="Dependent Variable",
+        title="Estimated Dependent Variable",
+        ax=ax_time_series
+    )
+    _set_x_axis_grid(ax=ax_time_series)
+
+    ax_time_series = plot_estimated_time_series(
+        ax=ax_time_series,
+        color=BLUE,
+        time=df["date"].values,
+        expected_values=expected_mean_control,
+        percentiles_values=percentiles_mean_control,
+    )
+    ax_time_series = plot_estimated_time_series(
+        ax=ax_time_series,
+        color=RED,
+        time=df["date"].values,
+        expected_values=means_models[model]["mean"],
+        percentiles_values=means_models[model]["percentiles"]
+    )
+
+    ax_difference = plot_estimated_time_series(
+        ax=ax_difference,
+        color="k",
+        time=df["date"].values,
+        expected_values=deltas_models[model]["mean"],
+        percentiles_values=deltas_models[model]["percentiles"],
+        linestyle="--"
+    )
+
+    ax_difference.set_title(
+        "Series of Differences in Dependent Variable"
+    )
+    ax_difference.axhline(0, linestyle=":", c="r")
+    ax_difference.set_xlabel("Date")
+    ax_difference.set_ylabel("Difference Dependent Variable")
+
+    ax_time_series.axvline(
+        df["date"].max(),
+        c="k",
+        linestyle=":",
+        alpha=0.5
+    )
+
+    ax_distribution.hist(
+        statistics_differences_models[model]["expected_difference"],
+        bins=400,
+        color="k",
+        alpha=0.25,
+        density=True
+    )
+    ax_distribution.set_title("Distribution of\nExpected Difference")
+    ax_distribution.set_xlabel("Expected Difference\nin Dependent Variable")
+    ax_distribution.axvline(
+        np.median(statistics_differences_models[model]["expected_difference"]),
+        c="red",
+        linestyle="--"
+    )
+    ax_distribution.axvline(
+        statistics_differences_models[model]["percentiles_difference"][0],
+        c="red",
+        linestyle=":"
+    )
+    ax_distribution.axvline(
+        statistics_differences_models[model]["percentiles_difference"][1],
+        c="red",
+        linestyle=":"
+    )
+
+    ax_time_series.legend()
+
+    ax_time_series = _set_x_axis_grid(ax=ax_time_series)
+    ax_difference = _set_x_axis_grid(ax=ax_difference)
+
+    plt.suptitle("AB Test")
+    plt.tight_layout()
+    plt.show()
+```
 
 # Conclusion
 
@@ -1165,3 +1688,5 @@ Here you can find the hardware and python requirements used for building this po
 ```{python}
 %watermark --iversions
 ```
+
+
