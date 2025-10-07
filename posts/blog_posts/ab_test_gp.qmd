@@ -125,7 +125,7 @@ $$
 or more compactly
 
 $$
-\mu(x) \sim GP(m, k)
+\mu(X) \sim GP(m, k)
 $$
 
 where $m$ is a mean function and $k$ is a covariance function. We can already have an intuition of how defining the $GP$ in terms mean and covariance **functions** gives us quite some flexibility as it allows us to produce a model than can interpolate for all the value of $x$.
@@ -138,9 +138,7 @@ One convenient property of $GP$ is that the sum and multiplication of two or mor
 
 ## Gaussian Process for A/B test
 
-Although there aren't many papers illustrating how $GP$ can be used for analyzing A/B test data we found this interesting work by [@benavoli2015gaussian] from [IDSIA](https://www.idsia.usi-supsi.ch/) that we decided to adapt to our use-case.
-
-
+Although we were not able to find many papers illustrating how $GP$ can be used for analyzing A/B test data we found this interesting work by [@benavoli2015gaussian] from [IDSIA](https://www.idsia.usi-supsi.ch/) that we decided to adapt to our use-case.
 
 # Implementing a Gaussian Process Model in Numpyro
 
@@ -169,6 +167,15 @@ MODELS = [
 ```
 
 ## Kernel Functions
+
+implementing Kernel functions in Numpyro is as easy as simply writing the functional form of the actual covariance function in pure python. It is sufficient that the python function has the following signature:
+
+```{python}
+def my_kernel_function(X: ArrayLike, X_prime:ArrayLike, **kwargs)-> ArrayLike:
+    ...
+```
+
+Here `X` and `X_prime` is the same input covariate used for creating the covariance matrix. While the keyword arguments are the parameters used for computing the pairwise relationship between each pair of of values in `X` (hence why we duplicate it using `X_prime`). This is the base for giving structure and creating our covariance matrix. We will now present a series of conventional covariance functions usually found in standard Gaussian Process applications.
 
 ```{python}
 #| code-fold: true
@@ -258,6 +265,9 @@ def visualize_kernel(
 ```
 
 ### Radial Basis Function Kernel
+
+Quoting from @duvenaud2014automatic 
+
 
 ```{python}
 @jit
@@ -615,10 +625,6 @@ plt.show()
 # Simulating the data
 
 ## Generating the underlying process
-
-```{python}
-1 / 14 
-```
 
 ```{python}
 def generate_underlying(
@@ -1183,7 +1189,6 @@ def gaussian_process_model(
                 covariance_matrix=trend_covariance +  seasonal_covariance,
             )
         )
-
         coefficients_days = numpyro.sample(
             "coefficients_days",
             coefficients_days_dist,
@@ -1387,14 +1392,14 @@ rng_key, rng_key_predictive = random.split(random.PRNGKey(0))
 
 posteriors_models = {}
 build_trend_component, build_seasonal_component, get_model = gaussian_process_model(
-    trend_kernel_variance_dist=dist.LogNormal(0., .05),
-    trend_kernel_noise_dist=dist.LogNormal(0., .05),
-    trend_kernel_length_dist=dist.LogNormal(0., .05),
+    trend_kernel_variance_dist=dist.LogNormal(0., 1.),
+    trend_kernel_noise_dist=dist.LogNormal(0., 1.),
+    trend_kernel_length_dist=dist.LogNormal(0., 1.),
 
-    seasonal_kernel_variance_dist=dist.LogNormal(0., .05),
-    seasonal_kernel_noise_dist=dist.LogNormal(0., .05),
-    seasonal_kernel_length_dist=dist.LogNormal(0., .05),
-    seasonal_kernel_period_dist=dist.LogNormal(0., .05),
+    seasonal_kernel_variance_dist=dist.LogNormal(0., 1.),
+    seasonal_kernel_noise_dist=dist.LogNormal(0., 1.),
+    seasonal_kernel_length_dist=dist.LogNormal(0., .1),
+    seasonal_kernel_period_dist=dist.LogNormal(0., 1.),
 
     effect_initial_dist=dist.Normal(0., 1.),
     effect_decay_rate_dist=dist.Beta(1., 4.),
