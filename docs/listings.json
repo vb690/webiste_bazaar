@@ -2,6 +2,7 @@
   {
     "listing": "/posts/blog_posts/index.html",
     "items": [
+      "/posts/blog_posts/ab_test_gp.html",
       "/posts/blog_posts/lin_ucb_jax.html"
     ]
   },
