@@ -1,0 +1,12 @@
+---
+title: Estimating Hail Risk
+description: This post illustrates how to analyze longitudinal A/B test data using Gaussian Process.
+date: '2025-10-01'
+categories:
+  - JAX
+  - Numpyro
+  - Linear Models
+  - Extreme Value Analysis
+bibliography: bibliographies/hail_risk.bib
+jupyter: python3
+---
