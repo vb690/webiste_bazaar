@@ -161,3 +161,9 @@ cython_debug/
 
 /.quarto/
 .DS_Store
+
+# data
+posts/blog_posts/local_data/*
+posts/blog_posts/results/*
+!posts/blog_posts/local_data/.gitkeep
+!posts/blog_posts/results/.gitkeep
