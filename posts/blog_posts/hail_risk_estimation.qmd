@@ -131,7 +131,7 @@ COUNT_MODELLING_COLUMNS = [
     "countyfp",
 ]
 
-NUMBER_ITERATIONS = 100
+NUMBER_ITERATIONS = 40_000
 NUMBER_PARTICLES = 1
 
 CONTINUOUS_TARGET = "magnitude"
@@ -1656,7 +1656,7 @@ quantile_regression_transformers = {
                 SplineTransformer(
                     include_bias=False,
                     extrapolation="periodic",
-                    n_knots=20,
+                    n_knots=15,
                 ),
             )
         ]
@@ -1668,7 +1668,7 @@ quantile_regression_transformers = {
                 SplineTransformer(
                     include_bias=False,
                     extrapolation="periodic",
-                    n_knots=20,
+                    n_knots=15,
                 ),
             )
         ]
