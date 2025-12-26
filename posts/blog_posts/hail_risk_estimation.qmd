@@ -16,9 +16,6 @@ toc-title: Table of Contents
 toc-depth: 4
 toc-expand: 4
 number-sections: true
-execute:
-    freeze: auto
-    cache: True
 html:
     code-fold: true
     page-layout: full
@@ -102,7 +99,7 @@ MULTIPLE_STATES = [
     "arizona",
 ]
 
-LOWER_CUT_OFF_YEAR = 1999
+LOWER_CUT_OFF_YEAR = 1990
 UPPER_CUT_OFF_YEAR = 2024
 
 SELECTED_ANALYSIS_STATES = SINGLE_STATE
@@ -131,7 +128,7 @@ COUNT_MODELLING_COLUMNS = [
     "countyfp",
 ]
 
-NUMBER_ITERATIONS = 40_000
+NUMBER_ITERATIONS = 30_000
 NUMBER_PARTICLES = 1
 
 CONTINUOUS_TARGET = "magnitude"
@@ -1216,35 +1213,9 @@ In this case what we would want to do is to pool information from the entire sta
 
 3. Looking at @fig-hail_comparison_total we can see that if a relationship between latitude, longitude and hail size exists, it is certainly not linear.
 
-A potential solution to these hurdles would be to fit a [quantile regression](https://en.wikipedia.org/wiki/Quantile_regression). Differently from conventional regression, quantile regression can be used for estimating any quantile in a distribution and not just the mean
+4. In order to perform proper risk statements on estimate of hail size we need to be able to quantify uncertainty around our estimets.
 
-![Example of Quantile Regression](results/images/quantile_regression.png)
-
-Using a regression approach would allow us to include the type of spatial and temporal effect we outlined during oour exploratory data analysis. Generically the regression would have the following formulation:
-
-$\mathcal{Q}_{y_i|X_i}(\tau) = \alpha + \beta X_i $
-
-with $\tau$ being the desired quantile, $X_i$ all the spatio-temporal covariates associated with hail events $y_i$ and $\alpha$ and $\beta$ parameters to be estimated. Expanding the formulation for quantile regression further, we would have
-
-$\mathcal{Q}_{y_i|X_i}(\tau) = \alpha + \phi(LatLon_i) \beta_{LatLon} + \phi(hour) \beta_{Hour} + \phi(month) \beta_{month} + \phi(year) \beta_{year} $
-
-here $\phi$ indicate a cubic spline function that we apply in order to model non-linearity in the contribution of the various covariates. More precisly, $\phi(LatLon_i)$ is a [tensor-product spline](https://stats.stackexchange.com/questions/45446/intuition-behind-tensor-product-interactions-in-gams-mgcv-package-in-r) generated from the latitude and longitude splines. $\phi(hour)$ and $\phi(month)$ can be thought as seasonal components while $\phi(year)$ can be identified as a trend component.
-
-In order to perform estimation on the entire surface of Florida we opted for an approximation of the spatial covariates by doing the following:
-
-1. Dividing the entire surface of Florida in a grid with 1 mile resolution (see @fig-estimation_grid).
-
-![The Estimation Grid Used for the Regression](results/images/estimation_grid.png){#fig-estimation_grid}
-
-3. For each square in the grid we obtain its centroid and extract the latitude, longitude and maximum observed hail size for that specific centroid obtaining something like the following table
-
-| latitude | longitude | hail_size |
-|:--------:|:---------:|:---------:|
-|    XXX   |    YYY    |     Z     |
-|    XXX   |    YYY    |     Z     |
-|    ...   |    ...    |    ...    |
-
-We retained all measurements associated with a given square so that a single square might have more than one hail event associated to it. It goes without saying that the spatial resolution of our regression here would be entirely determined by the size of the squares.
+5. Estimating the size of hailstone for extreme events might only solve half of the problem. Since hail events per se are very rare it is also important to estimate their overall likelihood.
 
 
 ```{python}
@@ -1603,6 +1574,36 @@ def create_tensor_product_spline(first_spline, second_spline):
 ```
 
 ### Estimating Expected Extreme Values Using Quantile Regression{#sec-quantile_regression}
+
+A potential solution for estimating the hail size of rare (i.e. extreme) events would be to use a [quantile regression](https://en.wikipedia.org/wiki/Quantile_regression). Differently from conventional regression, quantile regression can be used for estimating any quantile in a distribution and not just the mean
+
+![Example of Quantile Regression](results/images/quantile_regression.png)
+
+Using a regression approach would allow us to include the type of spatial and temporal effect we outlined during oour exploratory data analysis. Generically the regression would have the following formulation:
+
+$\mathcal{Q}_{y_i|X_i}(\tau) = \alpha + \beta X_i$
+
+with $\tau$ being the desired quantile, $X_i$ all the spatio-temporal covariates associated with hail events $y_i$ and $\alpha$ and $\beta$ parameters to be estimated. A convenient choice of likelihood function for estimating $$\mathcal{Q}_{y_i|X_i}(\tau)$ would be the [asymetric laplace distribution](https://en.wikipedia.org/wiki/Asymmetric_Laplace_distribution) . Expanding the formulation for quantile regression further, we would have
+
+$\mathcal{AsymettricLaplace}(y; \mu, \tau) = \alpha + \phi(LatLon_i) \beta_{LatLon} + \phi(hour) \beta_{Hour} + \phi(month) \beta_{month} + \phi(year) \beta_{year}$
+
+here $\phi$ indicate a cubic spline function that we apply in order to model non-linearity in the contribution of the various covariates. More precisly, $\phi(LatLon_i)$ is a [tensor-product spline](https://stats.stackexchange.com/questions/45446/intuition-behind-tensor-product-interactions-in-gams-mgcv-package-in-r) generated from the latitude and longitude splines. $\phi(hour)$ and $\phi(month)$ can be thought as seasonal components while $\phi(year)$ can be identified as a trend component. In or case the only parameter to be estimated is $\mu$ that indicates the value of $y$ at quantile $\tau$. 
+
+In order to perform estimation on the entire surface of Florida we opted for an approximation of the spatial covariates by doing the following:
+
+1. Dividing the entire surface of Florida in a grid with 1 mile resolution (see @fig-estimation_grid).
+
+![The Estimation Grid Used for the Regression](results/images/estimation_grid.png){#fig-estimation_grid}
+
+3. For each square in the grid we obtain its centroid and extract the latitude, longitude and maximum observed hail size for that specific centroid obtaining something like the following table
+
+| latitude | longitude | hail_size |
+|:--------:|:---------:|:---------:|
+|    XXX   |    YYY    |     Z     |
+|    XXX   |    YYY    |     Z     |
+|    ...   |    ...    |    ...    |
+
+We retained all measurements associated with a given square so that a single square might have more than one hail event associated to it. It goes without saying that the spatial resolution of our regression here would be entirely determined by the size of the squares.
 
 ```{python}
 #| code-fold: true
@@ -2377,6 +2378,12 @@ plt.show()
 
 ### Estimating the Likelyhood of Hail Events Using Zero-Inflated Negative Binomial Regression
 
+A potential solution for estimating the overall likelyhood and quantity of  hail events  would be to use a [zero-inflated negative-binomial regression](https://en.wikipedia.org/wiki/Zero-inflated_model).
+
+Differently from the quantile regression in this case we did not model the spatial component as it would have been too cumbersome to enumerate all the possible occurencies of non-hail over space and time. We limited at modelling only the temporal component and using a hierarchcical intercept for modelling variations across counties.
+
+The zero-inflated negative binomial likelihood used in this regression is a mixture of a discrete component provided by a negative binomial regression and a gate component provided by a logistic regression. The first models the observed number of hail events while the second defines the overall likelihood of a hail event to happen (we suggest consulting [the lecture on mixtures](https://github.com/rmcelreath/stat_rethinking_2024) from Richard McElreath statistical rethinking course for a more precise discussion on the topic.)
+
 ```{python}
 #| code-fold: true
 #| code-summary: Show supplementary code
@@ -2498,6 +2505,8 @@ zero_inflated_regression_target = count_state_modelling_df[COUNT_TARGET].values
 
 **Fully Pooled**
 
+We first tried a version of the model where the intercept is kept fixed for all the counties, basically without modelling any sort of spatial component.
+
 $$
 \begin{gather}
 \color{RedOrange}\alpha_{Gate} \sim \mathcal{N}(\mu=0, \sigma=1) \\
@@ -2518,6 +2527,8 @@ $$
 \ y \sim ZeroInflatedNegativeBinomial(p, \mu, \lambda)
 \end{gather}
 $$
+
+Also here like in the quantile regression, the effect of the various components is multiplicative rather additive due to the exponential link used for modelling the mean component in the negative binomial regression.
 
 ```{python}
 from jax.scipy.special import expit
@@ -2721,6 +2732,8 @@ posterior_pooled_zero_inflated_regression_svi = sample_posterior_predictive_svi(
 )
 ```
 
+Differently from the qunatile regression, we can now visualize two parameters for each of the various components, the gate $p$ and the mean $\mu$. The first can be understood as the probability of **any** hail happening in a given county at a given point in time. The second is the expected number of hail events **given** that hail is happening.
+
 ```{python}
 visualize_geo_regression(
     covariates_hat_df=zero_inflated_regression_covariates_hat_df,
@@ -2764,6 +2777,8 @@ plt.show()
 ```
 
 **Partially Pooled**
+
+In the same way we did for the quantile regression, we also tried to vary the intercept of both the gate and the mean models across counties using a partial pooling strategy
 
 $$
 \begin{gather}
