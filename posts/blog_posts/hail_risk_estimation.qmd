@@ -1,0 +1,3088 @@
+---
+title: "Hail Risk Estimation and Classification"
+title-block-banner-color: "#5465ff"
+title-block-banner: "#E2FFFF"
+abstract: "This analysis illustrates how to estimate hourly hail risk in the US with county-level granularity. The analysis poses particular attention to the mitigation of issues arising from small samples."
+authors: Valerio Bonometti
+date: 23/12/2025
+categories:
+  - JAX
+  - Numpyro
+  - Bayesian Statistics
+  - Quantile Regression
+  - Zero-inflated Regression
+toc: true
+toc-title: Table of Contents
+toc-depth: 4
+toc-expand: 4
+number-sections: true
+html:
+    code-fold: true
+    page-layout: full
+---
+
+
+![Observed Hail Events](results/gif_images/hail_events.gif){width=100%}
+
+
+## Request Description
+
+This analysis was conducted following a request from DevCo Americas team, in particular Environmental Affairs and Project controls. The stakeholder wanted to know if it was possible to leverage a publicly available dataset from the [National Oceanic and Atmospheric Administration](https://www.noaa.gov) (i.e., NOAA) for creating risk categories for Hail Extreme events in the U.S. The request was to perform this classification exercise on the entire U.S. territory with county-level granularity.
+
+## Hypotheses to be investigated {#sec-hypotheses_investigated}
+
+The analysis does not have specific hypotheses to investigate but rather poses some challenges that needs to be overcome while trying to perform the estimation tasks. Here an overview of said challenges:
+
+1. In order to estimate the level of risk for a certain county in the U.S. we first needed to obtain a reliable estimate of the probability of an extreme hail event to occur in a given county. 
+
+2. Due to the nature of extreme hail events, calculating their probability cannot be done by simply evaluating the observed frequency of such events but requires to leverage specific statistical frameworks (e.g., [Extreme Value Theory](https://en.wikipedia.org/wiki/Extreme_value_theory)) (i.e., EVA) than can provide long term likelihood for such events (e.g., 100s of years.)
+
+3.  In order to obtain reliable estimates, EVA usually requires that a sufficiently large number of events have been observed. Unfortunately increasing the level of granularity (i.e., looking at county level) forces to work with small samples. Moreover, this challenge is even more pronounced in those states where the Extreme Hail Events are more rare which are also states where a correct risk assessment is more critical.
+
+
+# Methodology
+
+In this section we will outline our methodology with a particular focus on the data used and the analyses conducted for overcoming the challenges outlined in section @sec-hypotheses_investigated.
+
+```{python}
+#| code-fold: true
+#| code-summary: Show supplementary code
+%load_ext watermark
+
+from pathlib import Path
+
+import os
+import numpyro
+
+numpyro.set_host_device_count(os.cpu_count())
+
+from IPython.display import Image
+
+from itertools import product
+from functools import partial
+
+from tqdm import tqdm
+from joblib import Parallel, delayed
+
+from jax import vmap
+
+from typing import List, Tuple, Any, Callable, Dict
+from numpy.typing import ArrayLike
+
+from matplotlib.axes import Axes
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+SMALL_FONT_SIZE = 12
+MEDIUM_FONT_SIZE = 15
+BIGGER_FONT_SIZE = 18
+
+SINGLE_STATE = ["florida"]
+
+# hail alley
+MULTIPLE_STATES = [
+    "texas",
+    "oklahoma",
+    "kansas",
+    "nebraska",
+    "colorado",
+    "missouri",
+    "iowa",
+    # medium states
+    "louisiana",
+    "mississippi",
+    "alabama",
+    "florida",
+    # dry states
+    "california",
+    "new mexico",
+    "arizona",
+]
+
+LOWER_CUT_OFF_YEAR = 1990
+UPPER_CUT_OFF_YEAR = 2024
+
+SELECTED_ANALYSIS_STATES = SINGLE_STATE
+
+FLOAT_PRECISION = 2
+DEGREES_PRECISION = 1e-2
+
+TIME_COLUMN = "begin_date_time"
+
+CONTINUOUS_MODELLING_COLUMNS = [
+    "year",
+    "month",
+    "hour",
+    "begin_lat",
+    "begin_lon",
+    "state",
+    "countyfp",
+    "magnitude",
+]
+
+COUNT_MODELLING_COLUMNS = [
+    "year",
+    "month",
+    "hour",
+    "state",
+    "countyfp",
+]
+
+NUMBER_ITERATIONS = 30_000
+NUMBER_PARTICLES = 1
+
+CONTINUOUS_TARGET = "magnitude"
+COUNT_TARGET = "number_events"
+
+LAT_COVARIATES = "begin_lat"
+LON_COVARIATES = "begin_lon"
+
+YEAR_COVARIATES = "year"
+MONTH_COVARIATE = "month"
+HOUR_COVARIATE = "hour"
+
+COUNTIES_INDEX = "countyfp"
+STATE_INDEX = "state"
+
+CRITICAL_VALUE_CONTINUOUS_TARGET = 1.77
+CRITICAL_VALUE_COUNT_TARGET = 5
+CRITICAL_QUANTILE = 0.95
+
+COLORMAP_NAME = "Blues"
+COLORMAP = mpl.colormaps[COLORMAP_NAME].resampled(5)
+
+DATA_PATH = Path("local_data")
+RESULTS_PATH = Path("results")
+GIFS_PATH = Path(RESULTS_PATH, "gif_images")
+IMAGES_PATH = Path(RESULTS_PATH, "images")
+
+plt.rc('font', size=SMALL_FONT_SIZE) 
+plt.rc('axes', titlesize=MEDIUM_FONT_SIZE)
+plt.rc('axes', labelsize=SMALL_FONT_SIZE)
+plt.rc('xtick', labelsize=SMALL_FONT_SIZE)
+plt.rc('ytick', labelsize=SMALL_FONT_SIZE)
+plt.rc('legend', fontsize=SMALL_FONT_SIZE)    
+plt.rc('figure', titlesize=BIGGER_FONT_SIZE)
+plt.rc('figure', dpi=100)
+```
+
+## Data Gathering and Data Description
+
+In this paragraph we will provide an overview of the data employed in this analysis:
+
+1. The dataset from NOAA containing records of hail events.
+2. The [geo-dataframe](https://geopandas.org/en/stable/gallery/create_geopandas_from_pandas.html) used for mapping hail events onto U.S. counties.
+
+### NOAA Dataset
+
+The dataset we used for conducting this analysis is the [Storm Event Database](https://www.ncdc.noaa.gov/stormevents/). This dataset contains records that documents:
+
+1. The occurrence of storms and other significant weather phenomena.
+2. Rare, unusual, weather phenomena
+3. Other significant meteorological events
+
+A common characteristic of these events is being so intense or exceptional so to cause potential damage to people, structure and causing disruption to commerce. The database
+contains data from 1950 until 2024. However due to changes in the record, measurement and collection strategy the portion containing detailed and reliable information is limited to the interval 1996 - 2024. This is also the portion of the dataset that we have used for our analyses.
+
+### Counties Geometry Dataset
+
+In order to to map and visualize our analysis onto the U.S. territory (and counties in particular) we obtained a geo-dataframe containing geometry files for each state in the U.S. This dataset was not used just for visualization purposes but it also played an important role in the estimation of extreme hail events at county level (more details will be given in section @sec-quantile_regression.) 
+ 
+## Data Exploration
+
+In this section we will outline a few key characteristics of hail events as a phenomena, putting particular attention on those characteristics that makes necessary the use of particular statistical framework for addressing the challenges we have outlined in @sec-hypotheses_investigated. Due to space constrains we will report here only the results for the state of Florida. 
+
+The state of Florida perfectly illustrates the challenges of estimating extreme hail events in liminal situations: in states like California and Texas the risk assessment becomes easier due to either the complete absence or the abundance of hail events. Florida on the other end seems to have a much more nuanced risk profile.
+
+### Data Preparation
+
+In this section we will prepare the data for further analysis, mostly focusing on creating datasets that are suitable for the different types of statistical approaches we want to try.
+
+```{python}
+#| code-fold: true
+#| code-summary: Show supplementary code
+import numpy as np
+
+import pandas as pd
+import geopandas as gpd
+
+from pyextremes import get_extremes
+
+
+def pad_dataset(
+    df: pd.DataFrame,
+    categorical_columns: List[str],
+    fill_value: float = 0.0,
+) -> pd.DataFrame:
+    """Pad a dataset over all the dimensions defined by indexing columns filling the missing
+    entries with fill_value.
+    """
+    new_index = list([df[column].unique() for column in categorical_columns])
+    new_index = product(*new_index)
+    df = df.set_index(keys=categorical_columns)
+    df = df.reindex(new_index).fillna(fill_value).reset_index()
+    return df
+
+
+def make_grid(polygon: Any, edge_size: float) -> gpd.GeoSeries:
+    """Create a grid of the size of polygon made of squares of size edge_size"""
+    bounds = polygon.bounds
+    x_coords = np.arange(bounds[0] + edge_size / 2, bounds[2], edge_size)
+    y_coords = np.arange(bounds[1] + edge_size / 2, bounds[3], edge_size)
+    combinations = np.array(list(product(x_coords, y_coords)))
+    squares = gpd.points_from_xy(combinations[:, 0], combinations[:, 1]).buffer(
+        edge_size / 1, cap_style=3
+    )
+    return gpd.GeoSeries(squares[squares.intersects(polygon)])
+
+
+def generate_grid_df(
+    geometries_df: gpd.GeoDataFrame,
+    edge_size: float,
+    state: List[str] = SELECTED_ANALYSIS_STATES,
+) -> gpd.GeoDataFrame:
+    """Generate a geod-dataframe made of giddified polygons"""
+    state_geometries_df = geometries_df[
+        geometries_df[STATE_INDEX].str.lower().isin([s for s in state])
+    ].copy()
+    grid_df = []
+    list_counties_fp = state_geometries_df[COUNTIES_INDEX].values
+    list_states_fp = state_geometries_df[STATE_INDEX].values
+    list_geometries = state_geometries_df["geometry"].values
+    for countyfp, state, geometry in zip(
+        list_counties_fp, list_states_fp, list_geometries
+    ):
+
+        generated_grid = make_grid(geometry, edge_size=edge_size)
+        grid_df.append(
+            pd.DataFrame(
+                {
+                    COUNTIES_INDEX: countyfp,
+                    STATE_INDEX: state,
+                    "geometry": generated_grid,
+                }
+            )
+        )
+    grid_df = gpd.GeoDataFrame(pd.concat(grid_df))
+    grid_df["begin_lat"] = grid_df["geometry"].centroid.y.round(FLOAT_PRECISION)
+    grid_df["begin_lon"] = grid_df["geometry"].centroid.x.round(FLOAT_PRECISION)
+    return grid_df
+
+
+def split_dataset(
+    df: pd.DataFrame,
+    ordering_columns: List[str],
+    split_fraction: float = 0.33,
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Split dataset in two portions"""
+    df = df.sort_values(ordering_columns)
+    cut_off = int(len(df) * split_fraction)
+    return df[:-cut_off].copy(), df[-cut_off:].copy()
+
+
+def perform_dithering(
+    magnitudes: ArrayLike,
+    cap: float = 0.5,
+    dithering_coefficient: float = 0.147,
+    dithering_bias: float = 0.0279,
+) -> ArrayLike:
+    """Perform dithering following the procedure in
+    https://www.columbia.edu/~mkt14/publications/MWR-final-hailsize.pdf
+    """
+    dithering_amounts = dithering_bias + dithering_coefficient * magnitudes
+    dithering_amounts = np.clip(dithering_amounts, a_min=0.0, a_max=cap)
+    dithering_noise = np.random.uniform(-dithering_amounts, dithering_amounts)
+    dithered_magnitudes = np.clip(magnitudes + dithering_noise, 0, None)
+    return dithered_magnitudes
+
+
+def make_time_series_continuous(
+    series: pd.Series, start: str, end: str, frequency: str
+) -> pd.Series:
+    """Make a time series continuous and pad the missing values with zeros"""
+    new_index = pd.date_range(start=start, end=end, freq=frequency)
+    return series.reindex(new_index, fill_value=0)
+
+
+def downscale_coordinates(
+    values: ArrayLike, precision: int, degree_resolution: float
+) -> ArrayLike:
+    """Downscale latitude and longitude coordinate to a certain degree resolution."""
+    return np.round(degree_resolution * np.round(values / degree_resolution), precision)
+
+
+def create_covariates_df(
+    geometries_df: gpd.GeoDataFrame,
+    edge_size: float,
+    state: List[str],
+    months: List[int],
+    hours: List[int],
+    years: List[int],
+) -> gpd.GeoDataFrame:
+    """Create a dataframe of covariates for inference"""
+    covariates_df = []
+    grid_df = generate_grid_df(
+        geometries_df=geometries_df,
+        edge_size=edge_size,
+        state=state,
+    )
+    for year, month, hour in list(product(years, months, hours)):
+
+        timed_grid_df = grid_df.copy()
+        timed_grid_df["year"] = year
+        timed_grid_df["month"] = month
+        timed_grid_df["hour"] = hour
+
+        covariates_df.append(timed_grid_df)
+
+    covariates_df = pd.concat(covariates_df)
+    covariates_df = gpd.GeoDataFrame(covariates_df)
+    return covariates_df
+
+
+def create_maxima_dataset(
+    df: pd.DataFrame, grouping_columns: List[str], value_column: str
+) -> pd.DataFrame:
+    """Create the dataset for fitting gen-extreme data"""
+    maxima_df = df[grouping_columns + [value_column]].copy()
+    maxima_df = maxima_df.groupby(grouping_columns)[value_column].max().reset_index()
+    return maxima_df
+
+
+def get_extremes_in_blocks(
+    maxima_df: pd.Series,
+    county_fp: str,
+    state_fp,
+    start: str,
+    end: str,
+) -> pd.DataFrame:
+    """Extract the extreme values using either Point of Threshold or Block Maxima"""
+    maxima_df = make_time_series_continuous(
+        series=maxima_df,
+        start=start,
+        end=end,
+        frequency="1h",
+    )
+    extremes = get_extremes(
+        ts=maxima_df,
+        method="BM",
+    )
+    extremes = extremes.reset_index()
+    extremes[COUNTIES_INDEX] = county_fp
+    extremes[STATE_INDEX] = state_fp
+    return extremes
+
+
+def create_eva_dataset(
+    modelling_df: pd.DataFrame, geometries_df: gpd.GeoDataFrame
+) -> pd.DataFrame:
+    """Create a dataset used for Extreme Value Analysis"""
+    maxima_data = create_maxima_dataset(
+        df=modelling_df,
+        grouping_columns=[TIME_COLUMN, STATE_INDEX, COUNTIES_INDEX],
+        value_column=CONTINUOUS_TARGET,
+    )
+    grouped = maxima_data.groupby([COUNTIES_INDEX, STATE_INDEX])
+
+    list_df = [group.set_index(TIME_COLUMN)[CONTINUOUS_TARGET] for _, group in grouped]
+    list_category_names = grouped.groups.keys()
+
+    partialized_get_extremes_df = partial(
+        get_extremes_in_blocks,
+        start=maxima_data[TIME_COLUMN].min(),
+        end=maxima_data[TIME_COLUMN].max(),
+    )
+    eva_df = Parallel(n_jobs=-1)(
+        delayed(partialized_get_extremes_df)(data, county_fp, state_fp)
+        for data, (county_fp, state_fp) in zip(list_df, list_category_names)
+    )
+    eva_df: pd.DataFrame = pd.concat(eva_df)
+    eva_df[CONTINUOUS_TARGET] = eva_df[CONTINUOUS_TARGET].replace(
+        to_replace=0,
+        value=eva_df[CONTINUOUS_TARGET].mean(),
+    )
+    eva_df = eva_df.rename({"date-time": TIME_COLUMN}, axis=1)
+    eva_df = pd.merge(
+        eva_df,
+        geometries_df[[COUNTIES_INDEX, STATE_INDEX, "geometry"]].drop_duplicates(),
+        on=[COUNTIES_INDEX, STATE_INDEX],
+        how="inner",
+    )
+    eva_df = pd.merge(
+        eva_df,
+        modelling_df[["county", COUNTIES_INDEX, STATE_INDEX]].drop_duplicates(),
+        on=[COUNTIES_INDEX, STATE_INDEX],
+        how="inner",
+    )
+    return eva_df
+
+
+def create_continuous_dataset(
+    modelling_df: pd.DataFrame, geometries_df: gpd.GeoDataFrame
+) -> pd.DataFrame:
+    """Create a dataset for continuous modelling"""
+    continuous_modelling_df = modelling_df[CONTINUOUS_MODELLING_COLUMNS + ["begin_date_time"]].copy()
+    continuous_modelling_df = (
+        continuous_modelling_df.groupby(
+            list(continuous_modelling_df.drop(CONTINUOUS_TARGET, axis=1))
+        )[CONTINUOUS_TARGET]
+        .max()
+        .reset_index()
+        .drop("begin_date_time", axis=1)
+    )
+    continuous_modelling_df = pd.merge(
+        continuous_modelling_df,
+        geometries_df[[COUNTIES_INDEX, STATE_INDEX, "geometry"]],
+        on=[COUNTIES_INDEX, STATE_INDEX],
+        how="inner",
+    )
+    return continuous_modelling_df
+
+
+def create_count_dataset(
+    modelling_df: pd.DataFrame, geometries_df: gpd.GeoDataFrame
+) -> gpd.GeoDataFrame:
+    """Create a dataset for count modelling"""
+    count_modelling_df = modelling_df[
+        [
+            "county",
+            "begin_date_time",
+            "year",
+            "month",
+            "hour",
+            "state",
+            COUNTIES_INDEX,
+        ]
+    ].copy()
+
+    count_modelling_df = (
+        count_modelling_df.groupby(
+            [
+                "county",
+                "begin_date_time",
+                "year",
+                "month",
+                "hour",
+                "state",
+                COUNTIES_INDEX,
+            ]
+        )
+        .size()
+        .reset_index()
+        .rename({0: COUNT_TARGET}, axis=1)
+        .groupby(COUNT_MODELLING_COLUMNS)[COUNT_TARGET]
+        .max()
+        .reset_index()
+    )
+    count_modelling_df = pad_dataset(
+        df=count_modelling_df,
+        categorical_columns=COUNT_MODELLING_COLUMNS,
+    )
+    count_modelling_df = pd.merge(
+        count_modelling_df,
+        geometries_df[[COUNTIES_INDEX, STATE_INDEX, "geometry"]],
+        on=[COUNTIES_INDEX, STATE_INDEX],
+        how="inner",
+    )
+    return count_modelling_df
+
+
+def create_all_datasets(
+    modelling_df: pd.DataFrame,
+    geometries_df: gpd.GeoDataFrame,
+    state: List[str] = SELECTED_ANALYSIS_STATES,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Create all dataset required for the notebook"""
+    state_modelling_df = modelling_df[modelling_df["state"].isin(state)].copy()
+    continuous_state_modelling_df = create_continuous_dataset(
+        modelling_df=state_modelling_df,
+        geometries_df=geometries_df,
+    )
+    count_state_modelling_df = create_count_dataset(
+        modelling_df=state_modelling_df,
+        geometries_df=geometries_df,
+    )
+    eva_state_modelling_df = create_eva_dataset(
+        modelling_df=state_modelling_df,
+        geometries_df=geometries_df,
+    )
+
+    return (
+        continuous_state_modelling_df,
+        count_state_modelling_df,
+        eva_state_modelling_df,
+    )
+```
+
+As a first step we read and pre-process the data used for modelling in general
+
+```{python}
+modelling_df = pd.read_parquet(Path(DATA_PATH, "modelling_df.parquet"))
+modelling_df["state"] = modelling_df["state"].apply(
+    lambda x: [i.lower() for i in x.split(" ")]
+)
+modelling_df["state"] = modelling_df["state"].apply(lambda x: "_".join(x))
+modelling_df = modelling_df.rename({"yearly": "year"}, axis=1)
+
+modelling_df["begin_lat"] = modelling_df["begin_lat"].values.round(FLOAT_PRECISION)
+modelling_df["begin_lon"] = modelling_df["begin_lon"].values.round(FLOAT_PRECISION)
+modelling_df["magnitude"] = perform_dithering(
+    magnitudes=modelling_df["magnitude"].values
+)
+modelling_df
+```
+
+```{python}
+modelling_df.info()
+```
+
+As well as the geo-data used for visualizing our results spatially
+
+```{python}
+geometries_df = gpd.read_file(filename=Path(DATA_PATH, "us_counties_df.geojson"))
+geometries_df = geometries_df.rename({"state_name": "state"}, axis=1)
+geometries_df["state"] = geometries_df["state"].apply(
+    lambda x: [i.lower() for i in x.split(" ")]
+)
+geometries_df["state"] = geometries_df["state"].apply(lambda x: "_".join(x))
+geometries_df
+```
+
+```{python}
+geometries_df.info()
+```
+
+We then proceed at creating 3 datasets to be used by the 3 different statistical approaches we are going to adopt:
+
+```{python}
+continuous_state_modelling_df, count_state_modelling_df, eva_state_modelling_df = (
+    create_all_datasets(
+        modelling_df=modelling_df[
+            (modelling_df["year"] >= LOWER_CUT_OFF_YEAR)
+            & (modelling_df["year"] <= UPPER_CUT_OFF_YEAR)
+        ],
+        geometries_df=geometries_df,
+        state=SELECTED_ANALYSIS_STATES,
+    )
+)
+```
+
+1. One for extreme value analysis.
+
+```{python}
+eva_state_modelling_df.info()
+```
+
+2. One with a continuous target (i.e., hail magnitude) for the quantile regression.
+
+```{python}
+continuous_state_modelling_df.info()
+```
+
+3. One with a count target (i.e, number of hail events) for the zero-inflated negative binomial regression.
+
+```{python}
+count_state_modelling_df.info()
+```
+
+### Visualizing Hail Events
+
+```{python}
+#| code-fold: true
+#| code-summary: Show supplementary code
+import gif
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+
+def plot_distribution_hail(
+    continuous_state_modelling_df: pd.DataFrame,
+    x: str,
+    ax: plt.Axes,
+    states: List[str] = SELECTED_ANALYSIS_STATES,
+    **kwargs: Any,
+) -> plt.Axes:
+    """Plot the distribution of hail magnitude"""
+    title_states = "\n".join([state.capitalize() for state in states])
+    sns.histplot(data=continuous_state_modelling_df, x=x, ax=ax, **kwargs)
+    ax.grid(alpha=0.5)
+    ax.set_title(f"{title_states}\nHourly Hail Events")
+    return ax
+
+
+def plot_hail_distribution_with_tails(
+    magnitude_events: ArrayLike, state: str, threshold=CRITICAL_VALUE_CONTINUOUS_TARGET
+) -> Tuple[plt.Figure, plt.Axes, plt.Axes]:
+    """Plot a distribution of hail events magnitude with a focus on the tail."""
+    fig, ax = plt.subplots(1, 1, figsize=[8, 5])
+    sub_ax = inset_axes(
+        ax,
+        width=2,
+        height=2,
+        loc="center right",
+    )
+    sns.histplot(
+        data=magnitude_events,
+        bins=8,
+        ax=ax,
+        alpha=1,
+    )
+    sns.histplot(
+        data=magnitude_events[magnitude_events > threshold],
+        bins=8,
+        ax=sub_ax,
+        alpha=1,
+    )
+    ax.set_title(f"Distribution Hail Events\n{state.capitalize()}")
+    ax.set_xlabel("Hail Size")
+
+    sub_ax.set_title(f"Extreme Hail Events\n{state.capitalize()}")
+    sub_ax.set_xlabel("Hail Size")
+
+    ax.axvline(
+        1.77,
+        linestyle="--",
+        c="r",
+        linewidth=5,
+        label="Critical Value",
+    )
+    ax.grid(alpha=0.5, zorder=0)
+    ax.legend()
+    return fig, ax, sub_ax
+
+
+def plot_hail_events_on_map(
+    geometries_df: gpd.GeoDataFrame,
+    state_modelling_df: pd.DataFrame,
+    selected_state: str = SELECTED_ANALYSIS_STATES,
+    threshold: float = CRITICAL_VALUE_CONTINUOUS_TARGET,
+    extreme_threshold: float = 2.5,
+    extreme_events_size: float = 25,
+    **scatter_kwargs: Any,
+):
+    """Visualize the hail events on a map with highlight of above-threshold event"""
+    fig, axs = plt.subplots(1, 2, figsize=(10, 10), sharey=True, sharex=True)
+
+    (
+        geometries_df[geometries_df[STATE_INDEX] == selected_state].boundary.plot(
+            ax=axs[0], color="k", linewidth=0.5
+        )
+    )
+    (
+        geometries_df[geometries_df[STATE_INDEX] == selected_state].boundary.plot(
+            ax=axs[1], color="k", linewidth=0.5
+        )
+    )
+    axs[0].scatter(
+        state_modelling_df["begin_lon"].values,
+        state_modelling_df["begin_lat"].values,
+        c=state_modelling_df[CONTINUOUS_TARGET].values,
+        vmin=0,
+        vmax=4.5,
+        cmap=COLORMAP_NAME,
+        **scatter_kwargs,
+    )
+    axs[1].scatter(
+        state_modelling_df[
+            (state_modelling_df[CONTINUOUS_TARGET] > threshold)
+            & (state_modelling_df[CONTINUOUS_TARGET] < extreme_threshold)
+        ]["begin_lon"].values,
+        state_modelling_df[
+            (state_modelling_df[CONTINUOUS_TARGET] > threshold)
+            & (state_modelling_df[CONTINUOUS_TARGET] < extreme_threshold)
+        ]["begin_lat"].values,
+        c=state_modelling_df[
+            (state_modelling_df[CONTINUOUS_TARGET] > threshold)
+            & (state_modelling_df[CONTINUOUS_TARGET] < extreme_threshold)
+        ][CONTINUOUS_TARGET].values,
+        vmin=0,
+        vmax=5,
+        cmap=COLORMAP_NAME,
+        **scatter_kwargs,
+    )
+    axs[1].scatter(
+        state_modelling_df[
+            (state_modelling_df[CONTINUOUS_TARGET] >= extreme_threshold)
+        ]["begin_lon"].values,
+        state_modelling_df[
+            (state_modelling_df[CONTINUOUS_TARGET] >= extreme_threshold)
+        ]["begin_lat"].values,
+        c="r",
+        s=extreme_events_size,
+    )
+
+    for ax in axs:
+
+        ax.grid(alpha=0.5)
+
+    axs[0].set_title(f"Hail Events\n{selected_state.capitalize()} Counties")
+    axs[1].set_title(f"Extreme Hail Events\n{selected_state.capitalize()} Counties")
+    axs[0].set_xlabel("Longitude")
+    axs[1].set_xlabel("Longitude")
+    axs[0].set_ylabel("Latitude")
+    axs[1].set_title(f"Extreme Hail Events\n{selected_state.capitalize()} Counties")
+    return fig, axs
+
+
+def plot_quantile_hail_time(
+    time_column: str,
+    y: str,
+    modelling_df: pd.DataFrame,
+    ax: plt.Axes,
+    quantile: float,
+    states: List[str] = SELECTED_ANALYSIS_STATES,
+    **kwargs: Any,
+) -> plt.Axes:
+    """Plot the average hail attribute over a certain categorical columns"""
+    title_states = "\n".join([state.capitalize() for state in states])
+    sns.lineplot(
+        data=modelling_df,
+        x=time_column,
+        y=y,
+        ax=ax,
+        estimator=partial(np.percentile, q=quantile),
+        n_boot=100,
+        **kwargs,
+    )
+    ax.grid(alpha=0.5)
+    ax.set_ylim(0, modelling_df[y].max())
+    ax.set_ylabel(y.capitalize())
+    ax.set_xlabel(time_column.capitalize())
+    ax.set_title(f"{title_states}\nQuantile {quantile} {y.capitalize()}")
+    return ax
+
+
+def plot_quantile_hail_geometry(
+    modelling_df: pd.DataFrame,
+    color_column: str,
+    max_value: float,
+    ax: Axes,
+    quantile: float = 0.5,
+    states: List[str] = SELECTED_ANALYSIS_STATES,
+) -> Axes:
+    """Plot quantile of hail attribute over geometries"""
+    title_states = "\n".join([state.capitalize() for state in states])
+    (
+        gpd.GeoDataFrame(
+            modelling_df.groupby("geometry")[color_column]
+            .quantile(quantile)
+            .reset_index()
+        ).plot(
+            color_column,
+            cmap=COLORMAP_NAME,
+            ax=ax,
+            legend=True,
+            vmin=0.0,
+            vmax=max_value,
+            legend_kwds={"shrink": 0.7},
+        )
+    )
+    ax.grid(alpha=0.5)
+    ax.set_title(
+        f"{title_states}\nQuantile {quantile * 100} {color_column.capitalize()}"
+    )
+    ax.set_ylabel("Longitude")
+    ax.set_xlabel("Latitude")
+    return ax
+
+
+@gif.frame
+def plot_comparison_quantile_hail_geometry(
+    quantile: float,
+    continuous_state_modelling_df: gpd.GeoDataFrame,
+    count_state_modelling_df: gpd.GeoDataFrame,
+    states: List[str] = SELECTED_ANALYSIS_STATES,
+) -> None:
+    """Compare hail magnitude and hail quantity over geometries"""
+    fig, axs = plt.subplots(1, 2, figsize=(15, 5))
+    for ax, df, color_column in zip(
+        axs,
+        [continuous_state_modelling_df, count_state_modelling_df],
+        [CONTINUOUS_TARGET, COUNT_TARGET],
+    ):
+
+        ax = plot_quantile_hail_geometry(
+            modelling_df=df,
+            color_column=color_column,
+            ax=ax,
+            quantile=quantile,
+            max_value=df[color_column].max(),
+            states=states,
+        )
+
+    plt.tight_layout()
+
+
+@gif.frame
+def plot_comparison_quantile_hail_time(
+    y: str,
+    modelling_df: gpd.GeoDataFrame,
+    quantile: float,
+    color: Any,
+    states: List[str] = SELECTED_ANALYSIS_STATES,
+    **kwargs: Any,
+) -> None:
+    """Compare average hail attribute over hour and month"""
+    fig, axs = plt.subplots(nrows=1, ncols=3, figsize=(20, 5))
+    for ax, time_indicator in zip(axs, ["hour", "month", "year"]):
+
+        ax = plot_quantile_hail_time(
+            modelling_df=modelling_df,
+            time_column=time_indicator,
+            y=y,
+            ax=ax,
+            quantile=quantile,
+            states=states,
+            color=color,
+            **kwargs,
+        )
+
+    plt.tight_layout()
+```
+
+As first thing we want to have a sense of how the hail events distributed spatially so we proceed at visualizing the entire history of hail events on Florida.
+
+```{python}
+fig, axs = plot_hail_events_on_map(
+    geometries_df=geometries_df,
+    state_modelling_df=continuous_state_modelling_df,
+    selected_state=SELECTED_ANALYSIS_STATES[0],
+    threshold=1.7,
+    s=1.5,
+    extreme_events_size=10,
+)
+fig.subplots_adjust(top=1.33)
+plt.tight_layout()
+plt.savefig(Path(IMAGES_PATH, "hail_events_comparison_total.png"))
+plt.close("all")
+```
+
+![Comparing Normal and Extreme Hail Events](results/images/hail_events_comparison_total.png){#fig-hail_comparison_total}
+
+@fig-hail_comparison_total shows on the left side all the hail events coloured according to the estimated hail size of the event. On the right we can see a filtered version of the left panel where only events with estimated hail size greater than 1.7" are shown, in particular we have highlighted in red those events with hail size greater than 2.5" (i.e., exceptionally large hail events).
+
+```{python}
+partialized_plot_comparison_quantile_hail_geometry = partial(
+    plot_comparison_quantile_hail_geometry,
+    continuous_state_modelling_df=continuous_state_modelling_df,
+    count_state_modelling_df=count_state_modelling_df[
+        count_state_modelling_df["number_events"] > 0
+    ],
+    states=SELECTED_ANALYSIS_STATES,
+)
+quantiles = [.25, .75, .95, .99]
+frames = [partialized_plot_comparison_quantile_hail_geometry(quantile=quantile) for index, quantile in enumerate(quantiles)]
+gif.save(frames, Path(GIFS_PATH, 'spatial_map_quantiles.gif').as_posix(), duration=1000)
+```
+
+![Observed Spatial Quantiles](results/gif_images/spatial_map_quantiles.gif){#fig-sample_size}
+
+From @fig-hail_comparison_total and @fig-sample_size can already have an intuition of various characteristics of hail events
+
+1. They are not evenly distributed in space, there are areas which don't see events at all. @fig-sample_size shows the percentiles for both hail size and hail events across counties. Darker colors indicate higher hail size and number of hail events.
+
+2. Very large hail events are very rare and exceptionally large hail events are even more rare.
+
+3. Very large hail events can occur even in areas where hail per-se is a very rare event. @fig-sample_size shows three different type of percentile values of hail size for the different counties: 50%, 95% and 99% as we can see some of the most extreme values occur in area where there has been very few hail events.
+
+4. We can notice that there is spatial coherence in how the hail events distribute on the territory of Florida (possibly reflecting geographical characteristics of the various areas) 
+
+```{python}
+partialized_plot_comparison_quantile_hail_time = partial(
+    plot_comparison_quantile_hail_time,
+    y=COUNT_TARGET,
+    modelling_df=count_state_modelling_df[
+        count_state_modelling_df["number_events"] > 0
+    ],
+    states=SELECTED_ANALYSIS_STATES,
+    linewidth=3,
+    solid_capstyle='round'
+)
+quantiles = [25, 75, 95, 99]
+frames = [partialized_plot_comparison_quantile_hail_time(quantile=quantile, color=COLORMAP(index + 1)) for index, quantile in enumerate(quantiles)]
+gif.save(frames, Path(GIFS_PATH, 'temporal_quantiles.gif').as_posix(), duration=1000)
+```
+
+![Observed Temporal Quantiles](results/gif_images/temporal_quantiles.gif){#fig-temporal_quantiles}
+
+5. From @fig-temporal_quantiles we can also observe the presence of seasonal patterns and trending behaviour that changes when considering different quantiles for both hail sizes and number of hail events.
+
+![Comparing Daily Empirical Probability of Hail Events by Magnitude](results/images/hail_magnitudes_daily_probability.png){#fig-hail_magnitude_daily_probability}
+
+@fig-hail_magnitude_daily_probability shows in more detail how the more an event is severe, in terms of hail size (i.e., disruptive), the lower is its daily probability of occurring. I particular we can see the sharp drop from moderate (1.25" to 1.75") to severe (greater than 1.77") hail storm.
+
+What this tells us is that hail storms, in particular those which have potential of being disruptive or dangerous, are better framed in terms of extreme events. In the next section we will see how these events require to be treated with particular care.
+
+### Visualizing The characteristics of Extreme Hail Events
+
+We now want to have a better understanding of the statistical characteristics of hail events which are extreme in size, meaning they are above 1.77"
+
+```{python}
+fig, ax, sub_ax = plot_hail_distribution_with_tails(
+    magnitude_events=continuous_state_modelling_df[CONTINUOUS_TARGET].values,
+    state=SELECTED_ANALYSIS_STATES[0],
+)
+plt.savefig(Path(IMAGES_PATH, "events_distribution.png"))
+```
+
+![Visualizing the Distribution of Hail Events](results/images/events_distribution.png){#fig-distribution_hail_events}
+
+@fig-distribution_hail_events shows the distribution of the hail events with a red line indicating the critical value of 1.77". We can observe a series of characteristics typical of hail events:
+
+1.  Most of the mass of the distribution lies around the 1" mark indicating that the most common hail events are usually innocuous. We need to note that from @fig-distribution_hail_events we removed all the days in which there were no hail events. If not we would have observed the typical pattern of a [zero-inflated distribution](https://en.wikipedia.org/wiki/Zero-inflated_model).
+
+2. The distribution is left skewed with a relatively long and heavy right tail. This indicates that hail event of disruptive force can appear with a non-negligible probability but are in general very rare. 
+
+3. Focusing on the extreme hail events (i.e., above the 1.77" mark) we can see the distribution is again heavily skewed on the left suggesting that truly disastrous hail events (i.e., size above the 2.5") can be very hard to predict.
+
+## Analyses Conducted
+
+In this section we will outline the methodology we adopted for estimating hail size and hail risk at the county level.
+
+## Estimating Return Periods using Extreme Value Analysis
+
+```{python}
+#| code-fold: true
+#| code-summary: Show supplementary code
+from scipy.stats import rankdata
+from scipy.stats import genextreme
+
+from pyextremes import get_extremes
+from pyextremes import EVA
+
+
+def compute_empirical_return_periods(hail_events_extremes: ArrayLike) -> ArrayLike:
+    """Compute the return period empirically from the data"""
+    ranks = rankdata(a=-hail_events_extremes)
+    excedance = ranks / (len(hail_events_extremes) + 1)
+    periods = 1 / excedance
+    return periods
+
+
+def compute_mle_return_periods_scipy(
+    hail_events_extremes: pd.Series, max_years: int = 150, min_years: float = 2
+) -> List[float]:
+    """Estimate the parameters of a genextreme distribution and compute the return periods using
+    the genextreme parameters estimated using scipy.
+    """
+    c, loc, scale = genextreme.fit(hail_events_extremes)
+    periods = []
+    for year in np.arange(min_years, max_years):
+
+        periods.append(genextreme.ppf(1 - 1 / year, c, loc=loc, scale=scale))
+
+    return periods
+
+
+def compute_mle_return_periods_pyextremes(
+    hail_events_extremes: pd.Series, max_years: int = 150
+) -> Tuple[ArrayLike, Any]:
+    """Estimate the parameters of a genextreme distribution and compute the return periods using
+    the genextreme parameters estimated using pyextremes.
+    """
+    model = EVA.from_extremes(extremes=hail_events_extremes, method="BM")
+    model.fit_model(distribution_kwargs={"floc": 0})
+    periods, _, _ = model.get_return_value(np.arange(2, max_years))
+    return periods, model
+
+
+def plot_fit_extreme_values(
+    ax: Axes,
+    category: str,
+    model_names: List[str],
+    models: Dict[str, Any],
+    critical_magnitude: float,
+    critical_period: int,
+) -> Axes:
+    """Visualize how the estimated return function fit the empirical return values."""
+    ax.scatter(
+        models["empirical"][category]["period"],
+        models["empirical"][category]["magnitude"],
+        s=80,
+        facecolors="none",
+        edgecolors="k",
+        label="Empirical Values",
+    )
+    ax.axhline(critical_magnitude, c="r", linestyle=":", label="Critical Limit")
+    ax.axvline(critical_period, c="r", linestyle="-.", label=f"{critical_period} Years")
+
+    for model_name in model_names:
+
+        ax.plot(
+            models[model_name][category]["period"],
+            models[model_name][category]["magnitude"],
+            label=f"{model_name}",
+        )
+
+    ax.set_title("\n".join(category.split("_")))
+    ax.grid(alpha=0.5)
+    ax.set_ylabel("Hail Size")
+    ax.set_xlabel("Return Period")
+    return ax
+```
+
+The first estimation approach we decided to use was based on [Extreme Value Theory](https://en.wikipedia.org/wiki/Extreme_value_theory). In particular we followed [this tutorial](https://comptools.climatematch.io/tutorials/W2D3_ExtremesandVariability/student/W2D3_Intro.html) on extreme events provided by course on [computational tools in climate science](https://comptools.climatematch.io/tutorials/intro.html). 
+
+Extreme Value Analysis (EVA) usually has the aim of estimating, giving a sample of data, the probability (i.e., risk) associated with an event that is extreme in nature. For doing so it usually require three steps:
+
+1. Individuating the extremes in a given period of time with a given time resolution (it usually boils down to be the annual extremes).
+
+2. Fit an appropriated statistical distribution to the extreme data.
+
+3. Estimate the probability of potentially unseen extreme events using the parameters of the distribution.
+
+
+### Individuating the "Extremes"
+
+In order to individuate the extreme in our data we have two options:
+
+1. Block Maxima (i.e., BM): selecting the maximum value ove a "block of time" (e.g. a year).
+2. Peak Over Threshold (i.e., POT): selecting all the values higher than a given threshold.
+
+Both options have their advantages and dis-advantages. We won't go into details and just say that we select BM mostly for convenience as it is the methodology that retains most of the data (which is already scarce in our situation). More information can be found in [this page](https://georgebv.github.io/pyextremes/user-guide/2-extreme-value-types/).
+
+![Example of Bock Maxima](results/images/block_maxima.png){#fig-block_maxima}
+
+In @fig-block_maxima we can see how the maximum monthly hail sizes get converted in maximum **annual** hail sizes by applying a block maxima of size 12 months. One of the major advantages of block maxima is that of partially removing the issue of autocorrelation and seasonality as we take exactly one value for each year.
+
+### Fitting the Appropriated Distribution
+
+Once we have obtained our samples of extreme values and did all that is in our power to ensure that they are independent and identically distributed (i.i.d.) we can proceed at fitting a distribution to the samples. Which distribution is more suitable depends on the characteristics of the events we are are tying to model.
+
+In the case of extreme events what we are dealing with are tail events better described by skewed distributions with a fat tail. There are 3 types of distribution that are well suited for this: [Gumbell](https://en.wikipedia.org/wiki/Gumbel_distribution), [Weibull](https://en.wikipedia.org/wiki/Weibull_distribution) and [Frechet](https://en.wikipedia.org/wiki/Fréchet_distribution) which can be flexibly represented by a single 3 parameters distribution the Generalized [Extreme Value distribution (GEV)](https://en.wikipedia.org/wiki/Generalized_extreme_value_distribution).
+
+The Cumulative Distribution Function (CDF) for the GEV is defined as:
+
+$$
+H(x) = 
+\begin{cases}
+[1 + \xi(\frac{x - \mu}{\sigma})]^{1/ \xi} ,& \text{if } \xi\neq 0 \\
+e^{-(\frac{x - \mu}{\sigma})} ,& \text{if } \xi = 0 \\
+\end{cases}
+$$
+
+with $\mu$ being the location parameter (which controls the center of the distribution), $\sigma$ being the scale parameter (controlling the spread of the distribution) and $\xi$ being the shape parameter (which controls the behavior in the tails of the distribution). The CDF will become important later on when we will try to convert the probability associated with a given extreme value in a return period.
+
+There are some important statistical reasons for choosing the GEV distribution for modelling annual maxima of hail events, but in our case we can see this more clearly by looking at @fig-gaus_gev_fit
+
+![Comparing Gaussian and GenExtreme Fit](results/images/hail_events_distributions.png){#fig-gaus_gev_fit}
+
+The figure show both a Gaussian and a GEV fit to annual maxima for hail sizes. Other than the sub-optimal fit for the Gaussian distribution we can see how the tails in particular (where most problematic and truly extreme events concentrate) are heavily discounted.
+
+### Estimating the probability and return period for any extreme value
+
+Once we have obtained the parameters of the GEV distribution it is possible to estimate the probability of a new, potentially unseen, hail event **as large as a critical value c** as simply $p(event <= c | \mu, \sigma, \xi)$ with $\mu$, $\sigma$ and  $\xi$ being estimated parameters. Of course the probability of observing an event **as large or larger then a critical value c** is simply given by $1 - p$.
+
+It is also possible to convert this probability value in what is called a "return period" which indicate that on average how much time can pass between an events of certain magnitude or greater. This value is obtained by
+
+$$
+T = \frac{1}{1 - p}
+$$
+
+Given that in our case the time resolution of our extreme events is yearly, we can define each critical value as a "T years event" which indicates that every year there is a $1-p$ of observing an event **as large or larger then the critical value**. For example a "100 years event" indicate a probability of 0.01 of observing said event in a given year.
+
+Let's see how our EVA approach perform at the state level
+
+```{python}
+aggregated_eva_state_modelling = (
+    eva_state_modelling_df.groupby(eva_state_modelling_df["begin_date_time"].dt.year)[
+        CONTINUOUS_TARGET
+    ]
+    .max()
+    .reset_index()
+)
+returns = compute_empirical_return_periods(
+    aggregated_eva_state_modelling[CONTINUOUS_TARGET].values
+)
+
+plt.scatter(
+    returns,
+    aggregated_eva_state_modelling[CONTINUOUS_TARGET].values,
+    s=80,
+    facecolors="none",
+    edgecolors="k",
+    label="Empirical Values",
+)
+plt.plot(
+    np.arange(1, 150),
+    compute_mle_return_periods_scipy(
+        aggregated_eva_state_modelling[CONTINUOUS_TARGET],
+        max_years=150,
+        min_years=1,
+    ),
+    c=COLORMAP(5),
+    linewidth=2,
+)
+plt.grid(alpha=0.5)
+plt.title(f"Return Periods\n{SINGLE_STATE[0].capitalize()}")
+plt.ylabel("Hail Size")
+plt.xlabel("Years")
+plt.axvline(100, linestyle="-.", c="r", label="100 Years Event")
+plt.axhline(
+    CRITICAL_VALUE_CONTINUOUS_TARGET, linestyle=":", c="r", label='1.7" Hail Event'
+)
+plt.legend()
+plt.show()
+```
+
+in this case we used scipy's `genextreme` distribution instead of the library `pyextreme`. We see how the estimated return periods fit nicely with the empirical values. 
+
+Estimating return periods at the state level is not very useful as:
+
+1. US states are rather big.
+2. Over an entire state it is very likely that we will have at least one very large hail event per year. Therefore we might be overestimating the actual county-level risk profile.
+
+We can perform the same type of analysis using county level data
+
+```{python}
+#| code-fold: true
+#| code-summary: Show supplementary code
+models = {
+    "empirical": {},
+    "MLE_scipy": {},
+    "MLE_pyextreme": {},
+}
+county_names = eva_state_modelling_df["county"].unique()
+for county in tqdm(county_names):
+
+    hail_events_extremes = eva_state_modelling_df[
+        eva_state_modelling_df["county"] == county
+    ][CONTINUOUS_TARGET].values
+    time_index = eva_state_modelling_df[eva_state_modelling_df["county"] == county][
+        TIME_COLUMN
+    ].values
+
+    return_value, model = compute_mle_return_periods_pyextremes(
+        hail_events_extremes=pd.Series(data=hail_events_extremes, index=time_index),
+    )
+
+    models["empirical"][county] = {
+        "period": compute_empirical_return_periods(
+            hail_events_extremes=hail_events_extremes,
+        ),
+        "magnitude": hail_events_extremes,
+    }
+
+    models["MLE_scipy"][county] = {
+        "period": np.arange(2, 150),
+        "magnitude": compute_mle_return_periods_scipy(
+            hail_events_extremes=hail_events_extremes,
+        ),
+    }
+    models["MLE_pyextreme"][county] = {
+        "period": np.arange(2, 150),
+        "magnitude": return_value,
+        "model": model,
+    }
+```
+
+```{python}
+selected_counties = np.random.choice(county_names, 16)
+
+fig, axs = plt.subplots(4, 4, figsize=(8, 8), sharex=True, sharey=True)
+for ax, county in zip(axs.flatten(), selected_counties):
+
+    ax = plot_fit_extreme_values(
+        ax=ax,
+        category=county,
+        model_names=["MLE_pyextreme"],
+        models=models,
+        critical_magnitude=1.77,
+        critical_period=100,
+    )
+
+plt.tight_layout()
+```
+
+As we can see the return periods can provide a substatially different profile depending on the county taken into consideration.
+
+## Estimating Expected Extreme Values and Hail Events using Bayesian Regression {#sec-bayesian_regression}
+
+Looking at @fig-hail_comparison_total we can hypothesize that the probability of observing a hail event of a certain magnitude can be a function of latitude and longitude. Indeed,the extreme hail events, although scattered, seem to show a certain degree of spatial consistency. 
+
+So why not simply empirically derive the likelihood of observing a given hail size in a given county? A bit like whe have been doing in @fig-sample_size. As we can see, the empirical percentiles derived from the observed data are very dis-homogeneous. This is because they are strongly influenced by the data we have available for a given county. According to @fig-sample_size sample sizes can vary wildly from county to county and make the empirical estimate subject to the influence of outliers.
+
+In this case what we would want to do is to pool information from the entire state for helping estimating a given percentile of hail size in each county, even in those were we observe a limited number of events. On top of that we would also want to smooth out the contribution of outliers. One option in this case could be to fit a regression model on latitude and longitude data so to be able to estimate the hail size for a given event. However, relying a conventional linear regression approach would not be appropriated in our case as:
+
+1. Estimating the mean as simple least square regression would do is not appropriate as in our case we would be interested in the tail of the distribution.
+
+2. Assuming the residuals are normally distributed, as it is the case in standard linear regression, does not hold in our case.
+
+3. Looking at @fig-hail_comparison_total we can see that if a relationship between latitude, longitude and hail size exists, it is certainly not linear.
+
+4. In order to perform proper risk statements on estimate of hail size we need to be able to quantify uncertainty around our estimets.
+
+5. Estimating the size of hailstone for extreme events might only solve half of the problem. Since hail events per se are very rare it is also important to estimate their overall likelihood.
+
+
+```{python}
+#| code-fold: true
+#| code-summary: Show supplementary code
+from scipy.stats import iqr
+
+from sklearn.preprocessing import SplineTransformer, OrdinalEncoder, MinMaxScaler
+from sklearn.pipeline import Pipeline
+
+from jax import numpy as jnp
+from jax import random
+
+from numpyro.infer.reparam import LocScaleReparam
+
+from numpyro.distributions import (
+    Normal,
+    AsymmetricLaplaceQuantile,
+    HalfNormal,
+    HalfCauchy,
+    Distribution,
+    Laplace,
+)
+from numpyro.infer import MCMC, NUTS, Predictive, SVI, Trace_ELBO, RenyiELBO
+from numpyro.infer.svi import SVIRunResult
+from numpyro.infer.autoguide import (
+    AutoDAIS,
+    AutoNormal,
+    AutoLowRankMultivariateNormal,
+    AutoMultivariateNormal,
+)
+
+RNG_KEY = random.key(seed=666)
+
+def sample_using_mcmc(
+    rng_key: ArrayLike,
+    model: Callable,
+    model_kwargs: Dict[str, Any],
+    MCMC_kwargs: Dict[str, Any],
+) -> MCMC:
+    """Sample from the model using MCMC"""
+    rng_key, sub_rng_key = random.split(rng_key)
+    kernel = NUTS(model=model)
+    mcmc = MCMC(kernel, progress_bar=True, **MCMC_kwargs)
+    mcmc.run(sub_rng_key, **model_kwargs)
+    mcmc.print_summary()
+    return mcmc
+
+
+def sample_using_svi(
+    rng_key: ArrayLike,
+    model: Callable,
+    autoguide: Any,
+    model_kwargs: Dict[str, Any],
+    guide_kwargs: Dict[str, Any],
+    optimizer_kwargs: Dict[str, Any],
+    num_steps: int,
+    elbo_tracer: Any = Trace_ELBO,
+    num_particles: int = 2
+) -> Tuple[SVIRunResult, AutoDAIS]:
+    """Sample from the model using variational inference"""
+    rng_key, sub_rng_key = random.split(rng_key)
+    guide = autoguide(model=model, **guide_kwargs)
+    optimizer = numpyro.optim.ClippedAdam(**optimizer_kwargs)
+    svi = SVI(model, guide, optimizer, loss=elbo_tracer(num_particles=num_particles))
+    svi_result = svi.run(sub_rng_key, num_steps, **model_kwargs)
+
+    fig, ax = plt.subplots()
+    ax.plot(svi_result.losses)
+    ax.set_title("ELBO loss")
+    ax.grid(alpha=0.5)
+    plt.show()
+
+    return svi_result, guide
+
+
+def sample_posterior_predictive_mcmc(
+    rng_key: ArrayLike,
+    model: Callable,
+    posterior_samples: Dict[str, Any],
+    model_kwargs: Dict[str, Any],
+) -> ArrayLike:
+    """Sample from the posterior using MCMC  posterior samples"""
+    rng_key, sub_rng_key = random.split(rng_key)
+    predictive = Predictive(model, posterior_samples=posterior_samples)
+    posterior_predictive = predictive(rng_key=sub_rng_key, **model_kwargs)
+    return posterior_predictive
+
+
+def sample_posterior_predictive_svi(
+    rng_key: ArrayLike,
+    model: Callable,
+    guide: AutoDAIS,
+    covariates_hat: Dict[str, ArrayLike],
+    svi_result: SVIRunResult,
+    num_samples: int,
+    model_kwargs: Dict[str, Any],
+    return_sites: List[str] = None,
+    target: ArrayLike = None,
+) -> ArrayLike:
+    """Sample from the posterior using SVI inferred parameters"""
+    model_kwargs = {key: value for key, value in model_kwargs.items()}
+    model_kwargs["target"] = target
+    model_kwargs["covariates"] = covariates_hat
+    predictive = Predictive(
+        model=model,
+        guide=guide,
+        params=svi_result.params,
+        num_samples=num_samples,
+        exclude_deterministic=False,
+        return_sites=return_sites,
+    )
+    rng_key, sub_rng_key = random.split(rng_key)
+    posterior_predictive = predictive(rng_key=sub_rng_key, **model_kwargs)
+    return posterior_predictive
+
+
+def transform_fitting_covariates(
+    covariates: Dict[str, ArrayLike],
+    transformers: Dict[str, Any],
+) -> Tuple[Dict[str, ArrayLike], Dict[str, Any]]:
+    """Fit transformers and transform covariates"""
+    transformed_covariates = {}
+    for covariate_name, covariate_array in covariates.items():
+
+        transformers[covariate_name].fit(covariate_array)
+        transformed_covariates[covariate_name] = transformers[covariate_name].transform(
+            covariate_array
+        )
+
+    return transformed_covariates, transformers
+
+
+def transform_estimation_covariates(
+    covariates: Dict[str, ArrayLike],
+    transformers: Dict[str, Any],
+) -> Dict[str, ArrayLike]:
+    """Transform covariates using fitted transformers"""
+    transformed_covariates = {}
+    for covariate_name, covariate_array in covariates.items():
+
+        transformed_covariates[covariate_name] = transformers[covariate_name].transform(
+            covariate_array
+        )
+
+    return transformed_covariates
+
+
+def jaxify_array_dictionary(
+    array_dictionary: Dict[str, ArrayLike],
+) -> Dict[str, ArrayLike]:
+    """Turn arrays in a dictionary into JAX arrays"""
+    jaxified_array_dictionary = {}
+    for key, value in array_dictionary.items():
+
+        jaxified_array_dictionary[key] = jnp.array(value)
+
+    return jaxified_array_dictionary
+
+
+def prepare_modelling_data(
+    covariates: Dict[str, ArrayLike],
+    covariates_hat: Dict[str, ArrayLike],
+    transformers: Dict[str, Pipeline],
+    target: ArrayLike,
+) -> Tuple[Dict[str, Pipeline], Dict[str, ArrayLike], Dict[str, ArrayLike], ArrayLike]:
+    transformed_covariates, transformers = transform_fitting_covariates(
+        covariates=covariates,
+        transformers=transformers,
+    )
+    transformed_covariates_hat = transform_estimation_covariates(
+        covariates=covariates_hat,
+        transformers=transformers,
+    )
+    transformed_covariates = jaxify_array_dictionary(
+        array_dictionary=transformed_covariates,
+    )
+    transformed_covariates_hat = jaxify_array_dictionary(
+        array_dictionary=transformed_covariates_hat,
+    )
+    target = jnp.array(target)
+
+    return transformers, transformed_covariates, transformed_covariates_hat, target
+
+def generate_temporal_components(
+    posterior: Dict[str, ArrayLike],
+    transformers: Dict[str, Pipeline],
+    years: ArrayLike,
+    suffix: str = "",
+    parameter_transformer: Callable = None
+) -> Dict[str, ArrayLike]:
+    """Generate the temporal components"""
+    mapped_dot = vmap(jnp.dot, in_axes=(None, 0))
+    covariates = {
+        "year_covariates": (years.reshape(-1, 1)),
+        "month_covariates": (np.arange(1, 13).reshape(-1, 1)),
+        "hour_covariates": (np.arange(24).reshape(-1, 1)),
+    }
+
+    covariates = transform_estimation_covariates(
+        covariates=covariates, transformers=transformers
+    )
+
+    year_component = mapped_dot(
+        covariates["year_covariates"], posterior[f"beta_year{suffix}"]
+    )
+    month_component = mapped_dot(
+        covariates["month_covariates"], posterior[f"beta_month{suffix}"]
+    )
+    hour_component = mapped_dot(
+        covariates["hour_covariates"], posterior[f"beta_hour{suffix}"]
+    )
+
+    posterior_components = {
+        "year_component": year_component,
+        "month_component": month_component,
+        "hour_component": hour_component,
+    }
+
+    if parameter_transformer is not None:
+
+        posterior_components = {
+            key: parameter_transformer(value) for key, value in posterior_components.items()
+        }
+
+    return posterior_components
+
+def visualize_geo_regression(
+    covariates_hat_df: gpd.GeoDataFrame, posterior: Dict[str, ArrayLike], parameter: str, parameter_transformer: Callable = None
+) -> Tuple[plt.Figure, Axes]:
+    """Visualize the result from the regression on a geodataframe."""
+    parameter_value = posterior[parameter]
+    if parameter_transformer is not None:
+        parameter_value = parameter_transformer(parameter_value)
+
+    covariates_hat_df["2.5%"] = np.percentile(
+        parameter_value,
+        q=2.5,
+        axis=0,
+    )
+    covariates_hat_df["Median"] = np.percentile(
+        parameter_value,
+        q=50,
+        axis=0,
+    )
+    covariates_hat_df["97.5%"] = np.percentile(
+        parameter_value,
+        q=97.5,
+        axis=0,
+    )
+    fig, axs = plt.subplots(1, 3, figsize=(15, 10))
+    for ax, column in zip(axs, ["2.5%", "Median", "97.5%"]):
+
+        covariates_hat_df.plot(
+            column,
+            ax=ax,
+            cmap=COLORMAP_NAME,
+            legend=True,
+            legend_kwds={"shrink": 0.3},
+            vmin=np.percentile(parameter_value, q=1),
+            vmax=np.percentile(parameter_value, q=99),
+        )
+        ax.grid(alpha=0.5)
+        ax.set_title(column)
+        ax.set_ylabel("Longitude")
+        ax.set_xlabel("Latitude")
+
+    return fig, axs
+
+
+def visualize_county_regression(
+    modelling_df: pd.DataFrame,
+    covariates_hat_df: gpd.GeoDataFrame,
+    posterior: Dict[str, ArrayLike],
+    parameter: str,
+    target: str,
+) -> Tuple[plt.Figure, Axes]:
+    """Visualize the regression at county level"""
+    samples_df = pd.DataFrame(posterior[parameter].T)
+    samples_df[COUNTIES_INDEX] = covariates_hat_df[COUNTIES_INDEX].values
+    rows = 4
+    random_counties = np.random.choice(
+        samples_df[COUNTIES_INDEX].unique(), rows**2, replace=False
+    )
+    fig, axs = plt.subplots(rows, rows, figsize=(10, 10))
+    for county, ax in zip(random_counties, axs.flatten()):
+
+        county_target = modelling_df[modelling_df[COUNTIES_INDEX] == county][
+            target
+        ].values
+        county_samples = (
+            samples_df[samples_df[COUNTIES_INDEX] == county]
+            .drop([COUNTIES_INDEX], axis=1)
+            .values.flatten()
+        )
+        sns.histplot(
+            data=county_target,
+            element="step",
+            fill=False,
+            stat="density",
+            ax=ax,
+            color=COLORMAP(5),
+        )
+
+        ax.axvline(np.quantile(county_target, CRITICAL_QUANTILE), c="r", linestyle="--")
+        ax.axvspan(
+            np.quantile(county_samples, 0.025),
+            np.quantile(county_samples, 0.975),
+            alpha=0.5,
+            color="red",
+        )
+        ax.grid(alpha=0.5)
+        ax.set_ylim(0, None)
+    plt.tight_layout()
+    return fig, axs
+
+
+def visualize_temporal_components(temporal_components: Dict[str, ArrayLike]) -> Tuple[plt.Figure, Axes]:
+    """Visualize the various temporal components"""
+    fig, axs = plt.subplots(1, 3, figsize=(12, 4))
+    for ax, component in zip(axs.flatten(), ["year_component", "month_component", "hour_component"]):
+        ax.plot(
+            np.percentile(
+                a=temporal_components[component],
+                q=50,
+                axis=0
+            ),
+            c=COLORMAP(5)
+        )
+        ax.fill_between(
+            np.arange(temporal_components[component].shape[1]),
+            np.percentile(
+                a=temporal_components[component],
+                q=2.5,
+                axis=0
+            ),
+            np.percentile(
+                a=temporal_components[component],
+                q=97.5,
+                axis=0
+            ),
+            color=COLORMAP(1),
+            alpha=0.5
+        )
+        ax.set_title(" ".join(component.split("_")))
+        ax.grid(alpha=0.5)
+        ax.set_xlabel(component.split("_")[0])
+        ax.set_ylabel("Component Contribution")
+
+    plt.tight_layout()
+    return fig, axs
+
+
+def create_tensor_product_spline(first_spline, second_spline):
+    return np.tensordot(first_spline, second_spline, axes=0)
+```
+
+### Estimating Expected Extreme Values Using Quantile Regression{#sec-quantile_regression}
+
+A potential solution for estimating the hail size of rare (i.e. extreme) events would be to use a [quantile regression](https://en.wikipedia.org/wiki/Quantile_regression). Differently from conventional regression, quantile regression can be used for estimating any quantile in a distribution and not just the mean
+
+![Example of Quantile Regression](results/images/quantile_regression.png)
+
+Using a regression approach would allow us to include the type of spatial and temporal effect we outlined during oour exploratory data analysis. Generically the regression would have the following formulation:
+
+$\mathcal{Q}_{y_i|X_i}(\tau) = \alpha + \beta X_i$
+
+with $\tau$ being the desired quantile, $X_i$ all the spatio-temporal covariates associated with hail events $y_i$ and $\alpha$ and $\beta$ parameters to be estimated. A convenient choice of likelihood function for estimating $$\mathcal{Q}_{y_i|X_i}(\tau)$ would be the [asymetric laplace distribution](https://en.wikipedia.org/wiki/Asymmetric_Laplace_distribution) . Expanding the formulation for quantile regression further, we would have
+
+$\mathcal{AsymettricLaplace}(y; \mu, \tau) = \alpha + \phi(LatLon_i) \beta_{LatLon} + \phi(hour) \beta_{Hour} + \phi(month) \beta_{month} + \phi(year) \beta_{year}$
+
+here $\phi$ indicate a cubic spline function that we apply in order to model non-linearity in the contribution of the various covariates. More precisly, $\phi(LatLon_i)$ is a [tensor-product spline](https://stats.stackexchange.com/questions/45446/intuition-behind-tensor-product-interactions-in-gams-mgcv-package-in-r) generated from the latitude and longitude splines. $\phi(hour)$ and $\phi(month)$ can be thought as seasonal components while $\phi(year)$ can be identified as a trend component. In or case the only parameter to be estimated is $\mu$ that indicates the value of $y$ at quantile $\tau$. 
+
+In order to perform estimation on the entire surface of Florida we opted for an approximation of the spatial covariates by doing the following:
+
+1. Dividing the entire surface of Florida in a grid with 1 mile resolution (see @fig-estimation_grid).
+
+![The Estimation Grid Used for the Regression](results/images/estimation_grid.png){#fig-estimation_grid}
+
+3. For each square in the grid we obtain its centroid and extract the latitude, longitude and maximum observed hail size for that specific centroid obtaining something like the following table
+
+| latitude | longitude | hail_size |
+|:--------:|:---------:|:---------:|
+|    XXX   |    YYY    |     Z     |
+|    XXX   |    YYY    |     Z     |
+|    ...   |    ...    |    ...    |
+
+We retained all measurements associated with a given square so that a single square might have more than one hail event associated to it. It goes without saying that the spatial resolution of our regression here would be entirely determined by the size of the squares.
+
+```{python}
+#| code-fold: true
+#| code-summary: Show supplementary code
+def create_estimation_covariates_quantile_regression(
+    months: List[int],
+    hours: List[int],
+    years: List[int],
+    geometries_df: gpd.GeoDataFrame,
+    edge_size: float,
+    states: List[str],
+) -> Tuple[gpd.GeoDataFrame, Dict[str, ArrayLike]]:
+    """Create the covariates for estimation"""
+    quantile_regression_covariates_hat_df = create_covariates_df(
+        geometries_df=geometries_df,
+        edge_size=edge_size,
+        state=states,
+        months=months,
+        hours=hours,
+        years=years,
+    )
+    quantile_regression_covariates_hat = {
+        "latitude_covariates": (
+            quantile_regression_covariates_hat_df[LAT_COVARIATES].values.reshape(-1, 1)
+        ),
+        "longitude_covariates": (
+            quantile_regression_covariates_hat_df[LON_COVARIATES].values.reshape(-1, 1)
+        ),
+        "year_covariates": (
+            quantile_regression_covariates_hat_df[YEAR_COVARIATES].values.reshape(-1, 1)
+        ),
+        "month_covariates": (
+            quantile_regression_covariates_hat_df[MONTH_COVARIATE].values.reshape(-1, 1)
+        ),
+        "hour_covariates": (
+            quantile_regression_covariates_hat_df[HOUR_COVARIATE].values.reshape(-1, 1)
+        ),
+        "counties_index": (
+            quantile_regression_covariates_hat_df[COUNTIES_INDEX].values.reshape(-1, 1)
+        ),
+    }
+    return quantile_regression_covariates_hat_df, quantile_regression_covariates_hat
+```
+
+```{python}
+quantile_regression_transformers = {
+    "latitude_covariates": Pipeline(
+        steps=[
+            (
+                "spline_transformer",
+                SplineTransformer(
+                    include_bias=False,
+                    extrapolation="periodic",
+                    n_knots=15,
+                ),
+            )
+        ]
+    ),
+    "longitude_covariates": Pipeline(
+        steps=[
+            (
+                "spline_transformer",
+                SplineTransformer(
+                    include_bias=False,
+                    extrapolation="periodic",
+                    n_knots=15,
+                ),
+            )
+        ]
+    ),
+    "year_covariates": Pipeline(
+        steps=[
+            (
+                "ordinal_encoder",
+                OrdinalEncoder(
+                    dtype="int",
+                ),
+            ),
+            (
+                "spline_transformer",
+                SplineTransformer(
+                    include_bias=False,
+                ),
+            ),
+        ]
+    ),
+    "month_covariates": Pipeline(
+        steps=[
+            (
+                "spline_transformer",
+                SplineTransformer(
+                    include_bias=False,
+                ),
+            )
+        ]
+    ),
+    "hour_covariates": Pipeline(
+        steps=[
+            (
+                "spline_transformer",
+                SplineTransformer(
+                    include_bias=False,
+                ),
+            )
+        ]
+    ),
+    "counties_index": OrdinalEncoder(
+        dtype="int",
+    ),
+}
+quantile_regression_covariates = {
+    "latitude_covariates": (
+        continuous_state_modelling_df[LAT_COVARIATES].values.reshape(-1, 1)
+    ),
+    "longitude_covariates": (
+        continuous_state_modelling_df[LON_COVARIATES].values.reshape(-1, 1)
+    ),
+    "year_covariates": (
+        continuous_state_modelling_df[YEAR_COVARIATES].values.reshape(-1, 1)
+    ),
+    "month_covariates": (
+        continuous_state_modelling_df[MONTH_COVARIATE].values.reshape(-1, 1)
+    ),
+    "hour_covariates": (
+        continuous_state_modelling_df[HOUR_COVARIATE].values.reshape(-1, 1)
+    ),
+    "counties_index": (
+        continuous_state_modelling_df[COUNTIES_INDEX].values.reshape(-1, 1)
+    ),
+}
+quantile_regression_target = continuous_state_modelling_df[CONTINUOUS_TARGET].values
+
+quantile_regression_covariates_hat_df, quantile_regression_covariates_hat = (
+    create_estimation_covariates_quantile_regression(
+        months=[5],
+        hours=[17],
+        years=[2024],
+        geometries_df=geometries_df,
+        edge_size=DEGREES_PRECISION,
+        states=SELECTED_ANALYSIS_STATES,
+    )
+)
+
+(
+    quantile_regression_transformers,
+    quantile_regression_covariates,
+    quantile_regression_covariates_hat,
+    target,
+) = prepare_modelling_data(
+    covariates=quantile_regression_covariates,
+    covariates_hat=quantile_regression_covariates_hat,
+    target=quantile_regression_target,
+    transformers=quantile_regression_transformers,
+)
+
+quantile_regression_covariates["latitude_longitude_tensor_covariates"] = (
+    np.vstack(
+        [
+            create_tensor_product_spline(
+                quantile_regression_covariates["latitude_covariates"][i, :], 
+                quantile_regression_covariates["longitude_covariates"][i, :]).flatten() for i in range(quantile_regression_covariates["latitude_covariates"].shape[0]
+            )
+        ]
+    )
+)
+quantile_regression_covariates_hat["latitude_longitude_tensor_covariates"] = (
+    np.vstack(
+        [
+            create_tensor_product_spline(
+                quantile_regression_covariates_hat["latitude_covariates"][i, :], 
+                quantile_regression_covariates_hat["longitude_covariates"][i, :]).flatten() for i in range(quantile_regression_covariates_hat["latitude_covariates"].shape[0]
+            )
+        ]
+    )
+)
+
+```
+
+**Partially Pooled Quantile Regression**
+
+Before modelling the spatial components directly (which is a rather expensive process) we attempted an approximated solution by varying the intercept of the model for each county in the state. In order to pool information across the entire state and performing outlier regularization we opted for a [partially-pooled model](https://en.wikipedia.org/wiki/Bayesian_hierarchical_modeling) (an amazing resource for learning more about this topic is this Michael Betancourt [blog post](https://betanalpha.github.io/assets/case_studies/hierarchical_modeling.html)).
+
+$$
+\begin{gather}
+\color{RedOrange}\sigma_{county} \sim HalfCauchy(\sigma=5) \\
+\color{RedOrange}\mu_{county} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{RedOrange}\alpha_{county} \sim \mathcal{N}(\mu_{county}, \sigma_{county}) \\
+\beta_{hour} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\beta_{month} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\sigma \sim HalfNormal(1)\\
+\mu = exp(\alpha_{county} + \beta_{hour}f(hour) + \beta_{month}f(month) + \beta_{year}f(year))\\
+\color{RedOrange} y \sim AsymmetricLapace(\mu, \sigma, \tau=.95)
+\end{gather}
+$$
+
+Given the fomrulation above, it is iomportant to remeber that given the exponential link applied to $\mu$ the relationship between covariates is multiplicative rather than additive.
+
+We define the model in numpyro and visualize its graphical model representation
+
+```{python}
+reparam_config = {
+    "alpha": LocScaleReparam(0),
+}
+
+
+@numpyro.handlers.reparam(config=reparam_config)
+def hierarchical_non_spatial_quantile_regression(
+    target: ArrayLike,
+    covariates: Dict[str, ArrayLike],
+    quantile: float,
+    prior_mu_alpha: Distribution,
+    prior_sigma_alpha: Distribution,
+    prior_scale: Distribution,
+    prior_beta_year: Distribution,
+    prior_beta_month: Distribution,
+    prior_beta_hour: Distribution,
+) -> None:
+    """Quantile regression model with partially pooled intercept"""
+    n_groups = len(np.unique(covariates["counties_index"]))
+    counties_index = covariates["counties_index"].flatten()
+
+    mu_alpha = numpyro.sample(
+        "mu_alpha",
+        prior_mu_alpha,
+    )
+    sigma_alpha = numpyro.sample(
+        "sigma_alpha",
+        prior_sigma_alpha,
+    )
+
+    with numpyro.plate("counties", n_groups):
+
+        alpha = numpyro.sample(
+            "alpha",
+            Normal(mu_alpha, sigma_alpha),
+        )
+
+    beta_hour = numpyro.sample(
+        "beta_hour",
+        prior_beta_hour.expand([covariates["hour_covariates"].shape[1]]),
+    )
+    beta_month = numpyro.sample(
+        "beta_month",
+        prior_beta_month.expand([covariates["month_covariates"].shape[1]]),
+    )
+    beta_year = numpyro.sample(
+        "beta_year",
+        prior_beta_year.expand([covariates["year_covariates"].shape[1]]),
+    )
+    hour_component = numpyro.deterministic(
+        name="hour_component",
+        value=jnp.dot(covariates["hour_covariates"], beta_hour),
+    )
+    month_component = numpyro.deterministic(
+        name="month_component",
+        value=jnp.dot(covariates["month_covariates"], beta_month),
+    )
+    year_component = numpyro.deterministic(
+        name="year_component",
+        value=jnp.dot(covariates["year_covariates"], beta_year),
+    )
+    temporal_component = numpyro.deterministic(
+        name="temporal_component",
+        value=year_component + month_component + hour_component,
+    )
+    spatial_component = numpyro.deterministic(
+        name="spatial_component",
+        value=alpha[counties_index],
+    )
+    loc = numpyro.deterministic(
+        name="loc", 
+        value=jnp.exp(spatial_component + temporal_component)
+    )
+    scale = numpyro.sample(
+        "scale",
+        prior_scale,
+    )
+    obs = numpyro.sample(
+        "obs",
+        AsymmetricLaplaceQuantile(loc=loc, scale=scale, quantile=quantile),
+        obs=target,
+    )
+    if target is not None:
+        numpyro.deterministic(
+            "log_likelihood",
+            AsymmetricLaplaceQuantile(
+                loc=loc, 
+                scale=scale, 
+                quantile=quantile,
+            )
+            .log_prob(target)
+        )
+
+hierarchical_non_spatial_model_parameters = [
+    "mu_alpha",
+    "sigma_alpha",
+    "beta_hour",
+    "beta_month",
+    "beta_year",
+    "loc",
+    "alpha",
+    "hour_component",
+    "month_component",
+    "year_component",
+    "temporal_component",
+    "spatial_component",
+    "scale",
+    "obs",
+]
+hierarchical_non_spatial_model_kwargs = {
+    "covariates": quantile_regression_covariates,
+    "quantile": CRITICAL_QUANTILE,
+    "target": quantile_regression_target,
+    "prior_mu_alpha": Normal(loc=0.0, scale=5.0),
+    "prior_sigma_alpha": HalfCauchy(scale=2.0),
+    "prior_beta_year": Normal(loc=0.0, scale=1),
+    "prior_beta_month": Normal(loc=0.0, scale=1),
+    "prior_beta_hour": Normal(loc=0.0, scale=1),
+    "prior_scale": HalfNormal(scale=1),
+}
+numpyro.render_model(
+    hierarchical_non_spatial_quantile_regression,
+    model_kwargs=hierarchical_non_spatial_model_kwargs,
+    render_distributions=False,
+)
+```
+
+Given the size of our data we then proceed at estimating the parameters using [variational inference](https://en.wikipedia.org/wiki/Variational_Bayesian_methods) (we recommend this amazing [primer](https://www.youtube.com/watch?v=Moo4-KR5qNg) on variational bayes by Tamara Broderick).
+
+```{python}
+svi_pooled_quantile_regression_parameters, svi_pooled_quantile_regression_guide = (
+    sample_using_svi(
+        rng_key=RNG_KEY,
+        model=hierarchical_non_spatial_quantile_regression,
+        model_kwargs=hierarchical_non_spatial_model_kwargs,
+        autoguide=AutoMultivariateNormal,
+        guide_kwargs={},
+        optimizer_kwargs={"step_size": 1e-4, "clip_norm": 5},
+        num_steps=NUMBER_ITERATIONS,
+        num_particles=NUMBER_PARTICLES,
+    )
+)
+```
+
+An then sampled from the posterior distribution using previously unseen data (i.e. the covariates we have generated)
+
+```{python}
+posterior_hierarchical_non_spatial_regression_svi = sample_posterior_predictive_svi(
+    rng_key=RNG_KEY,
+    covariates_hat=quantile_regression_covariates_hat,
+    model_kwargs=hierarchical_non_spatial_model_kwargs,
+    model=hierarchical_non_spatial_quantile_regression,
+    guide=svi_pooled_quantile_regression_guide,
+    svi_result=svi_pooled_quantile_regression_parameters,
+    num_samples=2000,
+    return_sites=hierarchical_non_spatial_model_parameters,
+)
+```
+
+This plot shows the estimated intercept values for each county as a crude approxiamtion of a spatial component
+
+```{python}
+fig, axs = visualize_geo_regression(
+    covariates_hat_df=quantile_regression_covariates_hat_df,
+    posterior=posterior_hierarchical_non_spatial_regression_svi,
+    parameter="spatial_component",
+    parameter_transformer=lambda x: jnp.exp(x)
+
+)
+plt.show()
+```
+
+While this other plots show both the seasonal and trend componets coming from the hour, month and year covariates.
+
+```{python}
+fig, axs = visualize_temporal_components(
+    temporal_components=generate_temporal_components(
+        posterior=posterior_hierarchical_non_spatial_regression_svi,
+        transformers=quantile_regression_transformers,
+        years=continuous_state_modelling_df[YEAR_COVARIATES].unique(),
+        parameter_transformer=lambda x: jnp.exp(x)
+    )
+)
+plt.show()
+```
+
+**Fully Pooled Spatial Quantile Regression**
+
+In order to then obtain a finer grain spatial representation we then proceeded at substituting the intercept $\alpha$ from the previous model with a tensor product spline obtained from latitude and longitude. In the case the $Laplace$ prior is applied in order to put a strong regularization component on the tensor product spline.
+
+$$
+\begin{gather}
+\color{RedOrange}\beta_{spatial} \sim Laplace(\mu=0, \sigma=1) \\
+\beta_{hour} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\beta_{month} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\beta_{year} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\sigma \sim HalfNormal(1)\\
+\color{RedOrange}\mu = exp(\beta_{spatial}f(spatial) + \beta_{hour}f(hour) + \beta_{month}f(month) + \beta_{year}f(year))\\
+\ y \sim AsymmetricLapace(\mu, \sigma, \tau=.95)
+\end{gather}
+$$
+
+
+```{python}
+def pooled_quantile_regression(
+    target: ArrayLike,
+    covariates: Dict[str, ArrayLike],
+    quantile: float,
+    prior_beta_spatial: Distribution,
+    prior_beta_month: Distribution,
+    prior_beta_year: Distribution,
+    prior_beta_hour: Distribution,
+    prior_scale: Distribution,
+) -> None:
+    """Simple quantile regression model"""
+    beta_spatial = numpyro.sample(
+        "beta_spatial",
+        prior_beta_spatial.expand([covariates["latitude_longitude_tensor_covariates"].shape[1]]),
+    )
+    beta_hour = numpyro.sample(
+        "beta_hour",
+        prior_beta_hour.expand([covariates["hour_covariates"].shape[1]]),
+    )
+    beta_month = numpyro.sample(
+        "beta_month",
+        prior_beta_month.expand([covariates["month_covariates"].shape[1]]),
+    )
+    beta_year = numpyro.sample(
+        "beta_year",
+        prior_beta_year.expand([covariates["year_covariates"].shape[1]]),
+    )
+    scale = numpyro.sample(
+        "scale",
+        prior_scale,
+    )
+    hour_component = numpyro.deterministic(
+        name="hour_component",
+        value=jnp.dot(covariates["hour_covariates"], beta_hour),
+    )
+    month_component = numpyro.deterministic(
+        name="month_component",
+        value=jnp.dot(covariates["month_covariates"], beta_month),
+    )
+    year_component = numpyro.deterministic(
+        name="year_component",
+        value=jnp.dot(covariates["year_covariates"], beta_year),
+    )
+    spatial_component = numpyro.deterministic(
+        name="spatial_component",
+        value=jnp.dot(covariates["latitude_longitude_tensor_covariates"], beta_spatial),
+    )
+    temporal_component = numpyro.deterministic(
+        name="temporal_component",
+        value=year_component + month_component + hour_component,
+    )
+    loc = numpyro.deterministic(
+        name="loc",
+        value=jnp.exp(spatial_component + temporal_component),
+    )
+    obs = numpyro.sample(
+        "obs",
+        AsymmetricLaplaceQuantile(loc=loc, scale=scale, quantile=quantile),
+        obs=target,
+    )
+    if target is not None:
+        numpyro.deterministic(
+            "log_likelihood",
+            AsymmetricLaplaceQuantile(
+                loc=loc, 
+                scale=scale, 
+                quantile=quantile,
+            )
+            .log_prob(target)
+        )
+
+pooled_quantile_model_parameters = [
+    "beta_spatial",
+    "beta_hour",
+    "beta_month",
+    "beta_year",
+    "loc",
+    "spatial_component",
+    "hour_component",
+    "month_component",
+    "year_component",
+    "scale",
+    "obs",
+]
+pooled_quantile_model_kwargs = {
+    "covariates": quantile_regression_covariates,
+    "quantile": CRITICAL_QUANTILE,
+    "target": quantile_regression_target,
+    "prior_beta_spatial": Laplace(loc=0.0, scale=5),
+    "prior_beta_year": Normal(loc=0.0, scale=1),
+    "prior_beta_month": Normal(loc=0.0, scale=1),
+    "prior_beta_hour": Normal(loc=0.0, scale=1),
+    "prior_scale": HalfNormal(scale=1),
+}
+numpyro.render_model(
+    pooled_quantile_regression,
+    model_kwargs=pooled_quantile_model_kwargs,
+    render_distributions=False,
+    render_params=True,
+)
+```
+
+Again we proceeded at estimating parameters using variational inference
+
+```{python}
+svi_pooled_quantile_regression_parameters, svi_pooled_quantile_regression_guide = (
+    sample_using_svi(
+        rng_key=RNG_KEY,
+        model=pooled_quantile_regression,
+        model_kwargs=pooled_quantile_model_kwargs,
+        autoguide=AutoMultivariateNormal,
+        guide_kwargs={},
+        optimizer_kwargs={"step_size": 1e-4, "clip_norm": 5},
+        num_steps=NUMBER_ITERATIONS,
+        num_particles=NUMBER_PARTICLES,
+    )
+)
+```
+
+And we then obtained the posterior samples
+
+```{python}
+posterior_pooled_quantile_regression_svi = sample_posterior_predictive_svi(
+    rng_key=RNG_KEY,
+    covariates_hat=quantile_regression_covariates_hat,
+    model_kwargs=pooled_quantile_model_kwargs,
+    model=pooled_quantile_regression,
+    guide=svi_pooled_quantile_regression_guide,
+    svi_result=svi_pooled_quantile_regression_parameters,
+    num_samples=2000,
+    return_sites=pooled_quantile_model_parameters,
+)
+```
+
+We can see how the spatial component now varies smoothly across the entire state 
+
+```{python}
+fig, axs = visualize_geo_regression(
+    covariates_hat_df=quantile_regression_covariates_hat_df,
+    posterior=posterior_pooled_quantile_regression_svi,
+    parameter="spatial_component",
+    parameter_transformer=lambda x: jnp.exp(x)
+)
+plt.show()
+```
+
+We also obtained the same temporal components as before
+
+```{python}
+fig, axs = visualize_temporal_components(
+    temporal_components=generate_temporal_components(
+        posterior=posterior_pooled_quantile_regression_svi,
+        transformers=quantile_regression_transformers,
+        years=continuous_state_modelling_df[YEAR_COVARIATES].unique(),
+        parameter_transformer=lambda x: jnp.exp(x)
+    )
+)
+plt.show()
+```
+
+**Partially Pooled Spatial Quantile Regression**
+
+As a final iteration of the quantile regression model we wanted to combine the partially pooled model with the fully pooled spatial model by allowing the spatial component to vary within each county. Although rather expensive (the model needs to estimate `number_of_counties * number_spline_features` parameters) this approach allows to have spatial effects that are localized to each county. This is an attempt to model the geographical peculiarities that each county might have.
+
+$$
+\begin{gather}
+\color{RedOrange}\sigma_{county} \sim HalfCauchy(\sigma=5) \\
+\color{RedOrange}\mu_{county} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{RedOrange}\beta_{spatial,county} \sim Laplace(\mu_{county}, \sigma_{county}) \\
+\beta_{hour} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\beta_{month} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\beta_{year} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\sigma \sim HalfNormal(1)\\
+\color{RedOrange}\mu = exp(\beta_{spatial,county}f(spatial) + \beta_{hour}f(hour) + \beta_{month}f(month) + \beta_{year}f(year))\\
+\ y \sim AsymmetricLapace(\mu, \sigma, \tau=.95)
+\end{gather}
+$$
+
+The numpyro model here make use of a double plate notation in order to specify a different `beta_spatial` for each county
+
+```{python}
+reparam_config = {
+    "beta_spatial": LocScaleReparam(0),
+}
+@numpyro.handlers.reparam(config=reparam_config)
+def hierarchical_quantile_regression(
+    target: ArrayLike,
+    covariates: Dict[str, ArrayLike],
+    quantile: float,
+    prior_mu_beta_spatial: Distribution,
+    prior_sigma_beta_spatial: Distribution,
+    prior_scale: Distribution,
+    prior_beta_year: Distribution,
+    prior_beta_month: Distribution,
+    prior_beta_hour: Distribution,
+) -> None:
+    """Quantile regression model with partially pooled intercept"""
+    n_groups = len(np.unique(covariates["counties_index"]))
+    n_spatial_covariates = covariates["latitude_longitude_tensor_covariates"].shape[1]
+    counties_index = covariates["counties_index"].flatten()
+
+    mu_beta_spatial = numpyro.sample(
+        "mu_beta_spatial",
+        prior_mu_beta_spatial,
+    )
+    sigma_beta_spatial = numpyro.sample(
+        "sigma_beta_spatial",
+        prior_sigma_beta_spatial,
+    )
+    with numpyro.plate("counties", n_groups, dim=-2):
+
+        with numpyro.plate("spline_coefficients", n_spatial_covariates, dim=-1):
+
+            beta_spatial = numpyro.sample(
+                "beta_spatial",
+                Laplace(mu_beta_spatial, sigma_beta_spatial),
+            )
+
+    beta_hour = numpyro.sample(
+        "beta_hour",
+        prior_beta_hour.expand([covariates["hour_covariates"].shape[1]]),
+    )
+    beta_month = numpyro.sample(
+        "beta_month",
+        prior_beta_month.expand([covariates["month_covariates"].shape[1]]),
+    )
+    beta_year = numpyro.sample(
+        "beta_year",
+        prior_beta_year.expand([covariates["year_covariates"].shape[1]]),
+    )
+    spatial_component = numpyro.deterministic(
+        name="spatial_component",
+        value=jnp.sum(
+            beta_spatial[counties_index, :] * covariates["latitude_longitude_tensor_covariates"],
+            axis=1,
+        ),
+    )
+    hour_component = numpyro.deterministic(
+        name="hour_component",
+        value=jnp.dot(covariates["hour_covariates"], beta_hour),
+    )
+    month_component = numpyro.deterministic(
+        name="month_component",
+        value=jnp.dot(covariates["month_covariates"], beta_month),
+    )
+    year_component = numpyro.deterministic(
+        name="year_component",
+        value=jnp.dot(covariates["year_covariates"], beta_year),
+    )
+    temporal_component = numpyro.deterministic(
+        name="temporal_component",
+        value=year_component + month_component + hour_component,
+    )
+
+    loc = numpyro.deterministic(
+        name="loc",
+        value=jnp.exp(spatial_component + temporal_component),
+    )
+    scale = numpyro.sample(
+        "scale",
+        prior_scale,
+    )
+    obs = numpyro.sample(
+        "obs",
+        AsymmetricLaplaceQuantile(loc=loc, scale=scale, quantile=quantile),
+        obs=target,
+    )
+    if target is not None:
+        numpyro.deterministic(
+            "log_likelihood",
+            AsymmetricLaplaceQuantile(
+                loc=loc, 
+                scale=scale, 
+                quantile=quantile,
+            )
+            .log_prob(target)
+        )
+
+hierarchical_quantile_model_kwargs = {
+    "covariates": quantile_regression_covariates,
+    "quantile": CRITICAL_QUANTILE,
+    "target": quantile_regression_target,
+    "prior_mu_beta_spatial": Normal(loc=0.0, scale=5.0),
+    "prior_sigma_beta_spatial": HalfCauchy(scale=2.0),
+    "prior_beta_year": Normal(loc=0.0, scale=1),
+    "prior_beta_month": Normal(loc=0.0, scale=1),
+    "prior_beta_hour": Normal(loc=0.0, scale=1),
+    "prior_scale": HalfNormal(scale=1),
+}
+hierarchical_quantile_model_parameters = [
+    "mu_beta_latitude",
+    "sigma_beta_latitude",
+    "mu_beta_longitude",
+    "sigma_beta_longitude",
+    "beta_hour",
+    "beta_month",
+    "beta_year",
+    "loc",
+    "latitude_component",
+    "longitude_component",
+    "temporal_component",
+    "spatial_component",
+    "hour_component",
+    "month_component",
+    "year_component",
+    "scale",
+    "obs",
+]
+numpyro.render_model(
+    hierarchical_quantile_regression,
+    model_kwargs=hierarchical_quantile_model_kwargs,
+    render_distributions=False,
+)
+```
+
+```{python}
+(
+    svi_hierarchical_quantile_regression_parameters,
+    svi_hierarchical_quantile_regression_guide,
+) = sample_using_svi(
+    rng_key=RNG_KEY,
+    model=hierarchical_quantile_regression,
+    model_kwargs=hierarchical_quantile_model_kwargs,
+    autoguide=AutoLowRankMultivariateNormal,
+    guide_kwargs={},
+    optimizer_kwargs={"step_size": 1e-4, "clip_norm": 5},
+    num_steps=NUMBER_ITERATIONS,
+    num_particles=NUMBER_PARTICLES,
+)
+```
+
+```{python}
+posterior_hierarchical_quantile_regression_svi = sample_posterior_predictive_svi(
+    rng_key=RNG_KEY,
+    covariates_hat=quantile_regression_covariates_hat,
+    model_kwargs=hierarchical_quantile_model_kwargs,
+    model=hierarchical_quantile_regression,
+    guide=svi_hierarchical_quantile_regression_guide,
+    svi_result=svi_hierarchical_quantile_regression_parameters,
+    num_samples=2000,
+    return_sites=hierarchical_quantile_model_parameters,
+)
+```
+
+As we can see, the spatial component is now much more heterogenous across counties. Although this is the effect we wanted to achieve, some of the sharp variation at counties' edges do not look very natural. This is a desirable effect when environmental conditions justify this behaviour (e.g., the presence of mountains or terrain depressions) but it might also be due to the fact that we did not put any constraint forcing coninuity between contiguous boundaries.
+
+```{python}
+visualize_geo_regression(
+    covariates_hat_df=quantile_regression_covariates_hat_df,
+    posterior=posterior_hierarchical_quantile_regression_svi,
+    parameter="spatial_component",
+    parameter_transformer=lambda x: jnp.exp(x),
+)
+plt.show()
+```
+
+```{python}
+fig, axs = visualize_temporal_components(
+    temporal_components=generate_temporal_components(
+        posterior=posterior_pooled_quantile_regression_svi,
+        transformers=quantile_regression_transformers,
+        years=continuous_state_modelling_df[YEAR_COVARIATES].unique(),
+        parameter_transformer=lambda x: jnp.exp(x),
+    )
+)
+plt.show()
+```
+
+### Estimating the Likelyhood of Hail Events Using Zero-Inflated Negative Binomial Regression
+
+A potential solution for estimating the overall likelyhood and quantity of  hail events  would be to use a [zero-inflated negative-binomial regression](https://en.wikipedia.org/wiki/Zero-inflated_model).
+
+Differently from the quantile regression in this case we did not model the spatial component as it would have been too cumbersome to enumerate all the possible occurencies of non-hail over space and time. We limited at modelling only the temporal component and using a hierarchcical intercept for modelling variations across counties.
+
+The zero-inflated negative binomial likelihood used in this regression is a mixture of a discrete component provided by a negative binomial regression and a gate component provided by a logistic regression. The first models the observed number of hail events while the second defines the overall likelihood of a hail event to happen (we suggest consulting [the lecture on mixtures](https://github.com/rmcelreath/stat_rethinking_2024) from Richard McElreath statistical rethinking course for a more precise discussion on the topic.)
+
+```{python}
+#| code-fold: true
+#| code-summary: Show supplementary code
+def create_estimation_covariates_zero_inflated_regression(
+    quantile_regression_covariates_hat_df: pd.DataFrame,
+    geometries_df: gpd.GeoDataFrame,
+) -> Tuple[gpd.GeoDataFrame, Dict[str, ArrayLike]]:
+    """Create the covariates for estimation"""
+    zero_inflated_regression_covariates_df_hat = quantile_regression_covariates_hat_df[
+        [YEAR_COVARIATES, MONTH_COVARIATE, HOUR_COVARIATE, COUNTIES_INDEX, STATE_INDEX]
+    ].drop_duplicates()
+
+    zero_inflated_regression_covariates_df_hat = gpd.GeoDataFrame(
+        pd.merge(
+            zero_inflated_regression_covariates_df_hat,
+            geometries_df[[COUNTIES_INDEX, STATE_INDEX, "geometry"]],
+            how="inner",
+            on=[COUNTIES_INDEX, STATE_INDEX],
+        )
+    )
+    zero_inflated_regression_covariates_hat = {
+        "year_covariates": (
+            zero_inflated_regression_covariates_df_hat[YEAR_COVARIATES].values.reshape(
+                -1, 1
+            )
+        ),
+        "month_covariates": (
+            zero_inflated_regression_covariates_df_hat[MONTH_COVARIATE].values.reshape(
+                -1, 1
+            )
+        ),
+        "hour_covariates": (
+            zero_inflated_regression_covariates_df_hat[HOUR_COVARIATE].values.reshape(
+                -1, 1
+            )
+        ),
+        "counties_index": (
+            zero_inflated_regression_covariates_df_hat[COUNTIES_INDEX].values.reshape(
+                -1, 1
+            )
+        ),
+    }
+    return (
+        zero_inflated_regression_covariates_df_hat,
+        zero_inflated_regression_covariates_hat,
+    )
+zero_inflated_regression_transformers = {
+    "year_covariates": Pipeline(
+        steps=[
+            (
+                "ordinal_encoder",
+                OrdinalEncoder(
+                    dtype="int",
+                ),
+            ),
+            (
+                "spline_transformer",
+                SplineTransformer(
+                    include_bias=False,
+                ),
+            ),
+        ]
+    ),
+    "month_covariates": Pipeline(
+        steps=[
+            (
+                "spline_transformer",
+                SplineTransformer(
+                    include_bias=False,
+                ),
+            )
+        ]
+    ),
+    "hour_covariates": Pipeline(
+        steps=[
+            (
+                "spline_transformer",
+                SplineTransformer(
+                    include_bias=False,
+                ),
+            )
+        ]
+    ),
+    "counties_index": OrdinalEncoder(
+        dtype="int",
+    ),
+}
+
+zero_inflated_regression_covariates = {
+    "year_covariates": (
+        count_state_modelling_df[YEAR_COVARIATES].values.reshape(-1, 1)
+    ),
+    "month_covariates": (
+        count_state_modelling_df[MONTH_COVARIATE].values.reshape(-1, 1)
+    ),
+    "hour_covariates": (count_state_modelling_df[HOUR_COVARIATE].values.reshape(-1, 1)),
+    "counties_index": (count_state_modelling_df[COUNTIES_INDEX].values.reshape(-1, 1)),
+}
+zero_inflated_regression_covariates_hat_df, zero_inflated_regression_covariates_hat = (
+    create_estimation_covariates_zero_inflated_regression(
+        quantile_regression_covariates_hat_df=quantile_regression_covariates_hat_df,
+        geometries_df=geometries_df,
+    )
+)
+
+(
+    zero_inflated_regression_covariates,
+    zero_inflated_regression_transformers,
+) = transform_fitting_covariates(
+    covariates=zero_inflated_regression_covariates,
+    transformers=zero_inflated_regression_transformers,
+)
+zero_inflated_regression_covariates_hat = transform_estimation_covariates(
+    covariates=zero_inflated_regression_covariates_hat,
+    transformers=zero_inflated_regression_transformers,
+)
+zero_inflated_regression_target = count_state_modelling_df[COUNT_TARGET].values
+```
+
+**Fully Pooled**
+
+We first tried a version of the model where the intercept is kept fixed for all the counties, basically without modelling any sort of spatial component.
+
+$$
+\begin{gather}
+\color{RedOrange}\alpha_{Gate} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{NavyBlue}\alpha_{Mean} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\\
+\color{RedOrange}\beta_{GateHour} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{RedOrange}\beta_{GateMonth} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{RedOrange}\beta_{GateYear} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{NavyBlue}\beta_{MeanHour} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{NavyBlue}\beta_{MeanMonth} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{NavyBlue}\beta_{MeanYear} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\\
+\color{RedOrange}p = expit(\alpha_{Gate} + \beta_{GateHour}f(hour) + \beta_{GateMonth}f(month) + \beta_{GateYear}f(year))\\
+\color{NavyBlue}\mu = exp(\alpha_{Mean} + \beta_{MeanHour}f(hour) + \beta_{MeanMonth}f(month) + \beta_{GateYear}f(year))\\
+\\
+\lambda \sim InverseGamma(0.3, 0.4)\\
+
+\ y \sim ZeroInflatedNegativeBinomial(p, \mu, \lambda)
+\end{gather}
+$$
+
+Also here like in the quantile regression, the effect of the various components is multiplicative rather additive due to the exponential link used for modelling the mean component in the negative binomial regression.
+
+```{python}
+from jax.scipy.special import expit
+from jax import numpy as jnp
+
+from numpyro.distributions import (
+    NegativeBinomial2,
+    InverseGamma,
+    ZeroInflatedDistribution,
+)
+
+
+def pooled_zero_inflated_negative_binomial_regression(
+    target: ArrayLike,
+    covariates: Dict[str, ArrayLike],
+    prior_rate: Distribution,
+    prior_alpha_gate: Distribution,
+    prior_beta_year_gate: Distribution,
+    prior_beta_month_gate: Distribution,
+    prior_beta_hour_gate: Distribution,
+    prior_alpha_mean: Distribution,
+    prior_beta_year_mean: Distribution,
+    prior_beta_month_mean: Distribution,
+    prior_beta_hour_mean: Distribution,
+) -> None:
+    """Simple zero-inflated negative binomial regression model"""
+    alpha_gate = numpyro.sample(
+        "alpha_gate",
+        prior_alpha_gate,
+    )
+    alpha_mean = numpyro.sample(
+        "alpha_mean",
+        prior_alpha_mean,
+    )
+
+    with numpyro.plate(
+        "year_spline_coefficients", size=covariates["year_covariates"].shape[1]
+    ):
+        beta_year_gate = numpyro.sample(
+            "beta_year_gate",
+            prior_beta_year_gate,
+        )
+        beta_year_mean = numpyro.sample(
+            "beta_year_mean",
+            prior_beta_year_mean,
+        )
+
+    with numpyro.plate(
+        "hour_spline_coefficients", size=covariates["hour_covariates"].shape[1]
+    ):
+        beta_hour_gate = numpyro.sample(
+            "beta_hour_gate",
+            prior_beta_hour_gate,
+        )
+        beta_hour_mean = numpyro.sample(
+            "beta_hour_mean",
+            prior_beta_hour_mean,
+        )
+
+    with numpyro.plate(
+        "month_spline_coefficients", size=covariates["month_covariates"].shape[1]
+    ):
+        beta_month_gate = numpyro.sample(
+            "beta_month_gate",
+            prior_beta_month_gate,
+        )
+        beta_month_mean = numpyro.sample(
+            "beta_month_mean",
+            prior_beta_month_mean,
+        )
+
+    # Year component
+    year_component_gate = numpyro.deterministic(
+        name="year_component_gate",
+        value=jnp.dot(covariates["year_covariates"], beta_year_gate),
+    )
+    year_component_mean = numpyro.deterministic(
+        name="year_component_mean",
+        value=jnp.dot(covariates["year_covariates"], beta_year_mean),
+    )
+    # Month component
+    month_component_gate = numpyro.deterministic(
+        name="month_component_gate",
+        value=jnp.dot(covariates["month_covariates"], beta_month_gate),
+    )
+    month_component_mean = numpyro.deterministic(
+        name="month_component_mean",
+        value=jnp.dot(covariates["month_covariates"], beta_month_mean),
+    )
+    # Hour component
+    hour_component_gate = numpyro.deterministic(
+        name="hour_component_gate",
+        value=jnp.dot(covariates["hour_covariates"], beta_hour_gate),
+    )
+    hour_component_mean = numpyro.deterministic(
+        name="hour_component_mean",
+        value=jnp.dot(covariates["hour_covariates"], beta_hour_mean),
+    )
+
+    # Temporal components
+    temporal_component_gate = numpyro.deterministic(
+        name="temporal_component_gate",
+        value=year_component_gate + month_component_gate + hour_component_gate,
+    )
+    temporal_component_mean = numpyro.deterministic(
+        name="temporal_component_mean",
+        value=year_component_mean + month_component_mean + hour_component_mean,
+    )
+
+    gate = numpyro.deterministic(
+        name="gate",
+        value=1 - expit(alpha_gate + temporal_component_gate),
+    )
+    mean = numpyro.deterministic(
+        name="mean",
+        value=jnp.exp(alpha_mean + temporal_component_mean),
+    )
+    rate = numpyro.sample(
+        "rate",
+        prior_rate,
+    )
+
+    obs = numpyro.sample(
+        "obs",
+        ZeroInflatedDistribution(
+            base_dist=NegativeBinomial2(mean, rate),
+            gate=gate,
+        ),
+        obs=target,
+    )
+    if target is not None:
+        numpyro.deterministic(
+            "log_likelihood",
+            ZeroInflatedDistribution(
+                base_dist=NegativeBinomial2(mean, rate),
+                gate=gate,
+            )
+            .log_prob(target)
+        )
+
+pooled_zero_inflated_regression_parameters = [
+    "rate",
+    "alpha_gate",
+    "beta_year_gate",
+    "beta_month_gate",
+    "beta_hour_gate",
+    "alpha_mean",
+    "beta_year_mean",
+    "beta_month_mean",
+    "beta_hour_mean",
+    "gate",
+    "mean",
+    "obs",
+]
+pooled_zero_inflated_regression_kwargs = {
+    "covariates": zero_inflated_regression_covariates,
+    "target": zero_inflated_regression_target,
+    "prior_rate": InverseGamma(0.4, 0.3),
+    "prior_alpha_gate": Normal(loc=0.0, scale=1.),
+    "prior_beta_year_gate": Normal(loc=0.0, scale=1.),
+    "prior_beta_month_gate": Normal(loc=0.0, scale=1.),
+    "prior_beta_hour_gate": Normal(loc=0.0, scale=1.),
+    "prior_alpha_mean": Normal(loc=0.0, scale=1.),
+    "prior_beta_year_mean": Normal(loc=0.0, scale=1.),
+    "prior_beta_month_mean": Normal(loc=0.0, scale=1.),
+    "prior_beta_hour_mean": Normal(loc=0.0, scale=1.),
+}
+numpyro.render_model(
+    pooled_zero_inflated_negative_binomial_regression,
+    model_kwargs=pooled_zero_inflated_regression_kwargs,
+    render_distributions=False,
+)
+```
+
+```{python}
+(
+    svi_pooled_zero_inflated_regression_parameters,
+    svi_pooled_zero_inflated_regression_guide,
+) = sample_using_svi(
+    rng_key=RNG_KEY,
+    model=pooled_zero_inflated_negative_binomial_regression,
+    model_kwargs=pooled_zero_inflated_regression_kwargs,
+    autoguide=AutoLowRankMultivariateNormal,
+    guide_kwargs={},
+    optimizer_kwargs={"step_size": 1e-4, "clip_norm": 5},
+    num_steps=NUMBER_ITERATIONS,
+    num_particles=NUMBER_PARTICLES,
+)
+```
+
+```{python}
+posterior_pooled_zero_inflated_regression_svi = sample_posterior_predictive_svi(
+    rng_key=RNG_KEY,
+    model=pooled_zero_inflated_negative_binomial_regression,
+    guide=svi_pooled_zero_inflated_regression_guide,
+    covariates_hat=zero_inflated_regression_covariates_hat,
+    svi_result=svi_pooled_zero_inflated_regression_parameters,
+    num_samples=1500,
+    model_kwargs=pooled_zero_inflated_regression_kwargs,
+    return_sites=pooled_zero_inflated_regression_parameters,
+)
+```
+
+Differently from the qunatile regression, we can now visualize two parameters for each of the various components, the gate $p$ and the mean $\mu$. The first can be understood as the probability of **any** hail happening in a given county at a given point in time. The second is the expected number of hail events **given** that hail is happening.
+
+```{python}
+visualize_geo_regression(
+    covariates_hat_df=zero_inflated_regression_covariates_hat_df,
+    posterior=posterior_pooled_zero_inflated_regression_svi,
+    parameter="alpha_gate",
+)
+plt.show()
+```
+
+```{python}
+visualize_geo_regression(
+    covariates_hat_df=zero_inflated_regression_covariates_hat_df,
+    posterior=posterior_pooled_zero_inflated_regression_svi,
+    parameter="alpha_mean",
+)
+plt.show()
+```
+
+```{python}
+fig, axs = visualize_temporal_components(
+    temporal_components=generate_temporal_components(
+        posterior=posterior_pooled_zero_inflated_regression_svi,
+        transformers=zero_inflated_regression_transformers,
+        years=count_state_modelling_df[YEAR_COVARIATES].unique(),
+        suffix="_gate",
+    )
+)
+plt.show()
+```
+
+```{python}
+fig, axs = visualize_temporal_components(
+    temporal_components=generate_temporal_components(
+        posterior=posterior_pooled_zero_inflated_regression_svi,
+        transformers=zero_inflated_regression_transformers,
+        years=count_state_modelling_df[YEAR_COVARIATES].unique(),
+        suffix="_mean",
+    )
+)
+plt.show()
+```
+
+**Partially Pooled**
+
+In the same way we did for the quantile regression, we also tried to vary the intercept of both the gate and the mean models across counties using a partial pooling strategy
+
+$$
+\begin{gather}
+\color{RedOrange}\sigma_{Gate, County} \sim HalfCauchy(\sigma=5) \\
+\color{RedOrange}\mu_{Gate, County} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{RedOrange}\alpha_{Gate, County} \sim \mathcal{N}(\mu_{GateCounty}, \sigma_{GateCounty}) \\
+
+\color{NavyBlue}\sigma_{Mean, County} \sim HalfCauchy(\sigma=5) \\
+\color{NavyBlue}\mu_{Mean, County} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{NavyBlue}\alpha_{Mean, County} \sim \mathcal{N}(\mu_{MeanCounty}, \sigma_{MeanCounty}) \\
+\\
+\color{RedOrange}\beta_{GateHour} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{RedOrange}\beta_{GateMonth} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{RedOrange}\beta_{GateYear} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{NavyBlue}\beta_{MeanHour} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{NavyBlue}\beta_{MeanMonth} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{NavyBlue}\beta_{MeanYear} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\\
+\color{RedOrange}p = expit(\alpha_{Gate, County} + \beta_{GateHour}f(hour) + \beta_{GateMonth}f(month) + \beta_{GateYear}f(year))\\
+\color{NavyBlue}\mu = exp(\alpha_{Mean, County} + \beta_{MeanHour}f(hour) + \beta_{MeanMonth}f(month) + \beta_{GateYear}f(year))\\
+\\
+\lambda \sim InverseGamma(0.3, 0.4)\\
+
+\ y \sim ZeroInflatedNegativeBinomial(p, \mu, \lambda)
+\end{gather}
+$$
+
+```{python}
+reparam_config = {"alpha_gate": LocScaleReparam(0), "alpha_mean": LocScaleReparam(0)}
+
+
+@numpyro.handlers.reparam(config=reparam_config)
+def hierarchical_zero_inflated_negative_binomial_regression(
+    target: ArrayLike,
+    covariates: Dict[str, ArrayLike],
+    prior_rate: Distribution,
+    prior_beta_year_gate: Distribution,
+    prior_beta_month_gate: Distribution,
+    prior_beta_hour_gate: Distribution,
+    prior_beta_year_mean: Distribution,
+    prior_beta_month_mean: Distribution,
+    prior_beta_hour_mean: Distribution,
+    prior_mu_alpha_gate: Distribution,
+    prior_sigma_alpha_gate: Distribution,
+    prior_mu_alpha_mean: Distribution,
+    prior_sigma_alpha_mean: Distribution,
+) -> None:
+    """Hierarchical zero-inflated Negative Binomial regression model"""
+    number_groups = len(np.unique(covariates["counties_index"]))
+    counties_index = covariates["counties_index"].flatten()
+
+    mu_alpha_gate = numpyro.sample(
+        "mu_alpha_gate",
+        prior_mu_alpha_gate,
+    )
+    sigma_alpha_gate = numpyro.sample(
+        "sigma_alpha_gate",
+        prior_sigma_alpha_gate,
+    )
+    mu_alpha_mean = numpyro.sample(
+        "mu_alpha_mean",
+        prior_mu_alpha_mean,
+    )
+    sigma_alpha_mean = numpyro.sample(
+        "sigma_alpha_mean",
+        prior_sigma_alpha_mean,
+    )
+
+    with numpyro.plate("counties", size=number_groups):
+
+        alpha_gate = numpyro.sample(
+            "alpha_gate",
+            Normal(mu_alpha_gate, sigma_alpha_gate),
+        )
+        alpha_mean = numpyro.sample(
+            "alpha_mean",
+            Normal(mu_alpha_mean, sigma_alpha_mean),
+        )
+
+    with numpyro.plate(
+        "year_spline_coefficients", size=covariates["year_covariates"].shape[1]
+    ):
+        beta_year_gate = numpyro.sample(
+            "beta_year_gate",
+            prior_beta_year_gate,
+        )
+        beta_year_mean = numpyro.sample(
+            "beta_year_mean",
+            prior_beta_year_mean,
+        )
+
+    with numpyro.plate(
+        "hour_spline_coefficients", size=covariates["hour_covariates"].shape[1]
+    ):
+        beta_hour_gate = numpyro.sample(
+            "beta_hour_gate",
+            prior_beta_hour_gate,
+        )
+        beta_hour_mean = numpyro.sample(
+            "beta_hour_mean",
+            prior_beta_hour_mean,
+        )
+
+    with numpyro.plate(
+        "month_spline_coefficients", size=covariates["month_covariates"].shape[1]
+    ):
+        beta_month_gate = numpyro.sample(
+            "beta_month_gate",
+            prior_beta_month_gate,
+        )
+        beta_month_mean = numpyro.sample(
+            "beta_month_mean",
+            prior_beta_month_mean,
+        )
+
+    # Year component
+    year_component_gate = numpyro.deterministic(
+        name="year_component_gate",
+        value=jnp.dot(covariates["year_covariates"], beta_year_gate),
+    )
+    year_component_mean = numpyro.deterministic(
+        name="year_component_mean",
+        value=jnp.dot(covariates["year_covariates"], beta_year_mean),
+    )
+    # Month component
+    month_component_gate = numpyro.deterministic(
+        name="month_component_gate",
+        value=jnp.dot(covariates["month_covariates"], beta_month_gate),
+    )
+    month_component_mean = numpyro.deterministic(
+        name="month_component_mean",
+        value=jnp.dot(covariates["month_covariates"], beta_month_mean),
+    )
+    # Hour component
+    hour_component_gate = numpyro.deterministic(
+        name="hour_component_gate",
+        value=jnp.dot(covariates["hour_covariates"], beta_hour_gate),
+    )
+    hour_component_mean = numpyro.deterministic(
+        name="hour_component_mean",
+        value=jnp.dot(covariates["hour_covariates"], beta_hour_mean),
+    )
+
+    # Temporal components
+    temporal_component_gate = numpyro.deterministic(
+        name="temporal_component_gate",
+        value=year_component_gate + month_component_gate + hour_component_gate,
+    )
+    temporal_component_mean = numpyro.deterministic(
+        name="temporal_component_mean",
+        value=year_component_mean + month_component_mean + hour_component_mean,
+    )
+
+    spatial_component_mean = numpyro.deterministic(
+        name="spatial_component_mean",
+        value=alpha_mean[counties_index],
+    )
+
+    spatial_component_gate = numpyro.deterministic(
+        name="spatial_component_gate",
+        value=alpha_gate[counties_index],
+    )
+
+    gate = numpyro.deterministic(
+        name="gate",
+        value=1 - expit(spatial_component_gate + temporal_component_gate),
+    )
+    mean = numpyro.deterministic(
+        name="mean",
+        value=jnp.exp(spatial_component_mean + temporal_component_mean),
+    )
+    rate = numpyro.sample(
+        "rate",
+        prior_rate,
+    )
+
+    obs = numpyro.sample(
+        "obs",
+        ZeroInflatedDistribution(
+            base_dist=NegativeBinomial2(mean, rate),
+            gate=gate,
+        ),
+        obs=target,
+    )
+
+    if target is not None:
+        numpyro.deterministic(
+            "log_likelihood",
+            ZeroInflatedDistribution(
+                base_dist=NegativeBinomial2(mean, rate),
+                gate=gate,
+            )
+            .log_prob(target)
+        )
+
+hierarchical_zero_inflated_regression_parameters = [
+    "rate",
+    "mean",
+    "gate",
+    "mu_alpha_gate",
+    "sigma_alpha_gate",
+    "mu_alpha_mean",
+    "sigma_alpha_mean",
+    "alpha_gate",
+    "spatial_component_mean",
+    "spatial_component_gate",
+    "alpha_mean",
+    "beta_year_mean",
+    "beta_month_mean",
+    "beta_hour_mean",
+    "beta_year_gate",
+    "beta_month_gate",
+    "beta_hour_gate",
+    "obs",
+]
+hierarchical_zero_inflated_regression_kwargs = {
+    "covariates": zero_inflated_regression_covariates,
+    "target": zero_inflated_regression_target,
+    "prior_rate": InverseGamma(0.4, 0.3),
+    "prior_mu_alpha_gate": Normal(loc=0.0, scale=1),
+    "prior_sigma_alpha_gate": HalfCauchy(5),
+    "prior_mu_alpha_mean": Normal(loc=0.0, scale=1),
+    "prior_sigma_alpha_mean": HalfCauchy(5),
+    "prior_beta_year_gate": Normal(loc=0.0, scale=1),
+    "prior_beta_month_gate": Normal(loc=0.0, scale=1),
+    "prior_beta_hour_gate": Normal(loc=0.0, scale=1),
+    "prior_beta_year_mean": Normal(loc=0.0, scale=1),
+    "prior_beta_month_mean": Normal(loc=0.0, scale=1),
+    "prior_beta_hour_mean": Normal(loc=0.0, scale=1),
+}
+numpyro.render_model(
+    hierarchical_zero_inflated_negative_binomial_regression,
+    model_kwargs=hierarchical_zero_inflated_regression_kwargs,
+    render_distributions=False,
+)
+```
+
+```{python}
+(
+    svi_hierarchical_zero_inflated_regression_parameters,
+    svi_hierarchical_zero_inflated_regression_guide,
+) = sample_using_svi(
+    rng_key=RNG_KEY,
+    model=hierarchical_zero_inflated_negative_binomial_regression,
+    model_kwargs=hierarchical_zero_inflated_regression_kwargs,
+    autoguide=AutoLowRankMultivariateNormal,
+    guide_kwargs={},
+    optimizer_kwargs={"step_size": 1e-4, "clip_norm": 5},
+    num_steps=NUMBER_ITERATIONS,
+    num_particles=NUMBER_PARTICLES,
+)
+```
+
+```{python}
+posterior_hierarchical_zero_inflated_regression_svi = sample_posterior_predictive_svi(
+    rng_key=RNG_KEY,
+    model=hierarchical_zero_inflated_negative_binomial_regression,
+    guide=svi_hierarchical_zero_inflated_regression_guide,
+    covariates_hat=zero_inflated_regression_covariates_hat,
+    svi_result=svi_hierarchical_zero_inflated_regression_parameters,
+    num_samples=2000,
+    model_kwargs=hierarchical_zero_inflated_regression_kwargs,
+    return_sites=hierarchical_zero_inflated_regression_parameters,
+)
+```
+
+```{python}
+visualize_geo_regression(
+    covariates_hat_df=zero_inflated_regression_covariates_hat_df,
+    posterior=posterior_hierarchical_zero_inflated_regression_svi,
+    parameter="spatial_component_gate",
+)
+plt.show()
+```
+
+```{python}
+visualize_geo_regression(
+    covariates_hat_df=zero_inflated_regression_covariates_hat_df,
+    posterior=posterior_hierarchical_zero_inflated_regression_svi,
+    parameter="spatial_component_mean",
+)
+plt.show()
+```
+
+```{python}
+fig, axs = visualize_temporal_components(
+    temporal_components=generate_temporal_components(
+        posterior=posterior_hierarchical_zero_inflated_regression_svi,
+        transformers=zero_inflated_regression_transformers,
+        years=count_state_modelling_df[YEAR_COVARIATES].unique(),
+        suffix="_gate",
+    )
+)
+plt.show()
+```
+
+```{python}
+fig, axs = visualize_temporal_components(
+    temporal_components=generate_temporal_components(
+        posterior=posterior_hierarchical_zero_inflated_regression_svi,
+        transformers=zero_inflated_regression_transformers,
+        years=count_state_modelling_df[YEAR_COVARIATES].unique(),
+        suffix="_mean",
+    )
+)
+plt.show()
+```
