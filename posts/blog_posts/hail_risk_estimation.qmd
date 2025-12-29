@@ -922,6 +922,7 @@ fig, ax, sub_ax = plot_hail_distribution_with_tails(
     state=SELECTED_ANALYSIS_STATES[0],
 )
 plt.savefig(Path(IMAGES_PATH, "events_distribution.png"))
+plt.close("all")
 ```
 
 ![Visualizing the Distribution of Hail Events](results/images/events_distribution.png){#fig-distribution_hail_events}
@@ -1579,7 +1580,7 @@ Using a regression approach would allow us to include the type of spatial and te
 
 $\mathcal{Q}_{y_i|X_i}(\tau) = \alpha + \beta X_i$
 
-with $\tau$ being the desired quantile, $X_i$ all the spatio-temporal covariates associated with hail events $y_i$ and $\alpha$ and $\beta$ parameters to be estimated. A convenient choice of likelihood function for estimating $$\mathcal{Q}_{y_i|X_i}(\tau)$ would be the [asymetric laplace distribution](https://en.wikipedia.org/wiki/Asymmetric_Laplace_distribution) . Expanding the formulation for quantile regression further, we would have
+with $\tau$ being the desired quantile, $X_i$ all the spatio-temporal covariates associated with hail events $y_i$ and $\alpha$ and $\beta$ parameters to be estimated. A convenient choice of likelihood function for estimating $$\mathcal{Q}_{y_i|X_i}(\tau)$ would be the [asymetric laplace distribution](https://en.wikipedia.org/wiki/Asymmetric_Laplace_distribution). Expanding the formulation for quantile regression further, we would have
 
 $\mathcal{AsymettricLaplace}(y; \mu, \tau) = \alpha + \phi(LatLon_i) \beta_{LatLon} + \phi(hour) \beta_{Hour} + \phi(month) \beta_{month} + \phi(year) \beta_{year}$
 
@@ -1653,7 +1654,7 @@ quantile_regression_transformers = {
                 SplineTransformer(
                     include_bias=False,
                     extrapolation="periodic",
-                    n_knots=15,
+                    n_knots=8,
                 ),
             )
         ]
@@ -1665,7 +1666,7 @@ quantile_regression_transformers = {
                 SplineTransformer(
                     include_bias=False,
                     extrapolation="periodic",
-                    n_knots=15,
+                    n_knots=8,
                 ),
             )
         ]
@@ -1795,7 +1796,7 @@ $$
 \end{gather}
 $$
 
-Given the fomrulation above, it is iomportant to remeber that given the exponential link applied to $\mu$ the relationship between covariates is multiplicative rather than additive.
+Given the formulation above, it is important to remeber that given the exponential link applied to $\mu$ the relationship between covariates is multiplicative rather than additive.
 
 We define the model in numpyro and visualize its graphical model representation
 
@@ -3041,6 +3042,8 @@ posterior_hierarchical_zero_inflated_regression_svi = sample_posterior_predictiv
 )
 ```
 
+And as we can see we can obtain different estimates for the various counties in Florida
+
 ```{python}
 visualize_geo_regression(
     covariates_hat_df=zero_inflated_regression_covariates_hat_df,
@@ -3081,4 +3084,22 @@ fig, axs = visualize_temporal_components(
     )
 )
 plt.show()
+```
+
+# Closing remarks
+
+We provided here a general overview on how to estimate hail risk, and extreme hail risk in particular, using spatio-temporal information. The two model we presented here could be used inside a simulation setting for assessing the likelyhood and magnitude of an extreme hail event happeinging in a particular location and at a certain point in time.
+
+The zero-inflated negative binomial model could be used for simulating the occurence of all hail events while the quantile regression would help describing the magnitude of such events if they were to be considered extreme.
+
+# Hardware and Requirements
+
+Here you can find the hardware and python requirements used for building this post.
+
+```{python}
+%watermark
+```
+
+```{python}
+%watermark --iversions
 ```
