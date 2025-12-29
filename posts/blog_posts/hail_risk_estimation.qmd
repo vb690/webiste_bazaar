@@ -1,10 +1,10 @@
 ---
-title: "Hail Risk Estimation and Classification"
+title: "Hail Risk Estimation"
 title-block-banner-color: "#5465ff"
 title-block-banner: "#E2FFFF"
-abstract: "This analysis illustrates how to estimate hourly hail risk in the US with county-level granularity. The analysis poses particular attention to the mitigation of issues arising from small samples."
+abstract: "This analysis illustrates how to estimate hourly hail risk in the US with county-level (and sub county-level) granularity. The analysis poses particular attention to the mitigation of issues arising from small samples."
 authors: Valerio Bonometti
-date: 23/12/2025
+date: 2025-12-29
 categories:
   - JAX
   - Numpyro
@@ -24,10 +24,6 @@ html:
 
 ![Observed Hail Events](results/gif_images/hail_events.gif){width=100%}
 
-
-## Request Description
-
-This analysis was conducted following a request from DevCo Americas team, in particular Environmental Affairs and Project controls. The stakeholder wanted to know if it was possible to leverage a publicly available dataset from the [National Oceanic and Atmospheric Administration](https://www.noaa.gov) (i.e., NOAA) for creating risk categories for Hail Extreme events in the U.S. The request was to perform this classification exercise on the entire U.S. territory with county-level granularity.
 
 ## Hypotheses to be investigated {#sec-hypotheses_investigated}
 
