@@ -1,0 +1,92 @@
+---
+title: "Copulas"
+title-block-banner-color: "#5465ff"
+title-block-banner: "#E2FFFF"
+abstract: "This analysis illustrates how to fit copulas in numpyro"
+authors: Valerio Bonometti
+date: 2025-12-30
+categories:
+  - JAX
+  - Numpyro
+  - Bayesian Statistics
+  - Copulas
+toc: true
+toc-title: Table of Contents
+toc-depth: 4
+toc-expand: 4
+number-sections: true
+html:
+    code-fold: true
+    page-layout: full
+---
+
+
+```{python}
+#| code-fold: true
+#| code-summary: Show supplementary code
+
+%load_ext watermark
+
+NUM_CHAINS = 4
+
+from typing import Dict, Any, Callable, Tuple
+
+from functools import partial
+
+import pandas as pd
+import numpy as np
+
+import jax
+from jax.typing import ArrayLike
+import jax.random as random
+from jax import jit
+from jax import numpy as jnp
+
+import numpyro
+numpyro.set_host_device_count(NUM_CHAINS)
+import numpyro.distributions as dist
+from numpyro.infer import (
+    MCMC,
+    NUTS,
+    Predictive
+)
+
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib import gridspec
+
+import seaborn as sns
+```
+
+
+# Premise
+
+## What we will cover
+
+## What we will not cover
+
+# Introduction
+
+## Copulas
+
+## Copulas Application
+
+# Simulating Data
+
+```{python}
+mean = jnp.array([0., 0.])
+key =   random.PRNGKey(666)
+covariance = jnp.array([[1., .3], [.3, 1.]])
+X = random.multivariate_normal(
+    key,
+    mean, 
+    covariance,
+    100
+)
+plt.grid(alpha=0.5)
+plt.scatter(X[:, 0], X[:, 1], facecolor="none", edgecolors="red", s=60)
+plt.show()
+```
+
+# Copulas in Numpyro
+
