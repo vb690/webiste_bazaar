@@ -376,9 +376,17 @@ complex_nested_pytree = {
 tree_leaves(complex_nested_pytree)
 ```
 
-As you can see, this can become a convenient way for flattenting even the most intricate tree structure (such as those we have when specifying the parameters of a complex model).
+As you can see, this can become a convenient way for flattening even the most intricate tree structure (such as those we have when specifying the parameters of a complex model).
 
 ## Backward Computations
+
+The backward computation is the way we can derive the gradients of the model parameters with respect to the computed loss at a given point in time. At the bottom of it simply wraps the `forward`, `compute_loss` and `value_and_grad` functions in a single operation. 
+
+1. `forward` will compute the current solution according to the current parameter values.
+2. `compute_loss` will calculate the loss between the current solution and the ground truth (along with any penalty terms).
+3. Finally `value_and_grand` will wrap `compute_loss` in order to provide both the loss value and gradient with respect to the loss.
+
+Not that for convenience we always pass a `state` to the various functions that will be unpacked accordingly when is needed.
 
 ```{python}
 
@@ -424,6 +432,23 @@ def model(X, y, reg_strength, loss_function, reg_function):
 
 ## Optimizer
 
+The final part of this tutorial shows how we can implement a simple gradient descent algorithm in JAX. We will use the newton rhapson (NR) algorithm as an example due to its simplicity. The update rule for NR is
+
+$$
+\begin{gather}
+    \delta_{t} = (\beta * \delta_{t-1}) + (\alpha * \nabla_{\theta}L(\theta)) \\
+    \theta_{t+1} = \theta_{t} - \delta_{t} 
+\end{gather}
+$$
+
+with $\beta * \delta_{t-1}$ being the momentum term to be added to the gradient of the parameters $\theta$. Constructing the optimizer will boil down to create a closure that will provide an `init_state`, `compute_state` and `return_params` functions.
+
+1. `init_state` will initialize the state of the optimizer given an initial set of parameters.
+2. `update_state` will update the state of the optimizer, this is where all the actual computations do happen.
+3. `get_params` simply execute the logic for unpacking the state and extracting the parameters from the optimizer.
+
+It is important to note that we implemented the optimizer here in order to be stateless, as you see each function either generate, transform or process a state that receives from the outside. The optimizers per se does not hold any object, it simply provides to each of the three functions the relevant constants that needs to be used during the computations.
+
 ```{python}
 def newton_rhapson(learning_rate, beta=0.9):
     
@@ -436,7 +461,7 @@ def newton_rhapson(learning_rate, beta=0.9):
     def update_state(grads, current_state):
         previous_updates, previous_params = current_state
         current_updates = tree_map(
-            lambda grad, previous_update: beta * previous_update
+            lambda grad, previous_update: (beta * previous_update)
             + (grad * learning_rate),
             grads,
             previous_updates,
@@ -453,6 +478,10 @@ def newton_rhapson(learning_rate, beta=0.9):
 
     return init_state, update_state, get_params
 ```
+
+# Conclusions
+
+I think we are now in a good spot for trying implementing our first model in JAX!
 
 # Hardware and Requirements
 
