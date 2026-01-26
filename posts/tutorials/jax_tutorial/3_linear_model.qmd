@@ -187,7 +187,6 @@ fig, ax = visualize_link_function(x=x, link_function=linear)
 ax.set_title("Linear Link")
 ```
 
-
 ```{python}
 @jit
 def sigmoid(x: ArrayLike) -> ArrayLike:
@@ -326,6 +325,55 @@ def swish(x: ArrayLike, alpha: float=1.) -> ArrayLike:
 x = np.linspace(-10, 10, 100)
 fig, ax = visualize_link_function(x=x, link_function=swish)
 ax.set_title("Swish Link")
+```
+
+# Model Fitting Routines
+
+```{python}
+from typing import List
+
+def shuffle_arrays(list_arrays: List[ArrayLike]) -> List[ArrayLike]:
+    """_summary_
+
+    Args:
+        list_arrays (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    random_idx = np.random.choice(
+        a=np.arange(list_arrays[0].shape[0]), size=list_arrays[0].shape[0], replace=False
+    )
+    return list([array[random_idx] for array in list_arrays])
+
+def create_batches(X: ArrayLike, y: ArrayLike, batch_size: int = None):
+    """_summary_
+
+    Args:
+        X (_type_): _description_
+        y (_type_): _description_
+        batch_size (_type_, optional): _description_. Defaults to None.
+
+    Returns:
+        _type_: _description_
+    """
+    if batch_size is None:
+        return X, y
+    else:
+        X, y = shuffle_arrays(array_1=X, array_2=y)
+        X_batched, y_batched = [], []
+        n_batches = np.arange(X.shape[0] // batch_size)
+        for batch in n_batches:
+            start = batch * batch_size
+            if batch != n_batches[-1]:
+                end = start + batch_size
+            else:
+                end = None
+
+            X_batched.append(X[start:end])
+            y_batched.append(y[start:end])
+
+        return X_batched, y_batched
 ```
 
 # Linear Model
