@@ -229,7 +229,8 @@ window.Quarto = {
   <li><a href="#backward-computations" id="toc-backward-computations" class="nav-link" data-scroll-target="#backward-computations"><span class="header-section-number">2.3</span> Backward Computations</a></li>
   <li><a href="#optimizer" id="toc-optimizer" class="nav-link" data-scroll-target="#optimizer"><span class="header-section-number">2.4</span> Optimizer</a></li>
   </ul></li>
-  <li><a href="#hardware-and-requirements" id="toc-hardware-and-requirements" class="nav-link" data-scroll-target="#hardware-and-requirements"><span class="header-section-number">3</span> Hardware and Requirements</a></li>
+  <li><a href="#conclusions" id="toc-conclusions" class="nav-link" data-scroll-target="#conclusions"><span class="header-section-number">3</span> Conclusions</a></li>
+  <li><a href="#hardware-and-requirements" id="toc-hardware-and-requirements" class="nav-link" data-scroll-target="#hardware-and-requirements"><span class="header-section-number">4</span> Hardware and Requirements</a></li>
   </ul>
 </nav>
     </div>
@@ -278,7 +279,7 @@ window.Quarto = {
 </header>
 
 
-<div id="108d3a40" class="cell" data-execution_count="1">
+<div id="00ceab2a" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>load_ext watermark</span>
@@ -318,7 +319,7 @@ window.Quarto = {
 <h2 data-number="1.1" class="anchored" data-anchor-id="parameters-container"><span class="header-section-number">1.1</span> Parameters Container</h2>
 <p>The ideal way for storing parameters would be to create an immutable data structure (e.g., the named tuple example presented in our first post), registered as a pytree node, every time we need to update our parameters.</p>
 <p>In this and future posts we will adopt a much simpler although more intuitive strategy and store our parameters in a dictionary.</p>
-<div id="335b3a91" class="cell" data-execution_count="2">
+<div id="914ee2a7" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> numpy <span class="im">as</span> jnp</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>my_parameters <span class="op">=</span> {}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -330,7 +331,7 @@ window.Quarto = {
 <li>Naturally support nested structures.</li>
 <li>Easy to update using native JAX functionalities</li>
 </ol>
-<div id="3e8b6963" class="cell" data-execution_count="3">
+<div id="858c607a" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>my_parameters[<span class="st">"alpha"</span>] <span class="op">=</span> <span class="fl">1.</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># more complicated structure</span></span>
@@ -354,7 +355,7 @@ window.Quarto = {
 <h2 data-number="1.2" class="anchored" data-anchor-id="parameters-initialisation"><span class="header-section-number">1.2</span> Parameters Initialisation</h2>
 <p>One of the first step when fitting a model to the data is to set the starting point for the optimization process for each of the considered parameters.</p>
 <p>We can achieve this by defining functions that implement specific initialisation strategies</p>
-<div id="64203902" class="cell" data-execution_count="4">
+<div id="cb6540e8" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ones(init_state, random_key):</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Initialise parameters with a vector of ones.</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -374,7 +375,7 @@ window.Quarto = {
 <p>one of the most straightforward strategies is to initialize all the parameters with the same constant value (a one in this case).</p>
 <p>In this case we our function requires an <code>init_state</code> tuple containing all the information necessaries for initializing the parameters and a <code>random_key</code> used for setting the state of the random number generator. In this case we really do not need any random behaviour but we keep the signature for keeping compatibility with other initialisation strategies.</p>
 <p>Another alternative is to generate starting values according to some statistical distribution, like a gaussian for instance</p>
-<div id="c1158488" class="cell" data-execution_count="5">
+<div id="2091c028" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax.random <span class="im">import</span> PRNGKey</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> random</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -428,7 +429,7 @@ window.Quarto = {
 <section id="parameters-sharing" class="level2" data-number="1.3">
 <h2 data-number="1.3" class="anchored" data-anchor-id="parameters-sharing"><span class="header-section-number">1.3</span> Parameters Sharing</h2>
 <p>Sharing the parameters at this point is better understood as part of a <strong>state manipulation</strong> process. What do we mean by this? If we were to perform parameters update within a an object oriented framework we might do something among these lines</p>
-<div id="31d2db41" class="cell" data-execution_count="6">
+<div id="499d6c0c" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Model:</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>):</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._parameters <span class="op">=</span> np.array([<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>])</span>
@@ -453,7 +454,7 @@ window.Quarto = {
 </div>
 <p>the parameters are part of the state of <code>Model</code> an get updated according to the behavior of <code>add</code> and <code>subtract</code>.</p>
 <p>Since in JAX we have to stick to pure functions as much as we can, a viable option is to consider <code>parameters</code> as a state that is passed through a chain of transformation</p>
-<div id="46f582d5" class="cell" data-execution_count="7">
+<div id="d04d7783" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> jit</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> parameters_init():</span>
@@ -485,7 +486,7 @@ window.Quarto = {
 <h1 data-number="2"><span class="header-section-number">2</span> Model-related Functionalities</h1>
 <p>Now that we have outlined how to generate, store and share parameters we must focus on the scaffolding describing the transformations performed by our model.</p>
 <p>For the sake of simplicity we will use <a href="https://realpython.com/inner-functions-what-are-they-good-for/">closures</a> for being compliant with the functional requirements of JAX. We are aware that this might not be the optimal solution but it works just fine for the didactic purpose of this post. So let’s see how we would structure our closure</p>
-<div id="e4c25084" class="cell" data-execution_count="8">
+<div id="c629f066" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> jit</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> model(X, prng):</span>
@@ -515,7 +516,7 @@ window.Quarto = {
 <h2 data-number="2.1" class="anchored" data-anchor-id="forward-computations"><span class="header-section-number">2.1</span> Forward Computations</h2>
 <p>The <code>forward</code> function is in charge of performing all the the “forward computations” in the model. This naming, that we borrow from the various deep learning framework around, might not be the optimal one as we won’t necessarely need or have a complementary “backward” function but it is functional to the needs of this tutorial.</p>
 <p>Let’s look at how the forward functiona for a simple linear model might look like</p>
-<div id="05a9dde1" class="cell" data-execution_count="9">
+<div id="2032f3ab" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> forward(X, current_state):</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Perform the forward computations for a linear model</span></span>
@@ -542,8 +543,8 @@ window.Quarto = {
 <h2 data-number="2.2" class="anchored" data-anchor-id="objective-computations"><span class="header-section-number">2.2</span> Objective Computations</h2>
 <p>The computation of the objective function will require in our case four components: the parameters, the forward function, the loss function (along with any function used for computing any regularizing term) ad the input to the model.</p>
 <p>We’ll see that we will pass all the components except the paramenters to the objective function using a closure and that the actual loss function need to be wrapped inside a <code>compute_loss</code> function.</p>
-<div id="8f8b0693" class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> tree_leaves</span>
+<div id="4c93caa4" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax.tree_util <span class="im">import</span> tree_leaves</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>reg_strength <span class="op">=</span> <span class="fl">0.001</span></span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -603,132 +604,153 @@ window.Quarto = {
 <span id="cb12-58"><a href="#cb12-58" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> raw_loss <span class="op">+</span> reg_loss</span>
 <span id="cb12-59"><a href="#cb12-59" aria-hidden="true" tabindex="-1"></a>    </span>
 <span id="cb12-60"><a href="#cb12-60" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> compute_loss</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>/var/folders/h_/lq2hvf816xs9ffng6570sblh0000gn/T/ipykernel_3643/2913352642.py:1: DeprecationWarning: jax.tree_leaves is deprecated: use jax.tree.leaves (jax v0.4.25 or newer) or jax.tree_util.tree_leaves (any JAX version).
-  from jax import tree_leaves</code></pre>
-</div>
 </div>
 <p>Of course there are are more intuitive ways for doing this but in this case we require this convoluted game of chinese boxes because when we apply the <code>grad</code> transformation we want it to give us the derivative of the objective function (<code>root_mean_squared_error</code> plus <code>l1_reg_loss</code>) with respect to the <code>current_parameters</code>. So in this case in order to obtain the derivative we can simple apply the relevant transformation <code>value_and_grad</code> to the <code>compute_loss</code> function</p>
-<div id="52b0782e" class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> value_and_grad</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>compute_loss <span class="op">=</span> model(X<span class="op">=</span>X, y<span class="op">=</span>y, reg_strength<span class="op">=</span>reg_strength)</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>compute_loss_derivative <span class="op">=</span> value_and_grad(compute_loss)</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>compute_loss_derivative(params)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="9f4ae31b" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> value_and_grad</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>compute_loss <span class="op">=</span> model(X<span class="op">=</span>X, y<span class="op">=</span>y, reg_strength<span class="op">=</span>reg_strength)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>compute_loss_derivative <span class="op">=</span> value_and_grad(compute_loss)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>compute_loss_derivative(params)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
-<pre><code>(Array(4.255049, dtype=float32),
- {'alphas': Array([ 0.06140344, -0.09273863,  0.39737535,  0.13931032,  0.11116139,
-         -0.5520289 ,  0.12071776,  0.1633386 ,  0.00850837,  0.00313382],      dtype=float32),
-  'beta': Array(-0.65518194, dtype=float32, weak_type=True)})</code></pre>
+<pre><code>(Array(2.6744583, dtype=float32),
+ {'alphas': Array([ 0.0692642 ,  0.15285459, -0.07421102,  0.7185075 , -0.06452634,
+         -0.23649235,  0.16284108, -0.01256528, -0.02111042, -0.3617417 ],      dtype=float32),
+  'beta': Array(-0.45661062, dtype=float32, weak_type=True)})</code></pre>
 </div>
 </div>
 <p>What is particularly convinient in the functions defined above is the <code>tree_leaves</code> we use we computing the regularisation term. This utility function provided by jax allows us to traverse an antire PyTree in order to get all its leaves values, let’s see an example in action</p>
-<div id="fadedccd" class="cell" data-execution_count="12">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>complex_nested_pytree <span class="op">=</span> {</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"a"</span>: (<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>),</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"b"</span>: <span class="dv">4</span>,</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"c"</span>: {</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">"c_1"</span>: <span class="dv">5</span>,</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">"c_2"</span>: <span class="dv">6</span>,</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">"c_3"</span>: {</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>            <span class="st">"c_3_1"</span>: <span class="dv">7</span>,</span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>            <span class="st">"c_3_2"</span>: <span class="dv">8</span>,</span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>            <span class="st">"c_3_3"</span>: <span class="dv">9</span></span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        }</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>tree_leaves(complex_nested_pytree)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="67b4dda7" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>complex_nested_pytree <span class="op">=</span> {</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"a"</span>: (<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>),</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"b"</span>: <span class="dv">4</span>,</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"c"</span>: {</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">"c_1"</span>: <span class="dv">5</span>,</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">"c_2"</span>: <span class="dv">6</span>,</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">"c_3"</span>: {</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>            <span class="st">"c_3_1"</span>: <span class="dv">7</span>,</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>            <span class="st">"c_3_2"</span>: <span class="dv">8</span>,</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>            <span class="st">"c_3_3"</span>: <span class="dv">9</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>tree_leaves(complex_nested_pytree)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="12">
 <pre><code>[1, 2, 3, 4, 5, 6, 7, 8, 9]</code></pre>
 </div>
 </div>
-<p>As you can see, this can become a convenient way for flattenting even the most intricate tree structure (such as those we have when specifying the parameters of a complex model).</p>
+<p>As you can see, this can become a convenient way for flattening even the most intricate tree structure (such as those we have when specifying the parameters of a complex model).</p>
 </section>
 <section id="backward-computations" class="level2" data-number="2.3">
 <h2 data-number="2.3" class="anchored" data-anchor-id="backward-computations"><span class="header-section-number">2.3</span> Backward Computations</h2>
-<div id="97a85f6f" class="cell" data-execution_count="13">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> model(X, y, reg_strength, loss_function, reg_function):</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">@jit</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> backward(X, y, current_state):</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""Perform the backward computations for an arbitrary model defined by the forward function.</span></span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="co">        For the most part backward is just a wrapper around compute_loss and forward which adds the </span></span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="co">        logic for computing the gradient of the loss wrt the current parameters.</span></span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="co">        Args:</span></span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="co">            X: covariates of the model.</span></span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a><span class="co">            y: target of the model.</span></span>
-<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="co">            current_pstate: current state of the model, containing </span></span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="co">            parameters and state for the pseudo random number generator.</span></span>
-<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns:</span></span>
-<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a><span class="co">            loss: loss computed on the forward pass</span></span>
-<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a><span class="co">            grads: gradient of the loss wrt the model parameters.</span></span>
-<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
-<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>        <span class="at">@jit</span></span>
-<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>        <span class="kw">def</span> compute_loss(current_state):</span>
-<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>            <span class="co">"""Perform the computations required for deriving the loss given the current parameters.</span></span>
-<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a><span class="co">            This inlcudes a call to the forward function, the loss computation and the regularisation</span></span>
-<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a><span class="co">            loss.</span></span>
-<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a><span class="co">            Args:</span></span>
-<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a><span class="co">                current_params: the current state of the parameters of the model</span></span>
-<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a><span class="co">            """</span></span>
-<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>            yhat <span class="op">=</span> forward(X<span class="op">=</span>X, current_state<span class="op">=</span>current_state)</span>
-<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>            raw_loss <span class="op">=</span> loss_function(y<span class="op">=</span>y, yhat<span class="op">=</span>yhat)</span>
-<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>            reg_loss <span class="op">=</span> reg_function(params<span class="op">=</span>current_state[<span class="dv">0</span>]) <span class="op">*</span> reg_strength</span>
-<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> raw_loss <span class="op">+</span> reg_loss</span>
-<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>        grad_func <span class="op">=</span> value_and_grad(compute_loss)</span>
-<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>        loss, grads <span class="op">=</span> grad_func(current_state)</span>
-<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> loss, grads</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The backward computation is the way we can derive the gradients of the model parameters with respect to the computed loss at a given point in time. At the bottom of it simply wraps the <code>forward</code>, <code>compute_loss</code> and <code>value_and_grad</code> functions in a single operation.</p>
+<ol type="1">
+<li><code>forward</code> will compute the current solution according to the current parameter values.</li>
+<li><code>compute_loss</code> will calculate the loss between the current solution and the ground truth (along with any penalty terms).</li>
+<li>Finally <code>value_and_grand</code> will wrap <code>compute_loss</code> in order to provide both the loss value and gradient with respect to the loss.</li>
+</ol>
+<p>Not that for convenience we always pass a <code>state</code> to the various functions that will be unpacked accordingly when is needed.</p>
+<div id="689b3359" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> model(X, y, reg_strength, loss_function, reg_function):</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">@jit</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> backward(X, y, current_state):</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>        <span class="co">"""Perform the backward computations for an arbitrary model defined by the forward function.</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co">        For the most part backward is just a wrapper around compute_loss and forward which adds the </span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="co">        logic for computing the gradient of the loss wrt the current parameters.</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="co">        Args:</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="co">            X: covariates of the model.</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="co">            y: target of the model.</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="co">            current_pstate: current state of the model, containing </span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="co">            parameters and state for the pseudo random number generator.</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a><span class="co">        Returns:</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a><span class="co">            loss: loss computed on the forward pass</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a><span class="co">            grads: gradient of the loss wrt the model parameters.</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a><span class="co">        """</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>        <span class="at">@jit</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>        <span class="kw">def</span> compute_loss(current_state):</span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>            <span class="co">"""Perform the computations required for deriving the loss given the current parameters.</span></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a><span class="co">            This inlcudes a call to the forward function, the loss computation and the regularisation</span></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a><span class="co">            loss.</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a><span class="co">            Args:</span></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a><span class="co">                current_params: the current state of the parameters of the model</span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a><span class="co">            """</span></span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>            yhat <span class="op">=</span> forward(X<span class="op">=</span>X, current_state<span class="op">=</span>current_state)</span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>            raw_loss <span class="op">=</span> loss_function(y<span class="op">=</span>y, yhat<span class="op">=</span>yhat)</span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>            reg_loss <span class="op">=</span> reg_function(params<span class="op">=</span>current_state[<span class="dv">0</span>]) <span class="op">*</span> reg_strength</span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> raw_loss <span class="op">+</span> reg_loss</span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>        grad_func <span class="op">=</span> value_and_grad(compute_loss)</span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a>        loss, grads <span class="op">=</span> grad_func(current_state)</span>
+<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> loss, grads</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="optimizer" class="level2" data-number="2.4">
 <h2 data-number="2.4" class="anchored" data-anchor-id="optimizer"><span class="header-section-number">2.4</span> Optimizer</h2>
-<div id="ca7871ca" class="cell" data-execution_count="14">
-<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> newton_rhapson(learning_rate, beta<span class="op">=</span><span class="fl">0.9</span>):</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">@jit</span></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> init_state(params):</span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>        previous_updates <span class="op">=</span> tree_map(<span class="kw">lambda</span> param: jnp.zeros_like(param), params)</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> previous_updates, params</span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">@jit</span></span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> update_state(grads, current_state):</span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>        previous_updates, previous_params <span class="op">=</span> current_state</span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>        current_updates <span class="op">=</span> tree_map(</span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>            <span class="kw">lambda</span> grad, previous_update: beta <span class="op">*</span> previous_update</span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>            <span class="op">+</span> (grad <span class="op">*</span> learning_rate),</span>
-<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>            grads,</span>
-<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>            previous_updates,</span>
-<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>        current_params <span class="op">=</span> tree_map(</span>
-<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>            <span class="kw">lambda</span> param, update: param <span class="op">-</span> update, previous_params, current_updates</span>
-<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> current_updates, current_params</span>
-<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">@jit</span></span>
-<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> get_params(state):</span>
-<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>        current_update, current_params <span class="op">=</span> state</span>
-<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> current_params</span>
-<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> init_state, update_state, get_params</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The final part of this tutorial shows how we can implement a simple gradient descent algorithm in JAX. We will use the newton rhapson (NR) algorithm as an example due to its simplicity. The update rule for NR is</p>
+<p><span class="math display">\[
+\begin{gather}
+    \delta_{t} = (\beta * \delta_{t-1}) + (\alpha * \nabla_{\theta}L(\theta)) \\
+    \theta_{t+1} = \theta_{t} - \delta_{t}
+\end{gather}
+\]</span></p>
+<p>with <span class="math inline">\(\beta * \delta_{t-1}\)</span> being the momentum term to be added to the gradient of the parameters <span class="math inline">\(\theta\)</span>. Constructing the optimizer will boil down to create a closure that will provide an <code>init_state</code>, <code>compute_state</code> and <code>return_params</code> functions.</p>
+<ol type="1">
+<li><code>init_state</code> will initialize the state of the optimizer given an initial set of parameters.</li>
+<li><code>update_state</code> will update the state of the optimizer, this is where all the actual computations do happen.</li>
+<li><code>get_params</code> simply execute the logic for unpacking the state and extracting the parameters from the optimizer.</li>
+</ol>
+<p>It is important to note that we implemented the optimizer here in order to be stateless, as you see each function either generate, transform or process a state that receives from the outside. The optimizers per se does not hold any object, it simply provides to each of the three functions the relevant constants that needs to be used during the computations.</p>
+<div id="5789b89a" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> newton_rhapson(learning_rate, beta<span class="op">=</span><span class="fl">0.9</span>):</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">@jit</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> init_state(params):</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>        previous_updates <span class="op">=</span> tree_map(<span class="kw">lambda</span> param: jnp.zeros_like(param), params)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> previous_updates, params</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">@jit</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> update_state(grads, current_state):</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>        previous_updates, previous_params <span class="op">=</span> current_state</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>        current_updates <span class="op">=</span> tree_map(</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>            <span class="kw">lambda</span> grad, previous_update: (beta <span class="op">*</span> previous_update)</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>            <span class="op">+</span> (grad <span class="op">*</span> learning_rate),</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>            grads,</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>            previous_updates,</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>        current_params <span class="op">=</span> tree_map(</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>            <span class="kw">lambda</span> param, update: param <span class="op">-</span> update, previous_params, current_updates</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> current_updates, current_params</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">@jit</span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> get_params(state):</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>        current_update, current_params <span class="op">=</span> state</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> current_params</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> init_state, update_state, get_params</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 </section>
-<section id="hardware-and-requirements" class="level1" data-number="3">
-<h1 data-number="3"><span class="header-section-number">3</span> Hardware and Requirements</h1>
+<section id="conclusions" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Conclusions</h1>
+<p>I think we are now in a good spot for trying implementing our first model in JAX!</p>
+</section>
+<section id="hardware-and-requirements" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Hardware and Requirements</h1>
 <p>Here you can find the hardware and python requirements used for building this post.</p>
-<div id="b7400ed3" class="cell" data-execution_count="15">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="87aacae3" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Last updated: 2025-03-28T09:22:13.055626+00:00
+<pre><code>Last updated: 2026-01-26T15:12:58.972145+01:00
 
 Python implementation: CPython
 Python version       : 3.13.2
@@ -736,7 +758,7 @@ IPython version      : 9.0.2
 
 Compiler    : Clang 18.1.8 
 OS          : Darwin
-Release     : 24.3.0
+Release     : 24.5.0
 Machine     : arm64
 Processor   : arm
 CPU cores   : 14
@@ -744,13 +766,13 @@ Architecture: 64bit
 </code></pre>
 </div>
 </div>
-<div id="605800ad" class="cell" data-execution_count="16">
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark <span class="op">--</span>iversions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="37211ea2" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark <span class="op">--</span>iversions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>jax       : 0.5.2
+<pre><code>numpy     : 2.2.4
 seaborn   : 0.13.2
 matplotlib: 3.10.1
-numpy     : 2.2.4
+jax       : 0.7.2
 </code></pre>
 </div>
 </div>

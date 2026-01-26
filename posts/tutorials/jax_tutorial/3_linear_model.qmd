@@ -1,0 +1,343 @@
+---
+title: "3 - Linear Model"
+description: "This post introduces how we can build different types of linear models and fit them to the data."
+author: "Valerio Bonometti"
+date: "2026-01-26"
+categories: [JAX, Tutorial, Linear Models]
+jupyter: python3
+---
+```{python}
+#| code-fold: true
+#| code-summary: "Show supplementary code"
+
+
+%load_ext watermark
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+from jax.debug import print as jprint
+```
+
+# Common Components
+
+# Parameters Initializers
+
+```{python}
+#| code-fold: true
+#| code-summary: "Show supplementary code"
+from typing import Tuple, Any
+
+from jax.typing import ArrayLike
+from jax import random
+
+import jax.numpy as jnp
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+KEY = random.PRNGKey(666)
+
+def visualize_parameters(parameters: ArrayLike) -> Any:
+    """Histogram plot for visualizing parameters"""
+    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+    sns.histplot(
+        parameters
+    )
+    ax.set_xlabel("Parameters Values")
+    ax.grid(alpha=0.5)
+    return fig, ax
+```
+
+```{python}
+def ones(init_state: Tuple[Tuple[int, ...], Any], random_key: ArrayLike) -> ArrayLike:
+    """Initialize with a constant value of one.
+
+    Args:
+        init_state: state variable used for initialisation, a tuple with shape
+        values is always expected.
+        random_key: key for pseudo-random number generator.
+
+    Returns:
+        params: values returned as initial values for parameters.
+    """
+    params_shape, _ = init_state
+    params = jnp.ones(shape=params_shape)
+    return params
+
+parameters = ones(init_state=((100),None), random_key=KEY)
+fig, ax = visualize_parameters(parameters)
+ax.set_title("Ones")
+```
+
+
+```{python}
+def zeros(init_state: Tuple[Tuple[int, ...], Any], random_key: ArrayLike) -> ArrayLike:
+    """Initialize with a constant value of zero.
+
+    Args:
+        init_state: state variable used for initialisation, a tuple with shape
+        values is always expected.
+        random_key: key for pseudo-random number generator.
+
+    Returns:
+        params: values returned as initial values for parameters.
+    """
+    params_shape, _ = init_state
+    params = jnp.zeros(shape=params_shape)
+    return params
+
+parameters = zeros(init_state=((100),None), random_key=KEY)
+fig, ax = visualize_parameters(parameters)
+ax.set_title("Zeros")
+```
+
+```{python}
+def random_uniform(
+    init_state: Tuple[Tuple[int, ...], Any],
+    random_key: ArrayLike,
+    min_val: float = 0.0,
+    max_val: float = 1.0,
+) -> ArrayLike:
+    """Initialize with random values sampled uniformly from min_val and max_val.
+
+    Args:
+        init_state: state variable used for initialisation, a tuple with shape
+        values is always expected.
+        random_key: key for pseudo-random number generator.
+        min_val: lower boundary of the uniform distribution.
+        max_val: upper boundary of the uniform distribution.
+
+    Returns:
+        params: values returned as initial values for parameters.
+    """
+    params_shape, _ = init_state
+    params = random.uniform(
+        key=random_key, shape=params_shape, minval=min_val, maxval=max_val
+    )
+    return params
+
+parameters = random_uniform(init_state=((100),None), random_key=KEY,min_val=-1., max_val=3.)
+fig, ax = visualize_parameters(parameters)
+ax.set_title("Random Uniform")
+```
+
+```{python}
+def random_gaussian(
+    init_state: Tuple[Tuple[int, ...], Any], random_key: ArrayLike, sigma: float = 0.1
+) -> ArrayLike:
+    """Initialize with random values sampled from a gaussian distribution with mean
+    zero and standard deviation of sigma.
+
+    Args:
+        init_state: state variable used for initialisation, a tuple with shape
+        values is always expected.
+        random_key: key for pseudo-random number generator.
+        sigma: standard deviation of the gaussian distribution.
+
+    Returns:
+        params: values returned as initial values for parameters.
+    """
+    params_shape, _ = init_state
+    params = random.normal(key=random_key, shape=params_shape) * sigma
+    return params
+
+parameters = random_gaussian(init_state=((100),None), random_key=KEY,sigma=1.)
+fig, ax = visualize_parameters(parameters)
+ax.set_title("Random Gaussian")
+```
+
+# Link functions
+
+```{python}
+#| code-fold: true
+#| code-summary: "Show supplementary code"
+from typing import Callable
+
+from jax import jit
+
+def visualize_link_function(x: ArrayLike, link_function: Callable) -> Any:
+    fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+    ax.plot(
+        x,
+        link_function(x=x)
+    )
+    ax.set_xlabel("Parameter Values")
+    ax.set_xlabel("Activation Values")
+    ax.grid(alpha=0.5)
+    return fig, ax
+
+```
+
+```{python}
+@jit
+def linear(x: ArrayLike) -> ArrayLike:
+    """Activation function returning the identity of x
+
+    Args:
+        x: input to the activation function
+
+    Returns:
+        x: output of the activation function
+    """
+    return x
+
+x = np.linspace(-1, 1, 100)
+fig, ax = visualize_link_function(x=x, link_function=linear)
+ax.set_title("Linear Link")
+```
+
+
+```{python}
+@jit
+def sigmoid(x: ArrayLike) -> ArrayLike:
+    """Activation function transforming logits into probabilies (range 0, 1)
+
+    Args:
+        x: input to the activation function
+
+    Returns:
+        x: output of the activation function
+    """
+    return 1 / (1 + jnp.exp(-x))
+
+x = np.linspace(-5, 5, 100)
+fig, ax = visualize_link_function(x=x, link_function=sigmoid)
+ax.set_title("Sigmoid Link")
+```
+
+```{python}
+@jit
+def tanh(x: ArrayLike) -> ArrayLike:
+    """Activation function returning the hyperbolic tangent of x (range -1, 1)
+
+    Args:
+        x: input to the activation function
+
+    Returns:
+        x: output of the activation function
+    """
+    a = jnp.exp(x) - jnp.exp(-x)
+    b = jnp.exp(x) + jnp.exp(-x)
+    return a / b
+
+x = np.linspace(-5, 5, 100)
+fig, ax = visualize_link_function(x=x, link_function=tanh)
+ax.set_title("Tanh Link")
+```
+
+```{python}
+@jit
+def softmax(x: ArrayLike) -> ArrayLike:
+    """Activation function logits into probabilies (range 0, 1)
+
+    Args:
+        x (array): input to the activation function
+
+    Returns:
+        x: output of the activation function
+    """
+    return jnp.exp(x) / (jnp.sum(jnp.exp(x), axis=1, keepdims=True))
+
+x = np.linspace(1, 5,  10 * 4).reshape((10, 4))
+fig, ax = visualize_link_function(x=x, link_function=softmax)
+ax.set_title("Softmax Link")
+```
+
+```{python}
+@jit
+def relu(x: ArrayLike) -> ArrayLike:
+    """Activation function returning the maximum between 0 and x (range 0, inf)
+
+    Args:
+        x: input to the activation function
+
+    Returns:
+        array: output of the activation function
+    """
+    return jnp.maximum(0, x)
+
+x = np.linspace(-1, 1, 100)
+fig, ax = visualize_link_function(x=x, link_function=relu)
+ax.set_title("ReLU Link")
+```
+
+```{python}
+@jit
+def leaky_relu(x: ArrayLike, alpha: float=0.1) -> ArrayLike:
+    """Activation function returning the maximum between x*alpha and x (range inf, inf)
+
+    Args:
+        x: input to the activation function
+        alpha: scaler for the the negative part.
+
+    Returns:
+        array: output of the activation function
+    """
+    return jnp.maximum(x * alpha, x)
+
+x = np.linspace(-1, 1, 100)
+fig, ax = visualize_link_function(x=x, link_function=leaky_relu)
+ax.set_title("Leaky ReLU Link")
+```
+
+```{python}
+@jit
+def elu(x: ArrayLike, alpha: float=1.) -> ArrayLike:
+    """Activation function that will return
+
+    x if x >= 0
+    alpha(exp(x) - 1)
+
+    Args:
+        x: input to the activation function
+        alpha: scaler for the the negative part.
+
+    Returns:
+        array: output of the activation function
+    """
+    return jnp.where(
+        x >= 0,
+        x,
+        alpha * (jnp.exp(x) - 1)
+    )
+
+x = np.linspace(-5, 1, 100)
+fig, ax = visualize_link_function(x=x, link_function=elu)
+ax.set_title("Elu Link")
+```
+
+```{python}
+@jit
+def swish(x: ArrayLike, alpha: float=1.) -> ArrayLike:
+    """Activation function that will return
+
+    x * sigmoid(x)
+
+    Args:
+        x: input to the activation function
+        alpha: scaler for the the negative part.
+
+    Returns:
+        array: output of the activation function
+    """
+    return x * sigmoid(x=x)
+
+x = np.linspace(-10, 10, 100)
+fig, ax = visualize_link_function(x=x, link_function=swish)
+ax.set_title("Swish Link")
+```
+
+# Linear Model
+
+# Hardware and Requirements
+
+Here you can find the hardware and python requirements used for building this post.
+
+```{python}
+%watermark
+```
+
+```{python}
+%watermark --iversions
+```

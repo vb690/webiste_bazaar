@@ -283,7 +283,7 @@ The computation of the objective function will require in our case four componen
 We'll see that we will pass all the components except the paramenters to the objective function using a closure and that the actual loss function need to be wrapped inside a `compute_loss` function.
 
 ```{python}
-from jax import tree_leaves
+from jax.tree_util import tree_leaves
 
 reg_strength = 0.001
 
