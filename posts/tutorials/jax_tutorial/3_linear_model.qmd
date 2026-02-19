@@ -332,6 +332,8 @@ ax.set_title("Swish Link")
 ```{python}
 from typing import List
 
+from tqdm import tqdm
+
 def shuffle_arrays(list_arrays: List[ArrayLike]) -> List[ArrayLike]:
     """_summary_
 
@@ -342,20 +344,22 @@ def shuffle_arrays(list_arrays: List[ArrayLike]) -> List[ArrayLike]:
         _type_: _description_
     """
     random_idx = np.random.choice(
-        a=np.arange(list_arrays[0].shape[0]), size=list_arrays[0].shape[0], replace=False
+        a=np.arange(list_arrays[0].shape[0]), 
+        size=list_arrays[0].shape[0], 
+        replace=False,
     )
     return list([array[random_idx] for array in list_arrays])
 
-def create_batches(X: ArrayLike, y: ArrayLike, batch_size: int = None):
+def create_batches(X: ArrayLike, y: ArrayLike, batch_size: int = None) -> Tuple[List[ArrayLike], List[ArrayLike]]:
     """_summary_
 
     Args:
-        X (_type_): _description_
-        y (_type_): _description_
-        batch_size (_type_, optional): _description_. Defaults to None.
+        X (ArrayLike): _description_
+        y (ArrayLike): _description_
+        batch_size (int, optional): size of the batch of data. Defaults to None.
 
     Returns:
-        _type_: _description_
+        Tuple[List[ArrayLike], List[ArrayLike]]: _description_
     """
     if batch_size is None:
         return X, y
@@ -374,6 +378,159 @@ def create_batches(X: ArrayLike, y: ArrayLike, batch_size: int = None):
             y_batched.append(y[start:end])
 
         return X_batched, y_batched
+
+def fit_step(X: ArrayLike, y: ArrayLike, backward: Callable, current_state: Tuple[Any, ...], update_state: Callable, get_params: Callable, random_state: Any):
+    """_summary_
+
+    Args:
+        X (_type_): _description_
+        y (_type_): _description_
+        backward (_type_): _description_
+        current_state (_type_): _description_
+        update_state (_type_): _description_
+        get_params (_type_): _description_
+        random_state (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    current_params = get_params(state=current_state)
+    loss, grads = backward(
+        X=X, y=y, current_params=current_params, random_state=random_state
+    )
+    current_state = update_state(grads, current_state)
+
+    return loss, current_state, grads
+
+
+def fit_step_on_batch(
+    X: ArrayLike, y: ArrayLike, backward: Callable, current_state: Tuple[Any, ...], update_state: Callable, get_params: Callable, random_state: Any
+):
+    """_summary_
+
+    Args:
+        X (_type_): _description_
+        y (_type_): _description_
+        backward (_type_): _description_
+        current_state (_type_): _description_
+        update_state (_type_): _description_
+        get_params (_type_): _description_
+        random_state (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    for X_batch, y_batch in zip(X, y):
+
+        loss, current_state, grads = fit_step(
+            X=X_batch,
+            y=y_batch,
+            backward=backward,
+            current_state=current_state,
+            update_state=update_state,
+            get_params=get_params,
+            random_state=random_state,
+        )
+
+    return loss, current_state, grads
+
+
+class EarlyStopping:
+    def __init__(self, tol=10, min_delta=1e-8):
+        """_summary_
+
+        Args:
+            tol (int, optional): _description_. Defaults to 10.
+            min_delta (_type_, optional): _description_. Defaults to 1e-8.
+        """
+        self.tol = tol
+        self.min_delta = min_delta
+        self.previous_loss = 1e10
+        self.count = 0
+        self.stop = False
+
+    def evaluate(self, current_loss):
+        """_summary_
+
+        Args:
+            current_loss (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if (self.previous_loss - current_loss) <= self.min_delta:
+            self.count += 1
+            if self.count >= self.tol:
+                self.stop = True
+
+        self.previous_loss = current_loss
+        return self.stop
+
+
+def fit(
+    X: ArrayLike,
+    y: ArrayLike,,
+    backward: Callable,
+    start_params: Any,
+    optimizer: Callable,
+    epochs: int,
+    stopper: EarlyStopping,
+    verbose: int,
+    batch_size: int,
+    random_key: int = 666,
+    track_grads: bool = False,
+):
+    """_summary_
+
+    Args:
+        X (_type_): _description_
+        y (_type_): _description_
+        backward (_type_): _description_
+        start_params (_type_): _description_
+        optimizer (_type_): _description_
+        epochs (_type_): _description_
+        stopper (_type_): _description_
+        verbose (_type_): _description_
+        random_key (int, optional): _description_. Defaults to 666.
+        batch_size (_type_, optional): _description_. Defaults to None.
+        track_grads (bool, optional): _description_. Defaults to False.
+
+    Returns:
+        _type_: _description_
+    """
+    history = []
+    grads_history = []
+    random_state = random.PRNGKey(random_key)
+
+    init_state, update_state, get_params = optimizer
+    current_state = init_state(params=start_params)
+    pbar = tqdm(range(epochs), desc="Loss")
+    for epoch in pbar:
+
+        random_state, _ = random.split(random_state)
+        X_batched, y_batched = create_batches(X=X, y=y, batch_size=batch_size)
+        loss, current_state, grads = fit_step_on_batch(
+            X=X_batched,
+            y=y_batched,
+            backward=backward,
+            current_state=current_state,
+            update_state=update_state,
+            get_params=get_params,
+            random_state=random_state,
+        )
+
+        history.append(loss)
+        if track_grads:
+            grads_history.append(grads)
+        if epoch % verbose == 0:
+            pbar.set_description(f"Loss {jnp.round(loss, 4)}")
+        if stopper.evaluate(current_loss=loss):
+            break
+
+    if track_grads:
+        return get_params(state=current_state), history, grads_history
+    else:
+        return get_params(state=current_state), history
 ```
 
 # Linear Model
