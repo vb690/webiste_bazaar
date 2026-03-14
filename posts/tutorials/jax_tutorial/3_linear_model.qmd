@@ -308,10 +308,10 @@ ax.set_title("Elu Link")
 
 ```{python}
 @jit
-def swish(x: ArrayLike, alpha: float=1.) -> ArrayLike:
+def swish(x: ArrayLike, alpha: float=1.5) -> ArrayLike:
     """Activation function that will return
 
-    x * sigmoid(x)
+    x * sigmoid(x * alpha)
 
     Args:
         x: input to the activation function
@@ -320,7 +320,7 @@ def swish(x: ArrayLike, alpha: float=1.) -> ArrayLike:
     Returns:
         array: output of the activation function
     """
-    return x * sigmoid(x=x)
+    return x * sigmoid(x=x*alpha)
 
 x = np.linspace(-10, 10, 100)
 fig, ax = visualize_link_function(x=x, link_function=swish)
@@ -332,7 +332,40 @@ ax.set_title("Swish Link")
 ```{python}
 from typing import List
 
+from functools import partial
+
 from tqdm import tqdm
+
+class EarlyStopping:
+    def __init__(self, tol=10, min_delta=1e-8):
+        """_summary_
+
+        Args:
+            tol (int, optional): _description_. Defaults to 10.
+            min_delta (_type_, optional): _description_. Defaults to 1e-8.
+        """
+        self.tol = tol
+        self.min_delta = min_delta
+        self.previous_loss = 1e10
+        self.count = 0
+        self.stop = False
+
+    def evaluate(self, current_loss):
+        """_summary_
+
+        Args:
+            current_loss (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if (self.previous_loss - current_loss) <= self.min_delta:
+            self.count += 1
+            if self.count >= self.tol:
+                self.stop = True
+
+        self.previous_loss = current_loss
+        return self.stop
 
 def shuffle_arrays(list_arrays: List[ArrayLike]) -> List[ArrayLike]:
     """_summary_
@@ -420,52 +453,23 @@ def fit_step_on_batch(
     Returns:
         _type_: _description_
     """
+    partialized_fit_step = partial(
+        fit_step,
+        backward=backward,
+        update_state=update_state,
+        get_params=get_params,
+        random_state=random_state,
+
+    )
     for X_batch, y_batch in zip(X, y):
 
-        loss, current_state, grads = fit_step(
+        loss, current_state, grads = partialized_fit_step(
             X=X_batch,
             y=y_batch,
-            backward=backward,
             current_state=current_state,
-            update_state=update_state,
-            get_params=get_params,
-            random_state=random_state,
         )
 
     return loss, current_state, grads
-
-
-class EarlyStopping:
-    def __init__(self, tol=10, min_delta=1e-8):
-        """_summary_
-
-        Args:
-            tol (int, optional): _description_. Defaults to 10.
-            min_delta (_type_, optional): _description_. Defaults to 1e-8.
-        """
-        self.tol = tol
-        self.min_delta = min_delta
-        self.previous_loss = 1e10
-        self.count = 0
-        self.stop = False
-
-    def evaluate(self, current_loss):
-        """_summary_
-
-        Args:
-            current_loss (_type_): _description_
-
-        Returns:
-            _type_: _description_
-        """
-        if (self.previous_loss - current_loss) <= self.min_delta:
-            self.count += 1
-            if self.count >= self.tol:
-                self.stop = True
-
-        self.previous_loss = current_loss
-        return self.stop
-
 
 def fit(
     X: ArrayLike,
@@ -479,6 +483,7 @@ def fit(
     batch_size: int,
     random_key: int = 666,
     track_grads: bool = False,
+    validation_size: float = .2
 ):
     """_summary_
 
@@ -500,31 +505,43 @@ def fit(
     """
     history = []
     grads_history = []
+    validation_size = int(X.shape[0] * validation_size)
     random_state = random.PRNGKey(random_key)
 
     init_state, update_state, get_params = optimizer
     current_state = init_state(params=start_params)
     pbar = tqdm(range(epochs), desc="Loss")
+    X_fitting, X_validation = X[:-validation_size, :], X[-validation_size:, :]
+    y_fitting, y_validation = y[:-validation_size, :], y[-validation_size:, :]
     for epoch in pbar:
 
         random_state, _ = random.split(random_state)
-        X_batched, y_batched = create_batches(X=X, y=y, batch_size=batch_size)
+        X_fitting_batched, y_fitting_batched = create_batches(
+            X=X_fitting, 
+            y=y_fitting, 
+            batch_size=batch_size,
+        )
         loss, current_state, grads = fit_step_on_batch(
-            X=X_batched,
-            y=y_batched,
+            X=X_fitting_batched,
+            y=y_fitting_batched,
             backward=backward,
             current_state=current_state,
             update_state=update_state,
             get_params=get_params,
             random_state=random_state,
         )
-
-        history.append(loss)
+        validation_loss, _ = backward(
+            X=X_validation,
+            y=y_validation, 
+            current_params=get_params(state=current_state), 
+            random_state=random_state,
+        )
+        history.append({"fitting_loss": loss, "validation_loss": validation_loss})
         if track_grads:
             grads_history.append(grads)
         if epoch % verbose == 0:
             pbar.set_description(f"Loss {jnp.round(loss, 4)}")
-        if stopper.evaluate(current_loss=loss):
+        if stopper.evaluate(current_loss=validation_loss):
             break
 
     if track_grads:
