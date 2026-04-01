@@ -5,6 +5,8 @@ author: "Valerio Bonometti"
 date: "2026-01-26"
 categories: [JAX, Tutorial, Linear Models]
 jupyter: python3
+execute:
+  freeze: auto
 ---
 ```{python}
 #| code-fold: true
@@ -338,11 +340,13 @@ from tqdm import tqdm
 
 class EarlyStopping:
     def __init__(self, tol=10, min_delta=1e-8):
-        """_summary_
+        """Naive implementation of an early stopping callback.
 
         Args:
-            tol (int, optional): _description_. Defaults to 10.
-            min_delta (_type_, optional): _description_. Defaults to 1e-8.
+            tol (int, optional): number of iterations without improvement before triggering the stop criteria. 
+                Defaults to 10.
+            min_delta (_type_, optional): minimum difference in loss used for considering a non-improvement. 
+                Defaults to 1e-8.
         """
         self.tol = tol
         self.min_delta = min_delta
@@ -473,7 +477,7 @@ def fit_step_on_batch(
 
 def fit(
     X: ArrayLike,
-    y: ArrayLike,,
+    y: ArrayLike,
     backward: Callable,
     start_params: Any,
     optimizer: Callable,
@@ -550,7 +554,183 @@ def fit(
         return get_params(state=current_state), history
 ```
 
-# Linear Model
+# Losses
+
+```{python}
+from jax.tree import leaves
+
+from jax.scipy.stats import norm, bernoulli, poisson
+
+@jit
+def l1(params):
+    """_summary_
+
+    Args:
+        params (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    l1_loss = sum([jnp.sum(jnp.abs(leave)) for leave in leaves(params)])
+    return l1_loss
+
+
+@jit
+def l2(params):
+    """_summary_
+
+    Args:
+        params (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    l2_loss = sum([jnp.sum(jnp.square(leave)) for leave in leaves(params)])
+    return l2_loss
+
+
+@jit
+def gaussian_nll(y, yhat):
+    """_summary_
+
+    Args:
+        y (_type_): _description_
+        yhat (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    mu, sigma = yhat
+    ll = norm.logpdf(y, mu, sigma)
+    return jnp.sum(1 - ll)
+
+
+@jit
+def bernoulli_nll(y, yhat, eps=1e-10):
+    """_summary_
+
+    Args:
+        y (_type_): _description_
+        yhat (_type_): _description_
+        eps (_type_, optional): _description_. Defaults to 1e-10.
+
+    Returns:
+        _type_: _description_
+    """
+    p = jnp.clip(yhat, eps, 1 - eps)
+    ll = bernoulli.logpmf(y, p)
+    return -jnp.sum(ll)
+
+
+@jit
+def poisson_nll(y, yhat):
+    """_summary_
+
+    Args:
+        y (_type_): _description_
+        yhat (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    ll = poisson.logpmf(y, yhat)
+    return -jnp.sum(ll)
+```
+
+# Generalized Linear Models
+
+```{python}
+def bernoulli_linear_model(
+    weights_init_method,
+    bias_init_method,
+    reg_function,
+    prngkey,
+    reg_strength=0.1,
+):
+    """_summary_
+
+    Args:
+        weights_init_method (_type_): _description_
+        bias_init_method (_type_): _description_
+        reg_function (_type_): _description_
+        prngkey (_type_): _description_
+        reg_strength (float, optional): _description_. Defaults to 0.1.
+
+    Returns:
+        _type_: _description_
+    """
+
+    @jit
+    def init_params(X):
+        """_summary_
+
+        Args:
+            X (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        weights_key, bias_key = random.split(prngkey)
+        params = {
+            "weights": weights_init_method(
+                init_state=((X.shape[1],), None), random_key=weights_key
+            ),
+            "bias": bias_init_method(init_state=((1,), None), random_key=bias_key),
+        }
+        return params
+
+    @jit
+    def forward(X, current_params, random_state):
+        """_summary_
+
+        Args:
+            X (_type_): _description_
+            current_params (_type_): _description_
+            random_state (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        theta = jnp.dot(X, current_params["weights"]) + current_params["bias"]
+        yhat = sigmoid(theta)
+        return yhat
+
+    @jit
+    def backward(X, y, current_params, random_state):
+        """_summary_
+
+        Args:
+            X (_type_): _description_
+            y (_type_): _description_
+            current_params (_type_): _description_
+            random_state (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+
+        @jit
+        def compute_loss(params):
+            """_summary_
+
+            Args:
+                params (_type_): _description_
+
+            Returns:
+                _type_: _description_
+            """
+            yhat = forward(X=X, current_params=params, random_state=random_state)
+            raw_loss = binary_cross_entropy(y=y, yhat=yhat)
+            reg_loss = reg_function(params=params) * reg_strength
+            return raw_loss + reg_loss
+
+        grad_func = value_and_grad(compute_loss)
+        loss, grads = grad_func(current_params)
+        return loss, grads
+
+    return init_params, forward, backward
+
+```
 
 # Hardware and Requirements
 

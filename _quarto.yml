@@ -34,6 +34,3 @@ format:
 toc: true
 toc-title: "What's on this page"
 number-sections: true
-
-execute:
-  freeze: auto

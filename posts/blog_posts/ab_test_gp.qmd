@@ -10,6 +10,8 @@ categories:
   - Gaussian Process
 bibliography: bibliographies/ab_test_gp.bib
 jupyter: python3
+execute:
+  freeze: auto
 ---
 
 ```{python}

@@ -1,17 +1,10 @@
 [
   {
-    "listing": "/posts/blog_posts/index.html",
+    "listing": "/posts/tutorials/jax_tutorial/index.html",
     "items": [
-      "/posts/blog_posts/ab_test_gp.html",
-      "/posts/blog_posts/hail_risk_estimation.html",
-      "/posts/blog_posts/lin_ucb_jax.html"
-    ]
-  },
-  {
-    "listing": "/posts/tutorials/index.html",
-    "items": [
-      "/posts/tutorials/jax_tutorial/index.html",
-      "/posts/tutorials/kalman_bayesian_filters_tutorial/index.html"
+      "/posts/tutorials/jax_tutorial/1_jax_basics.html",
+      "/posts/tutorials/jax_tutorial/2_set_up.html",
+      "/posts/tutorials/jax_tutorial/3_linear_model.html"
     ]
   },
   {
@@ -22,10 +15,18 @@
     ]
   },
   {
-    "listing": "/posts/tutorials/jax_tutorial/index.html",
+    "listing": "/posts/tutorials/index.html",
     "items": [
-      "/posts/tutorials/jax_tutorial/1_jax_basics.html",
-      "/posts/tutorials/jax_tutorial/2_set_up.html"
+      "/posts/tutorials/jax_tutorial/index.html",
+      "/posts/tutorials/kalman_bayesian_filters_tutorial/index.html"
+    ]
+  },
+  {
+    "listing": "/posts/blog_posts/index.html",
+    "items": [
+      "/posts/blog_posts/ab_test_gp.html",
+      "/posts/blog_posts/hail_risk_estimation.html",
+      "/posts/blog_posts/lin_ucb_jax.html"
     ]
   }
 ]
