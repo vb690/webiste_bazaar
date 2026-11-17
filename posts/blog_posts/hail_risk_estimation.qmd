@@ -16,7 +16,8 @@ toc-title: Table of Contents
 toc-depth: 4
 toc-expand: 4
 number-sections: true
-html:
+format:
+  html:
     code-fold: true
     page-layout: full
 execute:
@@ -1280,7 +1281,7 @@ def sample_using_svi(
     guide = autoguide(model=model, **guide_kwargs)
     optimizer = numpyro.optim.ClippedAdam(**optimizer_kwargs)
     svi = SVI(model, guide, optimizer, loss=elbo_tracer(num_particles=num_particles))
-    svi_result = svi.run(sub_rng_key, num_steps, **model_kwargs)
+    svi_result = svi.run(sub_rng_key, num_steps, progress_bar=False, **model_kwargs)
 
     fig, ax = plt.subplots()
     ax.plot(svi_result.losses)

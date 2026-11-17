@@ -34,3 +34,10 @@ format:
 toc: true
 toc-title: "What's on this page"
 number-sections: true
+
+# Never re-execute a notebook on a full render unless its .qmd changed, and when it
+# did, reuse cached cell outputs if only prose changed (needs `jupyter-cache`).
+# Note: `quarto render <file>.qmd` / previewing a single file always re-executes it.
+execute:
+  freeze: auto
+  cache: true
