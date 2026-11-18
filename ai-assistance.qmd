@@ -1,0 +1,43 @@
+---
+title: "About the AI Badges"
+subtitle: "Why some posts on this website carry a badge, and what the two badges mean."
+number-sections: false
+toc: false
+ai-assistance: generated
+ai-assistance-note: "Drafted by Claude from my notes"
+---
+
+::: {.justify}
+
+## Why the badges
+
+I was genuinely torn about using [Claude Code](https://www.anthropic.com/claude-code) for this website. This is a personal website, a place where I organise the projects I develop in my free time and a way of guiding my own learning, and I was not sure it made sense to have an AI assistant contribute to it.
+
+At the same time, I had a large catalogue of work waiting to be moved here, and not a lot of time to do it all. In the end I came to a compromise: I use Claude where it helps me bring that work online, and I am transparent about it. Every post where an AI assistant was involved carries one of the two badges below, together with a short note on what it did.
+
+## The two badges
+
+:::
+
+```{=html}
+<div class="ai-badge-explainer">
+  <div class="ai-badge-card">
+    <div class="ai-badge ai-badge-assisted">
+      <span class="ai-badge-pill"><i class="bi bi-robot ai-badge-icon" aria-hidden="true"></i>AI-assisted</span>
+    </div>
+    <p><strong>I wrote it, AI helped.</strong> The ideas, the analyses and most of the code are mine. An AI assistant helped with specific parts, for example reviewing the code, fixing bugs, restructuring sections or producing figures.</p>
+  </div>
+  <div class="ai-badge-card">
+    <div class="ai-badge ai-badge-generated">
+      <span class="ai-badge-pill"><i class="bi bi-robot ai-badge-icon" aria-hidden="true"></i>AI-generated</span>
+    </div>
+    <p><strong>AI wrote it, I directed it.</strong> Most of the content was produced by an AI assistant following my direction. I chose the topic, guided the work and reviewed the result.</p>
+  </div>
+</div>
+```
+
+::: {.justify}
+
+The note next to each badge says what the AI assistant actually did on that post, as the same badge can cover quite different amounts of help. Posts without a badge were written without AI assistance.
+
+:::

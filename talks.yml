@@ -1,0 +1,11 @@
+- title: "Extreme Hail Risk Estimation for Utility-scale Solar Parks"
+  subtitle: "PyData Milano · Meetup talk"
+  date: 2025-11-27
+  description: "How to estimate the risk of extreme hail events for utility-scale solar parks, using statistical and simulation approaches that hold up when data is scarce or noisy. Click to watch the recording."
+  path: https://www.youtube.com/watch?v=ojYtWxmgWCg
+
+- title: "Autoencoders for Time Series Clustering"
+  subtitle: "PyData London 2023 · Conference talk · with Vincenzo Crescimanna"
+  date: 2023-06-03
+  description: "An introduction to autoencoders and their less explored applications to time series: clustering, feature extraction and transfer learning, comparing several autoencoder architectures against standard techniques on the M5 forecasting dataset."
+  path: https://pydata.org/london2023/schedule/html_export/html/talk/9WFUH3/

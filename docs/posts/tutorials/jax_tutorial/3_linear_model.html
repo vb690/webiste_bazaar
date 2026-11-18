@@ -103,6 +103,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-label": "Search"
   }
 }</script>
+<meta name="tdm-reservation" content="1">
+<meta name="tdm-policy" content="https://vb690.github.io/webiste_bazaar/license.html">
+<meta name="robots" content="noai, noimageai">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
 
 <script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
@@ -139,6 +142,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li class="nav-item">
     <a class="nav-link" href="../../../posts/blog_posts/index.html"> 
 <span class="menu-text">Blog Posts</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../../../talks.html"> 
+<span class="menu-text">Talks</span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -178,6 +185,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <div class="sidebar-item-container"> 
   <a href="../../../posts/blog_posts/index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Blog</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../../talks.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Talks</span></a>
   </div>
 </li>
     </ul>
@@ -227,6 +240,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div class="quarto-category">JAX</div>
     <div class="quarto-category">Tutorial</div>
     <div class="quarto-category">Linear Models</div>
+    <div class="quarto-category">AI-assisted</div>
   </div>
   </div>
 
@@ -261,7 +275,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<div id="c7ade368" class="cell" data-execution_count="1">
+<div class="ai-badge ai-badge-assisted">
+<a href="../../../ai-assistance.html" class="ai-badge-pill" title="Written by me, with an AI assistant helping on parts of it"><i class="bi bi-robot ai-badge-icon" aria-hidden="true"></i>AI-assisted</a> <span class="ai-badge-note">Bug fixes, new GLMs and evaluation section by Claude</span>
+</div>
+<div id="c7ade368" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>load_ext watermark</span>
@@ -505,7 +522,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="parameters-initializers" class="level1" data-number="2">
 <h1 data-number="2"><span class="header-section-number">2</span> Parameters Initializers</h1>
-<div id="66f42932" class="cell" data-execution_count="2">
+<div id="66f42932" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Tuple, Any</span>
@@ -530,7 +547,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fig, ax</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div id="d5ae8975" class="cell" data-execution_count="3">
+<div id="d5ae8975" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ones(init_state: Tuple[Tuple[<span class="bu">int</span>, ...], Any], random_key: ArrayLike) <span class="op">-&gt;</span> ArrayLike:</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Initialize with a constant value of one.</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -560,7 +577,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="c5a29894" class="cell" data-execution_count="4">
+<div id="c5a29894" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> zeros(init_state: Tuple[Tuple[<span class="bu">int</span>, ...], Any], random_key: ArrayLike) <span class="op">-&gt;</span> ArrayLike:</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Initialize with a constant value of zero.</span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -590,7 +607,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="b1f9bcdd" class="cell" data-execution_count="5">
+<div id="b1f9bcdd" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> random_uniform(</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    init_state: Tuple[Tuple[<span class="bu">int</span>, ...], Any],</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    random_key: ArrayLike,</span>
@@ -629,7 +646,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="b17e7711" class="cell" data-execution_count="6">
+<div id="b17e7711" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> random_gaussian(</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    init_state: Tuple[Tuple[<span class="bu">int</span>, ...], Any], random_key: ArrayLike, sigma: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.1</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> ArrayLike:</span>
@@ -666,7 +683,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="inverse-link-activation-functions" class="level1" data-number="3">
 <h1 data-number="3"><span class="header-section-number">3</span> Inverse Link (Activation) Functions</h1>
-<div id="9caf0ccb" class="cell" data-execution_count="7">
+<div id="9caf0ccb" class="cell" data-execution_count="8">
 <details class="code-fold">
 <summary>Show supplementary code</summary>
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Callable</span>
@@ -685,7 +702,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fig, ax</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<div id="e2ea901f" class="cell" data-execution_count="8">
+<div id="e2ea901f" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> linear(x: ArrayLike) <span class="op">-&gt;</span> ArrayLike:</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Activation function returning the identity of x</span></span>
@@ -712,7 +729,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="e011cab0" class="cell" data-execution_count="9">
+<div id="e011cab0" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sigmoid(x: ArrayLike) <span class="op">-&gt;</span> ArrayLike:</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Activation function transforming logits into probabilities (range 0, 1)</span></span>
@@ -743,7 +760,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="ab515d14" class="cell" data-execution_count="10">
+<div id="ab515d14" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> tanh(x: ArrayLike) <span class="op">-&gt;</span> ArrayLike:</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Activation function returning the hyperbolic tangent of x (range -1, 1)</span></span>
@@ -773,7 +790,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="586d6d3b" class="cell" data-execution_count="11">
+<div id="586d6d3b" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> softmax(x: ArrayLike) <span class="op">-&gt;</span> ArrayLike:</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Activation function transforming a vector of logits into probabilities</span></span>
@@ -812,7 +829,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="87f96cc2" class="cell" data-execution_count="12">
+<div id="87f96cc2" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> relu(x: ArrayLike) <span class="op">-&gt;</span> ArrayLike:</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Activation function returning the maximum between 0 and x (range 0, inf)</span></span>
@@ -839,7 +856,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="63edd39b" class="cell" data-execution_count="13">
+<div id="63edd39b" class="cell" data-execution_count="14">
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> leaky_relu(x: ArrayLike, alpha: <span class="bu">float</span><span class="op">=</span><span class="fl">0.1</span>) <span class="op">-&gt;</span> ArrayLike:</span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Activation function returning x for x &gt;= 0 and alpha * x otherwise</span></span>
@@ -868,7 +885,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="42137d4e" class="cell" data-execution_count="14">
+<div id="42137d4e" class="cell" data-execution_count="15">
 <div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> elu(x: ArrayLike, alpha: <span class="bu">float</span><span class="op">=</span><span class="fl">1.</span>) <span class="op">-&gt;</span> ArrayLike:</span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Activation function that will return</span></span>
@@ -908,7 +925,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="5e69d879" class="cell" data-execution_count="15">
+<div id="5e69d879" class="cell" data-execution_count="16">
 <div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="at">@jit</span></span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> swish(x: ArrayLike, alpha: <span class="bu">float</span><span class="op">=</span><span class="fl">1.5</span>) <span class="op">-&gt;</span> ArrayLike:</span>
 <span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Activation function that will return</span></span>
@@ -942,7 +959,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="model-fitting-routines" class="level1" data-number="4">
 <h1 data-number="4"><span class="header-section-number">4</span> Model Fitting Routines</h1>
-<div id="f9ae2976" class="cell" data-execution_count="16">
+<div id="f9ae2976" class="cell" data-execution_count="17">
 <div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Dict, List, Optional</span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
@@ -1216,7 +1233,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="losses" class="level1" data-number="5">
 <h1 data-number="5"><span class="header-section-number">5</span> Losses</h1>
-<div id="13c9558c" class="cell" data-execution_count="17">
+<div id="13c9558c" class="cell" data-execution_count="18">
 <div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax.tree <span class="im">import</span> leaves</span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax.scipy.stats <span class="im">import</span> norm, bernoulli, poisson</span>
@@ -1331,7 +1348,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 data-number="6.1" class="anchored" data-anchor-id="gaussian-glm"><span class="header-section-number">6.1</span> Gaussian GLM</h2>
 <section id="model-definition" class="level3" data-number="6.1.1">
 <h3 data-number="6.1.1" class="anchored" data-anchor-id="model-definition"><span class="header-section-number">6.1.1</span> Model Definition</h3>
-<div id="5106e029" class="cell" data-execution_count="18">
+<div id="5106e029" class="cell" data-execution_count="19">
 <div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> value_and_grad</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> gaussian_linear_model(</span>
@@ -1461,7 +1478,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="fitting-and-evaluation" class="level3" data-number="6.1.2">
 <h3 data-number="6.1.2" class="anchored" data-anchor-id="fitting-and-evaluation"><span class="header-section-number">6.1.2</span> Fitting and Evaluation</h3>
-<div id="b9a1f16d" class="cell" data-execution_count="19">
+<div id="b9a1f16d" class="cell" data-execution_count="20">
 <div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_gaussian_dataset(</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    random_key: ArrayLike,</span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    n_samples: <span class="bu">int</span> <span class="op">=</span> <span class="dv">2000</span>,</span>
@@ -1493,7 +1510,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb31-29"><a href="#cb31-29" aria-hidden="true" tabindex="-1"></a>    true_params <span class="op">=</span> {<span class="st">"weights"</span>: weights, <span class="st">"bias"</span>: jnp.array([bias]), <span class="st">"sigma"</span>: jnp.array([sigma])}</span>
 <span id="cb31-30"><a href="#cb31-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> X, y, true_params</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="20510848" class="cell" data-execution_count="20">
+<div id="20510848" class="cell" data-execution_count="21">
 <div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>data_key, split_key, model_key <span class="op">=</span> random.split(random.PRNGKey(<span class="dv">10</span>), <span class="dv">3</span>)</span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>X, y, true_params <span class="op">=</span> make_gaussian_dataset(random_key<span class="op">=</span>data_key)</span>
@@ -1529,7 +1546,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="8962bc6f" class="cell" data-execution_count="21">
+<div id="8962bc6f" class="cell" data-execution_count="22">
 <div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>parameters_table(true_params<span class="op">=</span>true_params, estimated_params<span class="op">=</span>params)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="21">
 <div>
@@ -1596,7 +1613,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 data-number="6.2" class="anchored" data-anchor-id="bernoulli-glm"><span class="header-section-number">6.2</span> Bernoulli GLM</h2>
 <section id="model-definition-1" class="level3" data-number="6.2.1">
 <h3 data-number="6.2.1" class="anchored" data-anchor-id="model-definition-1"><span class="header-section-number">6.2.1</span> Model Definition</h3>
-<div id="bed2e39f" class="cell" data-execution_count="22">
+<div id="bed2e39f" class="cell" data-execution_count="23">
 <div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> bernoulli_linear_model(</span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    weights_init_method: Callable,</span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    bias_init_method: Callable,</span>
@@ -1716,7 +1733,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="fitting-and-evaluation-1" class="level3" data-number="6.2.2">
 <h3 data-number="6.2.2" class="anchored" data-anchor-id="fitting-and-evaluation-1"><span class="header-section-number">6.2.2</span> Fitting and Evaluation</h3>
-<div id="de18a7dc" class="cell" data-execution_count="23">
+<div id="de18a7dc" class="cell" data-execution_count="24">
 <div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_bernoulli_dataset(</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>    random_key: ArrayLike,</span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    n_samples: <span class="bu">int</span> <span class="op">=</span> <span class="dv">2000</span>,</span>
@@ -1746,7 +1763,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a>    true_params <span class="op">=</span> {<span class="st">"weights"</span>: weights, <span class="st">"bias"</span>: jnp.array([bias])}</span>
 <span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> X, y, true_params</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="e18d7deb" class="cell" data-execution_count="24">
+<div id="e18d7deb" class="cell" data-execution_count="25">
 <div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>data_key, split_key, model_key <span class="op">=</span> random.split(random.PRNGKey(<span class="dv">20</span>), <span class="dv">3</span>)</span>
 <span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>X, y, true_params <span class="op">=</span> make_bernoulli_dataset(random_key<span class="op">=</span>data_key)</span>
@@ -1782,7 +1799,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="d7d63e59" class="cell" data-execution_count="25">
+<div id="d7d63e59" class="cell" data-execution_count="26">
 <div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>parameters_table(true_params<span class="op">=</span>true_params, estimated_params<span class="op">=</span>params)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="25">
 <div>
@@ -1844,7 +1861,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 data-number="6.3" class="anchored" data-anchor-id="poisson-glm"><span class="header-section-number">6.3</span> Poisson GLM</h2>
 <section id="model-definition-2" class="level3" data-number="6.3.1">
 <h3 data-number="6.3.1" class="anchored" data-anchor-id="model-definition-2"><span class="header-section-number">6.3.1</span> Model Definition</h3>
-<div id="a25b2bab" class="cell" data-execution_count="26">
+<div id="a25b2bab" class="cell" data-execution_count="27">
 <div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> poisson_linear_model(</span>
 <span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>    weights_init_method: Callable,</span>
 <span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>    bias_init_method: Callable,</span>
@@ -1964,7 +1981,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="fitting-and-evaluation-2" class="level3" data-number="6.3.2">
 <h3 data-number="6.3.2" class="anchored" data-anchor-id="fitting-and-evaluation-2"><span class="header-section-number">6.3.2</span> Fitting and Evaluation</h3>
-<div id="43357b38" class="cell" data-execution_count="27">
+<div id="43357b38" class="cell" data-execution_count="28">
 <div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_poisson_dataset(</span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>    random_key: ArrayLike,</span>
 <span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>    n_samples: <span class="bu">int</span> <span class="op">=</span> <span class="dv">2000</span>,</span>
@@ -1995,7 +2012,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb39-28"><a href="#cb39-28" aria-hidden="true" tabindex="-1"></a>    true_params <span class="op">=</span> {<span class="st">"weights"</span>: weights, <span class="st">"bias"</span>: jnp.array([bias])}</span>
 <span id="cb39-29"><a href="#cb39-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> X, y, true_params</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="0ac44a34" class="cell" data-execution_count="28">
+<div id="0ac44a34" class="cell" data-execution_count="29">
 <div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>data_key, split_key, model_key <span class="op">=</span> random.split(random.PRNGKey(<span class="dv">30</span>), <span class="dv">3</span>)</span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>X, y, true_params <span class="op">=</span> make_poisson_dataset(random_key<span class="op">=</span>data_key)</span>
@@ -2031,7 +2048,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="81131ee5" class="cell" data-execution_count="29">
+<div id="81131ee5" class="cell" data-execution_count="30">
 <div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>parameters_table(true_params<span class="op">=</span>true_params, estimated_params<span class="op">=</span>params)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="29">
 <div>
@@ -2093,7 +2110,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="hardware-and-requirements" class="level1" data-number="7">
 <h1 data-number="7"><span class="header-section-number">7</span> Hardware and Requirements</h1>
 <p>Here you can find the hardware and python requirements used for building this post.</p>
-<div id="6e93a451" class="cell" data-execution_count="30">
+<div id="6e93a451" class="cell" data-execution_count="31">
 <div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Last updated: 2026-11-17T22:54:08.876695+01:00
@@ -2112,7 +2129,7 @@ Architecture: 64bit
 </code></pre>
 </div>
 </div>
-<div id="131cd08d" class="cell" data-execution_count="31">
+<div id="131cd08d" class="cell" data-execution_count="32">
 <div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>watermark <span class="op">--</span>iversions</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>seaborn   : 0.13.2
@@ -2220,7 +2237,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
     var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
     var mailtoRegex = new RegExp(/^mailto:/);
-      var filterRegex = new RegExp('/' + window.location.host + '/');
+      var filterRegex = new RegExp("https:\/\/vb690\.github\.io\/webiste_bazaar\/");
     var isInternal = (href) => {
         return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
     }
@@ -2548,6 +2565,19 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>© 2023-2026 Valerio Bonometti · Content <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> · Code <a href="https://github.com/vb690/webiste_bazaar/blob/main/LICENSE">MIT</a></p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p><a href="../../../license.html">No AI training</a></p>
+</div>
+  </div>
+</footer>
 
 
 

@@ -3,10 +3,12 @@ title: "3 - Linear Model"
 description: "This post introduces how we can build different types of linear models and fit them to the data."
 author: "Valerio Bonometti"
 date: "2026-01-26"
-categories: [JAX, Tutorial, Linear Models]
+categories: [JAX, Tutorial, Linear Models, AI-assisted]
 jupyter: python3
 execute:
   freeze: auto
+ai-assistance: assisted
+ai-assistance-note: "Bug fixes, new GLMs and evaluation section by Claude"
 ---
 ```{python}
 #| code-fold: true

@@ -1,0 +1,20 @@
+# Content License
+
+Copyright (c) 2023-2026 Valerio Bonometti
+
+The written content, figures and images of this website (the `.qmd` files and
+the rendered website in `docs/`, excluding code) are licensed under the
+Creative Commons Attribution 4.0 International License (CC BY 4.0):
+https://creativecommons.org/licenses/by/4.0/
+
+The code is licensed separately under the MIT License, see `LICENSE`.
+
+## No AI training
+
+The content may not be used to train, fine-tune or otherwise develop machine
+learning models, including large language models, and may not be collected for
+these purposes.
+
+This is an express reservation of rights for text and data mining under
+Article 4(3) of Directive (EU) 2019/790 on Copyright in the Digital Single
+Market.
