@@ -11,27 +11,33 @@ categories:
   - Bayesian Statistics
   - Quantile Regression
   - Zero-inflated Regression
+  - AI-assisted
 toc: true
 toc-title: Table of Contents
 toc-depth: 4
 toc-expand: 4
 number-sections: true
-html:
+format:
+  html:
     code-fold: true
     page-layout: full
+execute:
+  freeze: auto
+ai-assistance: assisted
+ai-assistance-note: "Bug fixes, model tuning and text corrections by Claude"
 ---
 
 
 ![Observed Hail Events](results/gif_images/hail_events.gif){width=100%}
 
 
-## Hypotheses to be investigated {#sec-hypotheses_investigated}
+## Challenges to be addressed {#sec-hypotheses_investigated}
 
-The analysis does not have specific hypotheses to investigate but rather poses some challenges that needs to be overcome while trying to perform the estimation tasks. Here an overview of said challenges:
+Rather than testing specific hypotheses, the analysis has to overcome some challenges while performing the estimation tasks. Here an overview of said challenges:
 
 1. In order to estimate the level of risk for a certain county in the U.S. we first needed to obtain a reliable estimate of the probability of an extreme hail event to occur in a given county. 
 
-2. Due to the nature of extreme hail events, calculating their probability cannot be done by simply evaluating the observed frequency of such events but requires to leverage specific statistical frameworks (e.g., [Extreme Value Theory](https://en.wikipedia.org/wiki/Extreme_value_theory)) (i.e., EVA) than can provide long term likelihood for such events (e.g., 100s of years.)
+2. Due to the nature of extreme hail events, calculating their probability cannot be done by simply evaluating the observed frequency of such events but requires to leverage specific statistical frameworks (e.g., [Extreme Value Theory](https://en.wikipedia.org/wiki/Extreme_value_theory)) (i.e., EVA) that can provide long term likelihood for such events (e.g., 100s of years.)
 
 3.  In order to obtain reliable estimates, EVA usually requires that a sufficiently large number of events have been observed. Unfortunately increasing the level of granularity (i.e., looking at county level) forces to work with small samples. Moreover, this challenge is even more pronounced in those states where the Extreme Hail Events are more rare which are also states where a correct risk assessment is more critical.
 
@@ -53,6 +59,8 @@ import numpyro
 numpyro.set_host_device_count(os.cpu_count())
 
 from IPython.display import Image
+
+import numpy as np
 
 from itertools import product
 from functools import partial
@@ -91,11 +99,14 @@ MULTIPLE_STATES = [
     "florida",
     # dry states
     "california",
-    "new mexico",
+    "new_mexico",
     "arizona",
 ]
 
-LOWER_CUT_OFF_YEAR = 1990
+# seeded generator so that dithering and sampled counties are reproducible
+RNG = np.random.default_rng(666)
+
+LOWER_CUT_OFF_YEAR = 1996
 UPPER_CUT_OFF_YEAR = 2024
 
 SELECTED_ANALYSIS_STATES = SINGLE_STATE
@@ -124,7 +135,9 @@ COUNT_MODELLING_COLUMNS = [
     "countyfp",
 ]
 
-NUMBER_ITERATIONS = 30_000
+# with this step size all the variational fits converge well within the iterations
+NUMBER_ITERATIONS = 10_000
+STEP_SIZE = 5e-3
 NUMBER_PARTICLES = 1
 
 CONTINUOUS_TARGET = "magnitude"
@@ -182,7 +195,7 @@ contains data from 1950 until 2024. However due to changes in the record, measur
 
 ### Counties Geometry Dataset
 
-In order to to map and visualize our analysis onto the U.S. territory (and counties in particular) we obtained a geo-dataframe containing geometry files for each state in the U.S. This dataset was not used just for visualization purposes but it also played an important role in the estimation of extreme hail events at county level (more details will be given in section @sec-quantile_regression.) 
+In order to map and visualize our analysis onto the U.S. territory (and counties in particular) we obtained a geo-dataframe containing geometry files for each state in the U.S. This dataset was not used just for visualization purposes but it also played an important role in the estimation of extreme hail events at county level (more details will be given in section @sec-quantile_regression.) 
  
 ## Data Exploration
 
@@ -226,8 +239,9 @@ def make_grid(polygon: Any, edge_size: float) -> gpd.GeoSeries:
     x_coords = np.arange(bounds[0] + edge_size / 2, bounds[2], edge_size)
     y_coords = np.arange(bounds[1] + edge_size / 2, bounds[3], edge_size)
     combinations = np.array(list(product(x_coords, y_coords)))
+    # buffer takes the half-width, so squares of side edge_size tile the grid
     squares = gpd.points_from_xy(combinations[:, 0], combinations[:, 1]).buffer(
-        edge_size / 1, cap_style=3
+        edge_size / 2, cap_style=3
     )
     return gpd.GeoSeries(squares[squares.intersects(polygon)])
 
@@ -265,15 +279,6 @@ def generate_grid_df(
     return grid_df
 
 
-def split_dataset(
-    df: pd.DataFrame,
-    ordering_columns: List[str],
-    split_fraction: float = 0.33,
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """Split dataset in two portions"""
-    df = df.sort_values(ordering_columns)
-    cut_off = int(len(df) * split_fraction)
-    return df[:-cut_off].copy(), df[-cut_off:].copy()
 
 
 def perform_dithering(
@@ -281,13 +286,14 @@ def perform_dithering(
     cap: float = 0.5,
     dithering_coefficient: float = 0.147,
     dithering_bias: float = 0.0279,
+    rng: np.random.Generator = RNG,
 ) -> ArrayLike:
     """Perform dithering following the procedure in
     https://www.columbia.edu/~mkt14/publications/MWR-final-hailsize.pdf
     """
     dithering_amounts = dithering_bias + dithering_coefficient * magnitudes
     dithering_amounts = np.clip(dithering_amounts, a_min=0.0, a_max=cap)
-    dithering_noise = np.random.uniform(-dithering_amounts, dithering_amounts)
+    dithering_noise = rng.uniform(-dithering_amounts, dithering_amounts)
     dithered_magnitudes = np.clip(magnitudes + dithering_noise, 0, None)
     return dithered_magnitudes
 
@@ -300,11 +306,6 @@ def make_time_series_continuous(
     return series.reindex(new_index, fill_value=0)
 
 
-def downscale_coordinates(
-    values: ArrayLike, precision: int, degree_resolution: float
-) -> ArrayLike:
-    """Downscale latitude and longitude coordinate to a certain degree resolution."""
-    return np.round(degree_resolution * np.round(values / degree_resolution), precision)
 
 
 def create_covariates_df(
@@ -467,7 +468,7 @@ def create_count_dataset(
         .reset_index()
         .rename({0: COUNT_TARGET}, axis=1)
         .groupby(COUNT_MODELLING_COLUMNS)[COUNT_TARGET]
-        .max()
+        .sum()
         .reset_index()
     )
     count_modelling_df = pad_dataset(
@@ -594,19 +595,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 
-def plot_distribution_hail(
-    continuous_state_modelling_df: pd.DataFrame,
-    x: str,
-    ax: plt.Axes,
-    states: List[str] = SELECTED_ANALYSIS_STATES,
-    **kwargs: Any,
-) -> plt.Axes:
-    """Plot the distribution of hail magnitude"""
-    title_states = "\n".join([state.capitalize() for state in states])
-    sns.histplot(data=continuous_state_modelling_df, x=x, ax=ax, **kwargs)
-    ax.grid(alpha=0.5)
-    ax.set_title(f"{title_states}\nHourly Hail Events")
-    return ax
 
 
 def plot_hail_distribution_with_tails(
@@ -639,7 +627,7 @@ def plot_hail_distribution_with_tails(
     sub_ax.set_xlabel("Hail Size")
 
     ax.axvline(
-        1.77,
+        threshold,
         linestyle="--",
         c="r",
         linewidth=5,
@@ -780,8 +768,8 @@ def plot_quantile_hail_geometry(
     ax.set_title(
         f"{title_states}\nQuantile {quantile * 100} {color_column.capitalize()}"
     )
-    ax.set_ylabel("Longitude")
-    ax.set_xlabel("Latitude")
+    ax.set_ylabel("Latitude")
+    ax.set_xlabel("Longitude")
     return ax
 
 
@@ -846,7 +834,7 @@ fig, axs = plot_hail_events_on_map(
     geometries_df=geometries_df,
     state_modelling_df=continuous_state_modelling_df,
     selected_state=SELECTED_ANALYSIS_STATES[0],
-    threshold=1.7,
+    threshold=CRITICAL_VALUE_CONTINUOUS_TARGET,
     s=1.5,
     extreme_events_size=10,
 )
@@ -858,7 +846,7 @@ plt.close("all")
 
 ![Comparing Normal and Extreme Hail Events](results/images/hail_events_comparison_total.png){#fig-hail_comparison_total}
 
-@fig-hail_comparison_total shows on the left side all the hail events coloured according to the estimated hail size of the event. On the right we can see a filtered version of the left panel where only events with estimated hail size greater than 1.7" are shown, in particular we have highlighted in red those events with hail size greater than 2.5" (i.e., exceptionally large hail events).
+@fig-hail_comparison_total shows on the left side all the hail events coloured according to the estimated hail size of the event. On the right we can see a filtered version of the left panel where only events with estimated hail size greater than 1.77" are shown, in particular we have highlighted in red those events with hail size greater than 2.5" (i.e., exceptionally large hail events).
 
 ```{python}
 partialized_plot_comparison_quantile_hail_geometry = partial(
@@ -882,7 +870,7 @@ From @fig-hail_comparison_total and @fig-sample_size can already have an intuiti
 
 2. Very large hail events are very rare and exceptionally large hail events are even more rare.
 
-3. Very large hail events can occur even in areas where hail per-se is a very rare event. @fig-sample_size shows three different type of percentile values of hail size for the different counties: 50%, 95% and 99% as we can see some of the most extreme values occur in area where there has been very few hail events.
+3. Very large hail events can occur even in areas where hail per-se is a very rare event. @fig-sample_size shows four different percentile values of hail size for the different counties: 25%, 75%, 95% and 99%; as we can see some of the most extreme values occur in area where there has been very few hail events.
 
 4. We can notice that there is spatial coherence in how the hail events distribute on the territory of Florida (possibly reflecting geographical characteristics of the various areas) 
 
@@ -908,7 +896,7 @@ gif.save(frames, Path(GIFS_PATH, 'temporal_quantiles.gif').as_posix(), duration=
 
 ![Comparing Daily Empirical Probability of Hail Events by Magnitude](results/images/hail_magnitudes_daily_probability.png){#fig-hail_magnitude_daily_probability}
 
-@fig-hail_magnitude_daily_probability shows in more detail how the more an event is severe, in terms of hail size (i.e., disruptive), the lower is its daily probability of occurring. I particular we can see the sharp drop from moderate (1.25" to 1.75") to severe (greater than 1.77") hail storm.
+@fig-hail_magnitude_daily_probability shows in more detail how the more an event is severe, in terms of hail size (i.e., disruptive), the lower is its daily probability of occurring. In particular we can see the sharp drop from moderate (1.25" to 1.75") to severe (greater than 1.77") hail storm.
 
 What this tells us is that hail storms, in particular those which have potential of being disruptive or dangerous, are better framed in terms of extreme events. In the next section we will see how these events require to be treated with particular care.
 
@@ -931,9 +919,9 @@ plt.close("all")
 
 1.  Most of the mass of the distribution lies around the 1" mark indicating that the most common hail events are usually innocuous. We need to note that from @fig-distribution_hail_events we removed all the days in which there were no hail events. If not we would have observed the typical pattern of a [zero-inflated distribution](https://en.wikipedia.org/wiki/Zero-inflated_model).
 
-2. The distribution is left skewed with a relatively long and heavy right tail. This indicates that hail event of disruptive force can appear with a non-negligible probability but are in general very rare. 
+2. The distribution is right skewed, with a relatively long and heavy right tail. This indicates that hail event of disruptive force can appear with a non-negligible probability but are in general very rare. 
 
-3. Focusing on the extreme hail events (i.e., above the 1.77" mark) we can see the distribution is again heavily skewed on the left suggesting that truly disastrous hail events (i.e., size above the 2.5") can be very hard to predict.
+3. Focusing on the extreme hail events (i.e., above the 1.77" mark) we can see the distribution is again heavily right skewed suggesting that truly disastrous hail events (i.e., size above the 2.5") can be very hard to predict.
 
 ## Analyses Conducted
 
@@ -1036,28 +1024,28 @@ Extreme Value Analysis (EVA) usually has the aim of estimating, giving a sample 
 
 In order to individuate the extreme in our data we have two options:
 
-1. Block Maxima (i.e., BM): selecting the maximum value ove a "block of time" (e.g. a year).
+1. Block Maxima (i.e., BM): selecting the maximum value over a "block of time" (e.g. a year).
 2. Peak Over Threshold (i.e., POT): selecting all the values higher than a given threshold.
 
 Both options have their advantages and dis-advantages. We won't go into details and just say that we select BM mostly for convenience as it is the methodology that retains most of the data (which is already scarce in our situation). More information can be found in [this page](https://georgebv.github.io/pyextremes/user-guide/2-extreme-value-types/).
 
-![Example of Bock Maxima](results/images/block_maxima.png){#fig-block_maxima}
+![Example of Block Maxima](results/images/block_maxima.png){#fig-block_maxima}
 
 In @fig-block_maxima we can see how the maximum monthly hail sizes get converted in maximum **annual** hail sizes by applying a block maxima of size 12 months. One of the major advantages of block maxima is that of partially removing the issue of autocorrelation and seasonality as we take exactly one value for each year.
 
 ### Fitting the Appropriated Distribution
 
-Once we have obtained our samples of extreme values and did all that is in our power to ensure that they are independent and identically distributed (i.i.d.) we can proceed at fitting a distribution to the samples. Which distribution is more suitable depends on the characteristics of the events we are are tying to model.
+Once we have obtained our samples of extreme values and did all that is in our power to ensure that they are independent and identically distributed (i.i.d.) we can proceed at fitting a distribution to the samples. Which distribution is more suitable depends on the characteristics of the events we are trying to model.
 
-In the case of extreme events what we are dealing with are tail events better described by skewed distributions with a fat tail. There are 3 types of distribution that are well suited for this: [Gumbell](https://en.wikipedia.org/wiki/Gumbel_distribution), [Weibull](https://en.wikipedia.org/wiki/Weibull_distribution) and [Frechet](https://en.wikipedia.org/wiki/Fréchet_distribution) which can be flexibly represented by a single 3 parameters distribution the Generalized [Extreme Value distribution (GEV)](https://en.wikipedia.org/wiki/Generalized_extreme_value_distribution).
+In the case of extreme events what we are dealing with are tail events better described by skewed distributions with a fat tail. There are 3 types of distribution that are well suited for this: [Gumbel](https://en.wikipedia.org/wiki/Gumbel_distribution), [Weibull](https://en.wikipedia.org/wiki/Weibull_distribution) and [Frechet](https://en.wikipedia.org/wiki/Fréchet_distribution) which can be flexibly represented by a single 3 parameters distribution the Generalized [Extreme Value distribution (GEV)](https://en.wikipedia.org/wiki/Generalized_extreme_value_distribution).
 
 The Cumulative Distribution Function (CDF) for the GEV is defined as:
 
 $$
 H(x) = 
 \begin{cases}
-[1 + \xi(\frac{x - \mu}{\sigma})]^{1/ \xi} ,& \text{if } \xi\neq 0 \\
-e^{-(\frac{x - \mu}{\sigma})} ,& \text{if } \xi = 0 \\
+\exp\left\{-\left[1 + \xi\left(\frac{x - \mu}{\sigma}\right)\right]^{-1/ \xi}\right\} ,& \text{if } \xi\neq 0 \\
+\exp\left\{-e^{-\left(\frac{x - \mu}{\sigma}\right)}\right\} ,& \text{if } \xi = 0 \\
 \end{cases}
 $$
 
@@ -1104,11 +1092,11 @@ plt.scatter(
     label="Empirical Values",
 )
 plt.plot(
-    np.arange(1, 150),
+    np.arange(2, 150),
     compute_mle_return_periods_scipy(
         aggregated_eva_state_modelling[CONTINUOUS_TARGET],
         max_years=150,
-        min_years=1,
+        min_years=2,
     ),
     c=COLORMAP(5),
     linewidth=2,
@@ -1119,7 +1107,10 @@ plt.ylabel("Hail Size")
 plt.xlabel("Years")
 plt.axvline(100, linestyle="-.", c="r", label="100 Years Event")
 plt.axhline(
-    CRITICAL_VALUE_CONTINUOUS_TARGET, linestyle=":", c="r", label='1.7" Hail Event'
+    CRITICAL_VALUE_CONTINUOUS_TARGET,
+    linestyle=":",
+    c="r",
+    label=f'{CRITICAL_VALUE_CONTINUOUS_TARGET}" Hail Event',
 )
 plt.legend()
 plt.show()
@@ -1177,7 +1168,7 @@ for county in tqdm(county_names):
 ```
 
 ```{python}
-selected_counties = np.random.choice(county_names, 16)
+selected_counties = RNG.choice(county_names, 16, replace=False)
 
 fig, axs = plt.subplots(4, 4, figsize=(8, 8), sharex=True, sharey=True)
 for ax, county in zip(axs.flatten(), selected_counties):
@@ -1187,22 +1178,22 @@ for ax, county in zip(axs.flatten(), selected_counties):
         category=county,
         model_names=["MLE_pyextreme"],
         models=models,
-        critical_magnitude=1.77,
+        critical_magnitude=CRITICAL_VALUE_CONTINUOUS_TARGET,
         critical_period=100,
     )
 
 plt.tight_layout()
 ```
 
-As we can see the return periods can provide a substatially different profile depending on the county taken into consideration.
+As we can see the return periods can provide a substantially different profile depending on the county taken into consideration.
 
 ## Estimating Expected Extreme Values and Hail Events using Bayesian Regression {#sec-bayesian_regression}
 
-Looking at @fig-hail_comparison_total we can hypothesize that the probability of observing a hail event of a certain magnitude can be a function of latitude and longitude. Indeed,the extreme hail events, although scattered, seem to show a certain degree of spatial consistency. 
+Looking at @fig-hail_comparison_total we can hypothesize that the probability of observing a hail event of a certain magnitude can be a function of latitude and longitude. Indeed, the extreme hail events, although scattered, seem to show a certain degree of spatial consistency. 
 
-So why not simply empirically derive the likelihood of observing a given hail size in a given county? A bit like whe have been doing in @fig-sample_size. As we can see, the empirical percentiles derived from the observed data are very dis-homogeneous. This is because they are strongly influenced by the data we have available for a given county. According to @fig-sample_size sample sizes can vary wildly from county to county and make the empirical estimate subject to the influence of outliers.
+So why not simply empirically derive the likelihood of observing a given hail size in a given county? A bit like we have been doing in @fig-sample_size. As we can see, the empirical percentiles derived from the observed data are very dis-homogeneous. This is because they are strongly influenced by the data we have available for a given county. According to @fig-sample_size sample sizes can vary wildly from county to county and make the empirical estimate subject to the influence of outliers.
 
-In this case what we would want to do is to pool information from the entire state for helping estimating a given percentile of hail size in each county, even in those were we observe a limited number of events. On top of that we would also want to smooth out the contribution of outliers. One option in this case could be to fit a regression model on latitude and longitude data so to be able to estimate the hail size for a given event. However, relying a conventional linear regression approach would not be appropriated in our case as:
+In this case what we would want to do is to pool information from the entire state for helping estimating a given percentile of hail size in each county, even in those where we observe a limited number of events. On top of that we would also want to smooth out the contribution of outliers. One option in this case could be to fit a regression model on latitude and longitude data so to be able to estimate the hail size for a given event. However, relying a conventional linear regression approach would not be appropriated in our case as:
 
 1. Estimating the mean as simple least square regression would do is not appropriate as in our case we would be interested in the tail of the distribution.
 
@@ -1210,7 +1201,7 @@ In this case what we would want to do is to pool information from the entire sta
 
 3. Looking at @fig-hail_comparison_total we can see that if a relationship between latitude, longitude and hail size exists, it is certainly not linear.
 
-4. In order to perform proper risk statements on estimate of hail size we need to be able to quantify uncertainty around our estimets.
+4. In order to perform proper risk statements on estimate of hail size we need to be able to quantify uncertainty around our estimates.
 
 5. Estimating the size of hailstone for extreme events might only solve half of the problem. Since hail events per se are very rare it is also important to estimate their overall likelihood.
 
@@ -1247,19 +1238,6 @@ from numpyro.infer.autoguide import (
 
 RNG_KEY = random.key(seed=666)
 
-def sample_using_mcmc(
-    rng_key: ArrayLike,
-    model: Callable,
-    model_kwargs: Dict[str, Any],
-    MCMC_kwargs: Dict[str, Any],
-) -> MCMC:
-    """Sample from the model using MCMC"""
-    rng_key, sub_rng_key = random.split(rng_key)
-    kernel = NUTS(model=model)
-    mcmc = MCMC(kernel, progress_bar=True, **MCMC_kwargs)
-    mcmc.run(sub_rng_key, **model_kwargs)
-    mcmc.print_summary()
-    return mcmc
 
 
 def sample_using_svi(
@@ -1278,7 +1256,7 @@ def sample_using_svi(
     guide = autoguide(model=model, **guide_kwargs)
     optimizer = numpyro.optim.ClippedAdam(**optimizer_kwargs)
     svi = SVI(model, guide, optimizer, loss=elbo_tracer(num_particles=num_particles))
-    svi_result = svi.run(sub_rng_key, num_steps, **model_kwargs)
+    svi_result = svi.run(sub_rng_key, num_steps, progress_bar=False, **model_kwargs)
 
     fig, ax = plt.subplots()
     ax.plot(svi_result.losses)
@@ -1289,17 +1267,6 @@ def sample_using_svi(
     return svi_result, guide
 
 
-def sample_posterior_predictive_mcmc(
-    rng_key: ArrayLike,
-    model: Callable,
-    posterior_samples: Dict[str, Any],
-    model_kwargs: Dict[str, Any],
-) -> ArrayLike:
-    """Sample from the posterior using MCMC  posterior samples"""
-    rng_key, sub_rng_key = random.split(rng_key)
-    predictive = Predictive(model, posterior_samples=posterior_samples)
-    posterior_predictive = predictive(rng_key=sub_rng_key, **model_kwargs)
-    return posterior_predictive
 
 
 def sample_posterior_predictive_svi(
@@ -1477,57 +1444,12 @@ def visualize_geo_regression(
         )
         ax.grid(alpha=0.5)
         ax.set_title(column)
-        ax.set_ylabel("Longitude")
-        ax.set_xlabel("Latitude")
+        ax.set_ylabel("Latitude")
+        ax.set_xlabel("Longitude")
 
     return fig, axs
 
 
-def visualize_county_regression(
-    modelling_df: pd.DataFrame,
-    covariates_hat_df: gpd.GeoDataFrame,
-    posterior: Dict[str, ArrayLike],
-    parameter: str,
-    target: str,
-) -> Tuple[plt.Figure, Axes]:
-    """Visualize the regression at county level"""
-    samples_df = pd.DataFrame(posterior[parameter].T)
-    samples_df[COUNTIES_INDEX] = covariates_hat_df[COUNTIES_INDEX].values
-    rows = 4
-    random_counties = np.random.choice(
-        samples_df[COUNTIES_INDEX].unique(), rows**2, replace=False
-    )
-    fig, axs = plt.subplots(rows, rows, figsize=(10, 10))
-    for county, ax in zip(random_counties, axs.flatten()):
-
-        county_target = modelling_df[modelling_df[COUNTIES_INDEX] == county][
-            target
-        ].values
-        county_samples = (
-            samples_df[samples_df[COUNTIES_INDEX] == county]
-            .drop([COUNTIES_INDEX], axis=1)
-            .values.flatten()
-        )
-        sns.histplot(
-            data=county_target,
-            element="step",
-            fill=False,
-            stat="density",
-            ax=ax,
-            color=COLORMAP(5),
-        )
-
-        ax.axvline(np.quantile(county_target, CRITICAL_QUANTILE), c="r", linestyle="--")
-        ax.axvspan(
-            np.quantile(county_samples, 0.025),
-            np.quantile(county_samples, 0.975),
-            alpha=0.5,
-            color="red",
-        )
-        ax.grid(alpha=0.5)
-        ax.set_ylim(0, None)
-    plt.tight_layout()
-    return fig, axs
 
 
 def visualize_temporal_components(temporal_components: Dict[str, ArrayLike]) -> Tuple[plt.Figure, Axes]:
@@ -1568,6 +1490,11 @@ def visualize_temporal_components(temporal_components: Dict[str, ArrayLike]) -> 
 
 def create_tensor_product_spline(first_spline, second_spline):
     return np.tensordot(first_spline, second_spline, axes=0)
+
+
+# knots spanning a full cycle (January to the following January, 00:00 to 24:00)
+MONTH_KNOTS = np.linspace(1, 13, 7).reshape(-1, 1)
+HOUR_KNOTS = np.linspace(0, 24, 9).reshape(-1, 1)
 ```
 
 ### Estimating Expected Extreme Values Using Quantile Regression{#sec-quantile_regression}
@@ -1576,23 +1503,28 @@ A potential solution for estimating the hail size of rare (i.e. extreme) events 
 
 ![Example of Quantile Regression](results/images/quantile_regression.png)
 
-Using a regression approach would allow us to include the type of spatial and temporal effect we outlined during oour exploratory data analysis. Generically the regression would have the following formulation:
+Using a regression approach would allow us to include the type of spatial and temporal effect we outlined during our exploratory data analysis. Generically the regression would have the following formulation:
 
 $\mathcal{Q}_{y_i|X_i}(\tau) = \alpha + \beta X_i$
 
-with $\tau$ being the desired quantile, $X_i$ all the spatio-temporal covariates associated with hail events $y_i$ and $\alpha$ and $\beta$ parameters to be estimated. A convenient choice of likelihood function for estimating $$\mathcal{Q}_{y_i|X_i}(\tau)$ would be the [asymetric laplace distribution](https://en.wikipedia.org/wiki/Asymmetric_Laplace_distribution). Expanding the formulation for quantile regression further, we would have
+with $\tau$ being the desired quantile, $X_i$ all the spatio-temporal covariates associated with hail events $y_i$ and $\alpha$ and $\beta$ parameters to be estimated. A convenient choice of likelihood function for estimating $\mathcal{Q}_{y_i|X_i}(\tau)$ would be the [asymmetric laplace distribution](https://en.wikipedia.org/wiki/Asymmetric_Laplace_distribution). Expanding the formulation for quantile regression further, we would have
 
-$\mathcal{AsymettricLaplace}(y; \mu, \tau) = \alpha + \phi(LatLon_i) \beta_{LatLon} + \phi(hour) \beta_{Hour} + \phi(month) \beta_{month} + \phi(year) \beta_{year}$
+$$
+\begin{gather}
+y_i \sim AsymmetricLaplace(\mu_i, \sigma, \tau) \\
+\mu_i = \alpha + \phi(LatLon_i) \beta_{LatLon} + \phi(hour_i) \beta_{Hour} + \phi(month_i) \beta_{Month} + \phi(year_i) \beta_{Year}
+\end{gather}
+$$
 
-here $\phi$ indicate a cubic spline function that we apply in order to model non-linearity in the contribution of the various covariates. More precisly, $\phi(LatLon_i)$ is a [tensor-product spline](https://stats.stackexchange.com/questions/45446/intuition-behind-tensor-product-interactions-in-gams-mgcv-package-in-r) generated from the latitude and longitude splines. $\phi(hour)$ and $\phi(month)$ can be thought as seasonal components while $\phi(year)$ can be identified as a trend component. In or case the only parameter to be estimated is $\mu$ that indicates the value of $y$ at quantile $\tau$. 
+here $\phi$ indicates a cubic spline function that we apply in order to model non-linearity in the contribution of the various covariates (periodic for hour and month, so that the end of the cycle joins its beginning). More precisely, $\phi(LatLon_i)$ is a [tensor-product spline](https://stats.stackexchange.com/questions/45446/intuition-behind-tensor-product-interactions-in-gams-mgcv-package-in-r) generated from the latitude and longitude splines. $\phi(hour)$ and $\phi(month)$ can be thought as seasonal components while $\phi(year)$ can be identified as a trend component. In our case the parameter of interest is $\mu$ that indicates the value of $y$ at quantile $\tau$. 
 
 In order to perform estimation on the entire surface of Florida we opted for an approximation of the spatial covariates by doing the following:
 
-1. Dividing the entire surface of Florida in a grid with 1 mile resolution (see @fig-estimation_grid).
+1. Dividing the entire surface of Florida in a grid with a resolution of 0.01 degrees, roughly 0.7 miles (see @fig-estimation_grid).
 
 ![The Estimation Grid Used for the Regression](results/images/estimation_grid.png){#fig-estimation_grid}
 
-3. For each square in the grid we obtain its centroid and extract the latitude, longitude and maximum observed hail size for that specific centroid obtaining something like the following table
+2. For each square in the grid we obtain its centroid and extract the latitude, longitude and maximum observed hail size for that specific centroid obtaining something like the following table
 
 | latitude | longitude | hail_size |
 |:--------:|:---------:|:---------:|
@@ -1653,7 +1585,6 @@ quantile_regression_transformers = {
                 "spline_transformer",
                 SplineTransformer(
                     include_bias=False,
-                    extrapolation="periodic",
                     n_knots=8,
                 ),
             )
@@ -1665,7 +1596,6 @@ quantile_regression_transformers = {
                 "spline_transformer",
                 SplineTransformer(
                     include_bias=False,
-                    extrapolation="periodic",
                     n_knots=8,
                 ),
             )
@@ -1687,12 +1617,16 @@ quantile_regression_transformers = {
             ),
         ]
     ),
+    # months and hours are cyclic: periodic splines whose knots span a full
+    # cycle make December continuous with January and 23:00 with 00:00
     "month_covariates": Pipeline(
         steps=[
             (
                 "spline_transformer",
                 SplineTransformer(
                     include_bias=False,
+                    knots=MONTH_KNOTS,
+                    extrapolation="periodic",
                 ),
             )
         ]
@@ -1703,6 +1637,8 @@ quantile_regression_transformers = {
                 "spline_transformer",
                 SplineTransformer(
                     include_bias=False,
+                    knots=HOUR_KNOTS,
+                    extrapolation="periodic",
                 ),
             )
         ]
@@ -1785,18 +1721,19 @@ Before modelling the spatial components directly (which is a rather expensive pr
 
 $$
 \begin{gather}
-\color{RedOrange}\sigma_{county} \sim HalfCauchy(\sigma=5) \\
-\color{RedOrange}\mu_{county} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{RedOrange}\sigma_{county} \sim HalfCauchy(\sigma=2) \\
+\color{RedOrange}\mu_{county} \sim \mathcal{N}(\mu=0, \sigma=5) \\
 \color{RedOrange}\alpha_{county} \sim \mathcal{N}(\mu_{county}, \sigma_{county}) \\
 \beta_{hour} \sim \mathcal{N}(\mu=0, \sigma=1) \\
 \beta_{month} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\beta_{year} \sim \mathcal{N}(\mu=0, \sigma=1) \\
 \sigma \sim HalfNormal(1)\\
 \mu = exp(\alpha_{county} + \beta_{hour}f(hour) + \beta_{month}f(month) + \beta_{year}f(year))\\
-\color{RedOrange} y \sim AsymmetricLapace(\mu, \sigma, \tau=.95)
+\color{RedOrange} y \sim AsymmetricLaplace(\mu, \sigma, \tau=.95)
 \end{gather}
 $$
 
-Given the formulation above, it is important to remeber that given the exponential link applied to $\mu$ the relationship between covariates is multiplicative rather than additive.
+Given the formulation above, it is important to remember that given the exponential link applied to $\mu$ the relationship between covariates is multiplicative rather than additive.
 
 We define the model in numpyro and visualize its graphical model representation
 
@@ -1817,9 +1754,9 @@ def hierarchical_non_spatial_quantile_regression(
     prior_beta_year: Distribution,
     prior_beta_month: Distribution,
     prior_beta_hour: Distribution,
+    n_groups: int,
 ) -> None:
     """Quantile regression model with partially pooled intercept"""
-    n_groups = len(np.unique(covariates["counties_index"]))
     counties_index = covariates["counties_index"].flatten()
 
     mu_alpha = numpyro.sample(
@@ -1920,6 +1857,7 @@ hierarchical_non_spatial_model_kwargs = {
     "prior_beta_month": Normal(loc=0.0, scale=1),
     "prior_beta_hour": Normal(loc=0.0, scale=1),
     "prior_scale": HalfNormal(scale=1),
+    "n_groups": len(quantile_regression_transformers["counties_index"].categories_[0]),
 }
 numpyro.render_model(
     hierarchical_non_spatial_quantile_regression,
@@ -1933,12 +1871,12 @@ Given the size of our data we then proceed at estimating the parameters using [v
 ```{python}
 svi_pooled_quantile_regression_parameters, svi_pooled_quantile_regression_guide = (
     sample_using_svi(
-        rng_key=RNG_KEY,
+        rng_key=random.fold_in(RNG_KEY, 1),
         model=hierarchical_non_spatial_quantile_regression,
         model_kwargs=hierarchical_non_spatial_model_kwargs,
         autoguide=AutoMultivariateNormal,
         guide_kwargs={},
-        optimizer_kwargs={"step_size": 1e-4, "clip_norm": 5},
+        optimizer_kwargs={"step_size": STEP_SIZE, "clip_norm": 5},
         num_steps=NUMBER_ITERATIONS,
         num_particles=NUMBER_PARTICLES,
     )
@@ -1949,7 +1887,7 @@ An then sampled from the posterior distribution using previously unseen data (i.
 
 ```{python}
 posterior_hierarchical_non_spatial_regression_svi = sample_posterior_predictive_svi(
-    rng_key=RNG_KEY,
+    rng_key=random.fold_in(RNG_KEY, 2),
     covariates_hat=quantile_regression_covariates_hat,
     model_kwargs=hierarchical_non_spatial_model_kwargs,
     model=hierarchical_non_spatial_quantile_regression,
@@ -1960,7 +1898,7 @@ posterior_hierarchical_non_spatial_regression_svi = sample_posterior_predictive_
 )
 ```
 
-This plot shows the estimated intercept values for each county as a crude approxiamtion of a spatial component
+This plot shows the estimated intercept values for each county as a crude approximation of a spatial component
 
 ```{python}
 fig, axs = visualize_geo_regression(
@@ -1973,7 +1911,7 @@ fig, axs = visualize_geo_regression(
 plt.show()
 ```
 
-While this other plots show both the seasonal and trend componets coming from the hour, month and year covariates.
+While this other plots show both the seasonal and trend components coming from the hour, month and year covariates.
 
 ```{python}
 fig, axs = visualize_temporal_components(
@@ -1989,17 +1927,17 @@ plt.show()
 
 **Fully Pooled Spatial Quantile Regression**
 
-In order to then obtain a finer grain spatial representation we then proceeded at substituting the intercept $\alpha$ from the previous model with a tensor product spline obtained from latitude and longitude. In the case the $Laplace$ prior is applied in order to put a strong regularization component on the tensor product spline.
+In order to then obtain a finer grain spatial representation we then proceeded at substituting the intercept $\alpha$ from the previous model with a tensor product spline obtained from latitude and longitude. In this case a $Laplace$ prior is applied to the coefficients of the tensor product spline, which favours sparse solutions where most coefficients are close to zero.
 
 $$
 \begin{gather}
-\color{RedOrange}\beta_{spatial} \sim Laplace(\mu=0, \sigma=1) \\
+\color{RedOrange}\beta_{spatial} \sim Laplace(\mu=0, \sigma=5) \\
 \beta_{hour} \sim \mathcal{N}(\mu=0, \sigma=1) \\
 \beta_{month} \sim \mathcal{N}(\mu=0, \sigma=1) \\
 \beta_{year} \sim \mathcal{N}(\mu=0, \sigma=1) \\
 \sigma \sim HalfNormal(1)\\
 \color{RedOrange}\mu = exp(\beta_{spatial}f(spatial) + \beta_{hour}f(hour) + \beta_{month}f(month) + \beta_{year}f(year))\\
-\ y \sim AsymmetricLapace(\mu, \sigma, \tau=.95)
+\ y \sim AsymmetricLaplace(\mu, \sigma, \tau=.95)
 \end{gather}
 $$
 
@@ -2112,12 +2050,12 @@ Again we proceeded at estimating parameters using variational inference
 ```{python}
 svi_pooled_quantile_regression_parameters, svi_pooled_quantile_regression_guide = (
     sample_using_svi(
-        rng_key=RNG_KEY,
+        rng_key=random.fold_in(RNG_KEY, 3),
         model=pooled_quantile_regression,
         model_kwargs=pooled_quantile_model_kwargs,
         autoguide=AutoMultivariateNormal,
         guide_kwargs={},
-        optimizer_kwargs={"step_size": 1e-4, "clip_norm": 5},
+        optimizer_kwargs={"step_size": STEP_SIZE, "clip_norm": 5},
         num_steps=NUMBER_ITERATIONS,
         num_particles=NUMBER_PARTICLES,
     )
@@ -2128,7 +2066,7 @@ And we then obtained the posterior samples
 
 ```{python}
 posterior_pooled_quantile_regression_svi = sample_posterior_predictive_svi(
-    rng_key=RNG_KEY,
+    rng_key=random.fold_in(RNG_KEY, 4),
     covariates_hat=quantile_regression_covariates_hat,
     model_kwargs=pooled_quantile_model_kwargs,
     model=pooled_quantile_regression,
@@ -2171,15 +2109,15 @@ As a final iteration of the quantile regression model we wanted to combine the p
 
 $$
 \begin{gather}
-\color{RedOrange}\sigma_{county} \sim HalfCauchy(\sigma=5) \\
-\color{RedOrange}\mu_{county} \sim \mathcal{N}(\mu=0, \sigma=1) \\
+\color{RedOrange}\sigma_{county} \sim HalfCauchy(\sigma=2) \\
+\color{RedOrange}\mu_{county} \sim \mathcal{N}(\mu=0, \sigma=5) \\
 \color{RedOrange}\beta_{spatial,county} \sim Laplace(\mu_{county}, \sigma_{county}) \\
 \beta_{hour} \sim \mathcal{N}(\mu=0, \sigma=1) \\
 \beta_{month} \sim \mathcal{N}(\mu=0, \sigma=1) \\
 \beta_{year} \sim \mathcal{N}(\mu=0, \sigma=1) \\
 \sigma \sim HalfNormal(1)\\
 \color{RedOrange}\mu = exp(\beta_{spatial,county}f(spatial) + \beta_{hour}f(hour) + \beta_{month}f(month) + \beta_{year}f(year))\\
-\ y \sim AsymmetricLapace(\mu, \sigma, \tau=.95)
+\ y \sim AsymmetricLaplace(\mu, \sigma, \tau=.95)
 \end{gather}
 $$
 
@@ -2200,9 +2138,9 @@ def hierarchical_quantile_regression(
     prior_beta_year: Distribution,
     prior_beta_month: Distribution,
     prior_beta_hour: Distribution,
+    n_groups: int,
 ) -> None:
-    """Quantile regression model with partially pooled intercept"""
-    n_groups = len(np.unique(covariates["counties_index"]))
+    """Quantile regression model with partially pooled spatial spline"""
     n_spatial_covariates = covariates["latitude_longitude_tensor_covariates"].shape[1]
     counties_index = covariates["counties_index"].flatten()
 
@@ -2293,18 +2231,16 @@ hierarchical_quantile_model_kwargs = {
     "prior_beta_month": Normal(loc=0.0, scale=1),
     "prior_beta_hour": Normal(loc=0.0, scale=1),
     "prior_scale": HalfNormal(scale=1),
+    "n_groups": len(quantile_regression_transformers["counties_index"].categories_[0]),
 }
 hierarchical_quantile_model_parameters = [
-    "mu_beta_latitude",
-    "sigma_beta_latitude",
-    "mu_beta_longitude",
-    "sigma_beta_longitude",
+    "mu_beta_spatial",
+    "sigma_beta_spatial",
+    "beta_spatial",
     "beta_hour",
     "beta_month",
     "beta_year",
     "loc",
-    "latitude_component",
-    "longitude_component",
     "temporal_component",
     "spatial_component",
     "hour_component",
@@ -2325,12 +2261,12 @@ numpyro.render_model(
     svi_hierarchical_quantile_regression_parameters,
     svi_hierarchical_quantile_regression_guide,
 ) = sample_using_svi(
-    rng_key=RNG_KEY,
+    rng_key=random.fold_in(RNG_KEY, 5),
     model=hierarchical_quantile_regression,
     model_kwargs=hierarchical_quantile_model_kwargs,
     autoguide=AutoLowRankMultivariateNormal,
     guide_kwargs={},
-    optimizer_kwargs={"step_size": 1e-4, "clip_norm": 5},
+    optimizer_kwargs={"step_size": STEP_SIZE, "clip_norm": 5},
     num_steps=NUMBER_ITERATIONS,
     num_particles=NUMBER_PARTICLES,
 )
@@ -2338,7 +2274,7 @@ numpyro.render_model(
 
 ```{python}
 posterior_hierarchical_quantile_regression_svi = sample_posterior_predictive_svi(
-    rng_key=RNG_KEY,
+    rng_key=random.fold_in(RNG_KEY, 6),
     covariates_hat=quantile_regression_covariates_hat,
     model_kwargs=hierarchical_quantile_model_kwargs,
     model=hierarchical_quantile_regression,
@@ -2349,7 +2285,7 @@ posterior_hierarchical_quantile_regression_svi = sample_posterior_predictive_svi
 )
 ```
 
-As we can see, the spatial component is now much more heterogenous across counties. Although this is the effect we wanted to achieve, some of the sharp variation at counties' edges do not look very natural. This is a desirable effect when environmental conditions justify this behaviour (e.g., the presence of mountains or terrain depressions) but it might also be due to the fact that we did not put any constraint forcing coninuity between contiguous boundaries.
+As we can see, the spatial component is now much more heterogenous across counties. Although this is the effect we wanted to achieve, some of the sharp variation at counties' edges do not look very natural. This is a desirable effect when environmental conditions justify this behaviour (e.g., the presence of mountains or terrain depressions) but it might also be due to the fact that we did not put any constraint forcing continuity between contiguous boundaries.
 
 ```{python}
 visualize_geo_regression(
@@ -2364,7 +2300,7 @@ plt.show()
 ```{python}
 fig, axs = visualize_temporal_components(
     temporal_components=generate_temporal_components(
-        posterior=posterior_pooled_quantile_regression_svi,
+        posterior=posterior_hierarchical_quantile_regression_svi,
         transformers=quantile_regression_transformers,
         years=continuous_state_modelling_df[YEAR_COVARIATES].unique(),
         parameter_transformer=lambda x: jnp.exp(x),
@@ -2373,11 +2309,11 @@ fig, axs = visualize_temporal_components(
 plt.show()
 ```
 
-### Estimating the Likelyhood of Hail Events Using Zero-Inflated Negative Binomial Regression
+### Estimating the Likelihood of Hail Events Using Zero-Inflated Negative Binomial Regression
 
-A potential solution for estimating the overall likelyhood and quantity of  hail events  would be to use a [zero-inflated negative-binomial regression](https://en.wikipedia.org/wiki/Zero-inflated_model).
+A potential solution for estimating the overall likelihood and quantity of hail events  would be to use a [zero-inflated negative-binomial regression](https://en.wikipedia.org/wiki/Zero-inflated_model).
 
-Differently from the quantile regression in this case we did not model the spatial component as it would have been too cumbersome to enumerate all the possible occurencies of non-hail over space and time. We limited at modelling only the temporal component and using a hierarchcical intercept for modelling variations across counties.
+Differently from the quantile regression in this case we did not model the spatial component as it would have been too cumbersome to enumerate all the possible occurrences of non-hail over space and time. We limited at modelling only the temporal component and using a hierarchical intercept for modelling variations across counties.
 
 The zero-inflated negative binomial likelihood used in this regression is a mixture of a discrete component provided by a negative binomial regression and a gate component provided by a logistic regression. The first models the observed number of hail events while the second defines the overall likelihood of a hail event to happen (we suggest consulting [the lecture on mixtures](https://github.com/rmcelreath/stat_rethinking_2024) from Richard McElreath statistical rethinking course for a more precise discussion on the topic.)
 
@@ -2444,12 +2380,16 @@ zero_inflated_regression_transformers = {
             ),
         ]
     ),
+    # months and hours are cyclic: periodic splines whose knots span a full
+    # cycle make December continuous with January and 23:00 with 00:00
     "month_covariates": Pipeline(
         steps=[
             (
                 "spline_transformer",
                 SplineTransformer(
                     include_bias=False,
+                    knots=MONTH_KNOTS,
+                    extrapolation="periodic",
                 ),
             )
         ]
@@ -2460,6 +2400,8 @@ zero_inflated_regression_transformers = {
                 "spline_transformer",
                 SplineTransformer(
                     include_bias=False,
+                    knots=HOUR_KNOTS,
+                    extrapolation="periodic",
                 ),
             )
         ]
@@ -2498,6 +2440,35 @@ zero_inflated_regression_covariates_hat = transform_estimation_covariates(
     transformers=zero_inflated_regression_transformers,
 )
 zero_inflated_regression_target = count_state_modelling_df[COUNT_TARGET].values
+
+
+def add_hail_occurrence_quantities(posterior: Dict[str, ArrayLike]) -> Dict[str, ArrayLike]:
+    """Derive interpretable quantities from the zero-inflated negative binomial.
+
+    gate is the probability of a structural zero (hail cannot occur), so hail
+    can occur with probability 1 - gate. Even then the negative binomial can
+    still produce a zero, which happens with probability
+    (rate / (rate + mean)) ** rate.
+    """
+    posterior = dict(posterior)
+    rate = posterior["rate"][:, None]
+    probability_nb_zero = jnp.power(rate / (rate + posterior["mean"]), rate)
+    posterior["probability_any_hail"] = (1 - posterior["gate"]) * (1 - probability_nb_zero)
+    posterior["expected_events"] = (1 - posterior["gate"]) * posterior["mean"]
+    return posterior
+
+
+def summarize_hail_occurrence(posterior: Dict[str, ArrayLike]) -> pd.DataFrame:
+    """Posterior mean and 95% interval of the occurrence quantities, averaged over locations."""
+    rows = {}
+    for quantity in ["probability_any_hail", "expected_events"]:
+        samples = np.mean(posterior[quantity], axis=1)
+        rows[quantity] = {
+            "mean": np.mean(samples),
+            "2.5%": np.percentile(samples, 2.5),
+            "97.5%": np.percentile(samples, 97.5),
+        }
+    return pd.DataFrame(rows).T
 ```
 
 **Fully Pooled**
@@ -2517,9 +2488,9 @@ $$
 \color{NavyBlue}\beta_{MeanYear} \sim \mathcal{N}(\mu=0, \sigma=1) \\
 \\
 \color{RedOrange}p = expit(\alpha_{Gate} + \beta_{GateHour}f(hour) + \beta_{GateMonth}f(month) + \beta_{GateYear}f(year))\\
-\color{NavyBlue}\mu = exp(\alpha_{Mean} + \beta_{MeanHour}f(hour) + \beta_{MeanMonth}f(month) + \beta_{GateYear}f(year))\\
+\color{NavyBlue}\mu = exp(\alpha_{Mean} + \beta_{MeanHour}f(hour) + \beta_{MeanMonth}f(month) + \beta_{MeanYear}f(year))\\
 \\
-\lambda \sim InverseGamma(0.3, 0.4)\\
+\lambda \sim InverseGamma(0.4, 0.3)\\
 
 \ y \sim ZeroInflatedNegativeBinomial(p, \mu, \lambda)
 \end{gather}
@@ -2705,12 +2676,12 @@ numpyro.render_model(
     svi_pooled_zero_inflated_regression_parameters,
     svi_pooled_zero_inflated_regression_guide,
 ) = sample_using_svi(
-    rng_key=RNG_KEY,
+    rng_key=random.fold_in(RNG_KEY, 7),
     model=pooled_zero_inflated_negative_binomial_regression,
     model_kwargs=pooled_zero_inflated_regression_kwargs,
     autoguide=AutoLowRankMultivariateNormal,
     guide_kwargs={},
-    optimizer_kwargs={"step_size": 1e-4, "clip_norm": 5},
+    optimizer_kwargs={"step_size": STEP_SIZE, "clip_norm": 5},
     num_steps=NUMBER_ITERATIONS,
     num_particles=NUMBER_PARTICLES,
 )
@@ -2718,7 +2689,7 @@ numpyro.render_model(
 
 ```{python}
 posterior_pooled_zero_inflated_regression_svi = sample_posterior_predictive_svi(
-    rng_key=RNG_KEY,
+    rng_key=random.fold_in(RNG_KEY, 8),
     model=pooled_zero_inflated_negative_binomial_regression,
     guide=svi_pooled_zero_inflated_regression_guide,
     covariates_hat=zero_inflated_regression_covariates_hat,
@@ -2729,25 +2700,18 @@ posterior_pooled_zero_inflated_regression_svi = sample_posterior_predictive_svi(
 )
 ```
 
-Differently from the qunatile regression, we can now visualize two parameters for each of the various components, the gate $p$ and the mean $\mu$. The first can be understood as the probability of **any** hail happening in a given county at a given point in time. The second is the expected number of hail events **given** that hail is happening.
+Differently from the quantile regression, the model has two components: the gate $p$ and the mean $\mu$. $p$ is the probability that hail **can** occur in a given county at a given point in time (in numpyro the `gate` is its complement, the probability of a structural zero), while $\mu$ is the mean of the negative binomial, which can itself produce zeros. Combining them we obtain two more interpretable quantities: the probability of observing **any** hail event, $p \cdot (1 - NB(0 \mid \mu, \lambda))$, and the expected number of hail events, $p \cdot \mu$.
+
+As this model has no spatial component, these quantities are the same for every county, so rather than mapping them we summarize them for the estimation hour (5 pm in May 2024).
 
 ```{python}
-visualize_geo_regression(
-    covariates_hat_df=zero_inflated_regression_covariates_hat_df,
-    posterior=posterior_pooled_zero_inflated_regression_svi,
-    parameter="alpha_gate",
+posterior_pooled_zero_inflated_regression_svi = add_hail_occurrence_quantities(
+    posterior_pooled_zero_inflated_regression_svi
 )
-plt.show()
+summarize_hail_occurrence(posterior_pooled_zero_inflated_regression_svi)
 ```
 
-```{python}
-visualize_geo_regression(
-    covariates_hat_df=zero_inflated_regression_covariates_hat_df,
-    posterior=posterior_pooled_zero_inflated_regression_svi,
-    parameter="alpha_mean",
-)
-plt.show()
-```
+The temporal components below are multiplicative effects on the odds of hail being possible (gate) and on the expected number of events (mean).
 
 ```{python}
 fig, axs = visualize_temporal_components(
@@ -2756,6 +2720,7 @@ fig, axs = visualize_temporal_components(
         transformers=zero_inflated_regression_transformers,
         years=count_state_modelling_df[YEAR_COVARIATES].unique(),
         suffix="_gate",
+        parameter_transformer=lambda x: jnp.exp(x),
     )
 )
 plt.show()
@@ -2768,6 +2733,7 @@ fig, axs = visualize_temporal_components(
         transformers=zero_inflated_regression_transformers,
         years=count_state_modelling_df[YEAR_COVARIATES].unique(),
         suffix="_mean",
+        parameter_transformer=lambda x: jnp.exp(x),
     )
 )
 plt.show()
@@ -2795,9 +2761,9 @@ $$
 \color{NavyBlue}\beta_{MeanYear} \sim \mathcal{N}(\mu=0, \sigma=1) \\
 \\
 \color{RedOrange}p = expit(\alpha_{Gate, County} + \beta_{GateHour}f(hour) + \beta_{GateMonth}f(month) + \beta_{GateYear}f(year))\\
-\color{NavyBlue}\mu = exp(\alpha_{Mean, County} + \beta_{MeanHour}f(hour) + \beta_{MeanMonth}f(month) + \beta_{GateYear}f(year))\\
+\color{NavyBlue}\mu = exp(\alpha_{Mean, County} + \beta_{MeanHour}f(hour) + \beta_{MeanMonth}f(month) + \beta_{MeanYear}f(year))\\
 \\
-\lambda \sim InverseGamma(0.3, 0.4)\\
+\lambda \sim InverseGamma(0.4, 0.3)\\
 
 \ y \sim ZeroInflatedNegativeBinomial(p, \mu, \lambda)
 \end{gather}
@@ -2822,9 +2788,9 @@ def hierarchical_zero_inflated_negative_binomial_regression(
     prior_sigma_alpha_gate: Distribution,
     prior_mu_alpha_mean: Distribution,
     prior_sigma_alpha_mean: Distribution,
+    number_groups: int,
 ) -> None:
     """Hierarchical zero-inflated Negative Binomial regression model"""
-    number_groups = len(np.unique(covariates["counties_index"]))
     counties_index = covariates["counties_index"].flatten()
 
     mu_alpha_gate = numpyro.sample(
@@ -3005,6 +2971,7 @@ hierarchical_zero_inflated_regression_kwargs = {
     "prior_beta_year_mean": Normal(loc=0.0, scale=1),
     "prior_beta_month_mean": Normal(loc=0.0, scale=1),
     "prior_beta_hour_mean": Normal(loc=0.0, scale=1),
+    "number_groups": len(zero_inflated_regression_transformers["counties_index"].categories_[0]),
 }
 numpyro.render_model(
     hierarchical_zero_inflated_negative_binomial_regression,
@@ -3018,12 +2985,12 @@ numpyro.render_model(
     svi_hierarchical_zero_inflated_regression_parameters,
     svi_hierarchical_zero_inflated_regression_guide,
 ) = sample_using_svi(
-    rng_key=RNG_KEY,
+    rng_key=random.fold_in(RNG_KEY, 9),
     model=hierarchical_zero_inflated_negative_binomial_regression,
     model_kwargs=hierarchical_zero_inflated_regression_kwargs,
     autoguide=AutoLowRankMultivariateNormal,
     guide_kwargs={},
-    optimizer_kwargs={"step_size": 1e-4, "clip_norm": 5},
+    optimizer_kwargs={"step_size": STEP_SIZE, "clip_norm": 5},
     num_steps=NUMBER_ITERATIONS,
     num_particles=NUMBER_PARTICLES,
 )
@@ -3031,7 +2998,7 @@ numpyro.render_model(
 
 ```{python}
 posterior_hierarchical_zero_inflated_regression_svi = sample_posterior_predictive_svi(
-    rng_key=RNG_KEY,
+    rng_key=random.fold_in(RNG_KEY, 10),
     model=hierarchical_zero_inflated_negative_binomial_regression,
     guide=svi_hierarchical_zero_inflated_regression_guide,
     covariates_hat=zero_inflated_regression_covariates_hat,
@@ -3042,22 +3009,27 @@ posterior_hierarchical_zero_inflated_regression_svi = sample_posterior_predictiv
 )
 ```
 
-And as we can see we can obtain different estimates for the various counties in Florida
+And as we can see we can obtain different estimates for the various counties in Florida, here the probability of observing any hail event
 
 ```{python}
+posterior_hierarchical_zero_inflated_regression_svi = add_hail_occurrence_quantities(
+    posterior_hierarchical_zero_inflated_regression_svi
+)
 visualize_geo_regression(
     covariates_hat_df=zero_inflated_regression_covariates_hat_df,
     posterior=posterior_hierarchical_zero_inflated_regression_svi,
-    parameter="spatial_component_gate",
+    parameter="probability_any_hail",
 )
 plt.show()
 ```
 
+and the expected number of hail events
+
 ```{python}
 visualize_geo_regression(
     covariates_hat_df=zero_inflated_regression_covariates_hat_df,
     posterior=posterior_hierarchical_zero_inflated_regression_svi,
-    parameter="spatial_component_mean",
+    parameter="expected_events",
 )
 plt.show()
 ```
@@ -3069,6 +3041,7 @@ fig, axs = visualize_temporal_components(
         transformers=zero_inflated_regression_transformers,
         years=count_state_modelling_df[YEAR_COVARIATES].unique(),
         suffix="_gate",
+        parameter_transformer=lambda x: jnp.exp(x),
     )
 )
 plt.show()
@@ -3081,6 +3054,7 @@ fig, axs = visualize_temporal_components(
         transformers=zero_inflated_regression_transformers,
         years=count_state_modelling_df[YEAR_COVARIATES].unique(),
         suffix="_mean",
+        parameter_transformer=lambda x: jnp.exp(x),
     )
 )
 plt.show()
@@ -3088,9 +3062,9 @@ plt.show()
 
 # Closing remarks
 
-We provided here a general overview on how to estimate hail risk, and extreme hail risk in particular, using spatio-temporal information. The two model we presented here could be used inside a simulation setting for assessing the likelyhood and magnitude of an extreme hail event happeinging in a particular location and at a certain point in time.
+We provided here a general overview on how to estimate hail risk, and extreme hail risk in particular, using spatio-temporal information. The two models we presented here could be used inside a simulation setting for assessing the likelihood and magnitude of an extreme hail event happening in a particular location and at a certain point in time.
 
-The zero-inflated negative binomial model could be used for simulating the occurence of all hail events while the quantile regression would help describing the magnitude of such events if they were to be considered extreme.
+The zero-inflated negative binomial model could be used for simulating the occurrence of all hail events while the quantile regression would help describing the magnitude of such events if they were to be considered extreme.
 
 # Hardware and Requirements
 

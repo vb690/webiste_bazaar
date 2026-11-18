@@ -1,0 +1,11 @@
+---
+title: "Talks"
+description: "Talks I have given at conferences and meetups."
+listing:
+  contents: talks.yml
+  type: default
+  sort: "date desc"
+  fields: [date, title, subtitle, description]
+page-layout: full
+title-block-banner: true
+---

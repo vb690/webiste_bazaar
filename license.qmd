@@ -1,0 +1,24 @@
+---
+title: "License"
+subtitle: "How you can reuse the content and the code on this website."
+number-sections: false
+toc: false
+---
+
+::: {.justify}
+
+## Content
+
+The written content, figures and images on this website are licensed under the [Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/). You are free to share and adapt them for any purpose, including commercially, as long as you give appropriate credit and link back to the original.
+
+## Code
+
+The code in the posts and in the [source repository](https://github.com/vb690/webiste_bazaar) is licensed under the [MIT License](https://github.com/vb690/webiste_bazaar/blob/main/LICENSE).
+
+## No AI training
+
+The content of this website may not be used to train, fine-tune or otherwise develop machine learning models, including large language models, and may not be collected for these purposes.
+
+This is an express reservation of rights for text and data mining under Article 4(3) of the EU Directive on Copyright in the Digital Single Market ([Directive (EU) 2019/790](https://eur-lex.europa.eu/eli/dir/2019/790/oj)). The reservation is also stated in machine-readable form in every page of the website, using the [TDM Reservation Protocol](https://www.w3.org/community/reports/tdmrep/CG-FINAL-tdmrep-20240510/) and `noai` robots directives.
+
+:::

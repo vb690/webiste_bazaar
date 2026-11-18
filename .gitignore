@@ -161,7 +161,10 @@ cython_debug/
 
 /.quarto/
 .DS_Store
-posts/blog_posts/.jupyter_cache/*
+.jupyter_cache/
+_site/
+._*
+.claude
 
 # data
 posts/blog_posts/local_data/*

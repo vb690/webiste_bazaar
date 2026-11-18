@@ -9,6 +9,8 @@ categories:
   - contextual bandits
 bibliography: bibliographies/lin_ucb_jax.bib
 jupyter: python3
+execute:
+  freeze: auto
 ---
 
 ```{python}

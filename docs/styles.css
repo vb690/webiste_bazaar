@@ -3,3 +3,79 @@
 .justify {
     text-align: justify !important
 }
+
+/* Claude badges, added by filters/ai-badge.lua */
+
+.ai-badge {
+    margin: 0 0 1.5rem 0;
+    font-size: 0.85rem;
+    line-height: 1.6;
+}
+
+.ai-badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.15em 0.75em;
+    border: 1px solid var(--bs-primary);
+    border-radius: 999px;
+    color: var(--bs-primary);
+    font-weight: 600;
+    text-decoration: none !important;
+    white-space: nowrap;
+}
+
+.ai-badge-generated .ai-badge-pill,
+.ai-badge-pill-filled {
+    background-color: var(--bs-primary);
+    color: #fff;
+}
+
+a.ai-badge-pill:hover {
+    filter: brightness(0.9);
+}
+
+img.ai-badge-icon {
+    height: 1em;
+    width: auto;
+    margin: 0;
+}
+
+/* Bootstrap icons sit 0.125em below the baseline, which pushes them off
+   centre inside the flex badge: reset the offset and centre the glyph */
+i.ai-badge-icon {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+}
+
+i.ai-badge-icon::before {
+    vertical-align: 0;
+}
+
+.ai-badge-explainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0 1.5rem 0;
+}
+
+.ai-badge-card {
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    border-radius: 0.5rem;
+}
+
+.ai-badge-card .ai-badge {
+    margin-bottom: 0.75rem;
+}
+
+.ai-badge-card p {
+    margin: 0;
+}
+
+.ai-badge-note {
+    margin-left: 0.5em;
+    color: var(--bs-secondary-color, #6c757d);
+    font-style: italic;
+}

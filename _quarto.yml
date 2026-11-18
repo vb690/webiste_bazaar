@@ -4,6 +4,10 @@ project:
 
 website:
   title: "Bazaar"
+  site-url: "https://vb690.github.io/webiste_bazaar/"
+  page-footer:
+    left: "© 2023-2026 Valerio Bonometti · Content [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) · Code [MIT](https://github.com/vb690/webiste_bazaar/blob/main/LICENSE)"
+    right: "[No AI training](/license.qmd)"
   page-navigation: true
   reader-mode: true
 
@@ -17,6 +21,8 @@ website:
         href: posts/tutorials/index.qmd
       - text: "Blog Posts"
         href: posts/blog_posts/index.qmd
+      - text: "Talks"
+        href: talks.qmd
   
   sidebar:
     - contents:
@@ -26,14 +32,25 @@ website:
       - text: "Blog"
         href: posts/blog_posts/index.qmd
 
+      - text: "Talks"
+        href: talks.qmd
+
 format:
   html:
     theme: minty
     css: styles.css
+    include-in-header: ai-optout.html
+
+filters:
+  - filters/ai-badge.lua
 
 toc: true
 toc-title: "What's on this page"
 number-sections: true
 
+# Never re-execute a notebook on a full render unless its .qmd changed, and when it
+# did, reuse cached cell outputs if only prose changed (needs `jupyter-cache`).
+# Note: `quarto render <file>.qmd` / previewing a single file always re-executes it.
 execute:
   freeze: auto
+  cache: true

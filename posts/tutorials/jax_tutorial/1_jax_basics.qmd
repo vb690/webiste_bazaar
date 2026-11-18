@@ -5,6 +5,8 @@ author: "Valerio Bonometti"
 date: "2023-08-24"
 categories: [JAX, Tutorial, basics]
 jupyter: python3
+execute:
+  freeze: auto
 ---
 ```{python}
 #| code-fold: true
